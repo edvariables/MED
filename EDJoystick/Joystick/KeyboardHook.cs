@@ -12,7 +12,7 @@ using static MED.EDJoystick.KeyboardHook;
 
 namespace MED.EDJoystick
 {
-    internal class KeyboardHook : IKeyboardHook
+    public class KeyboardHook : IKeyboardHook
     {
         [DllImport("user32.dll")]
         private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);

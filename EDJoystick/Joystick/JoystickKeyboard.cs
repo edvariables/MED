@@ -54,22 +54,27 @@ namespace MED.EDJoystick
 
     public class JoystickKeyboard : IJoystick
     {
-        
+
         private Dictionary<JoystickUsage, Keys[]> _mapping = new();
         private Dictionary<Keys, KBControl> _keys_controls = new();
 
         private IKeyboardHook _KeyboardHook;
+        private Type _KeyboardHook_Type;
 
-        public JoystickKeyboard(Form formHandler, ILogger<Devices> _logger): base(formHandler, _logger)
+        public JoystickKeyboard(Form formHandler, ILogger<Devices> _logger) : base(formHandler, _logger)
         {
             Init_Mapping();
+        }
+        public JoystickKeyboard(Form formHandler, ILogger<Devices> _logger, Type keyboardHook_Type) : this(formHandler, _logger)
+        {
+            _KeyboardHook_Type = keyboardHook_Type;
         }
 
         private void Init_Mapping()
         {
             _mapping.Add(JoystickUsage.Y, [Keys.Z, Keys.S]);
             _mapping.Add(JoystickUsage.X, [Keys.D, Keys.Q]);
-            _mapping.Add(JoystickUsage.Z, [Keys.Right,Keys.Left]);
+            _mapping.Add(JoystickUsage.Z, [Keys.Right, Keys.Left]);
             _mapping.Add(JoystickUsage.Start, [Keys.Enter]);
             _mapping.Add(JoystickUsage.LeftBumper, [Keys.Space]);
 
@@ -100,8 +105,8 @@ namespace MED.EDJoystick
          * */
         public override bool Connect()
         {
-            SetControls(_mapping );
-            _KeyboardHook = new KeyboardFormEvents();
+            SetControls(_mapping);
+            _KeyboardHook = (IKeyboardHook)Activator.CreateInstance(_KeyboardHook_Type);
             _KeyboardHook.KeyChanged += KeyChange_Event;
             _KeyboardHook.StartHook(FormHandler);
             IsConnected = true;
@@ -184,13 +189,21 @@ namespace MED.EDJoystick
             {
                 var value = pressed ? -1L : 0L;
 
-                if( ! pressed
+                if (!pressed
                  && control.Keys.Length > 1
                  && _KeyboardHook.IsKeyDown(control.Keys[0]))
                 {
                     value = 1L;
                 }
                 SetControlValue(control.ControlKey, value);
+            }
+        }
+
+        public override List<JoystickUsage> Usages
+        {
+            get
+            {
+                return _mapping.Keys.ToList();
             }
         }
     }

@@ -20,9 +20,10 @@ namespace MED
         public FMain()
         {
             InitializeComponent();
+            Init_Joystick_Config();
         }
 
-        public FMain(IJoystick joystick):this()
+        public FMain(IJoystick joystick) : this()
         {
             Joystick = joystick;
             _refresh_delay = 200 * TimeSpan.TicksPerMillisecond;
@@ -30,28 +31,9 @@ namespace MED
                 chkRun.Checked = true;
         }
 
-        private long _refresh_ticks = 0L;
-        private readonly long _refresh_delay = 0L;
-        //private Thread _refresh_delayed_thread;
-        private Task _refresh_delayed_task;
-
-        private void chkRun_CheckedChanged(object sender, EventArgs e)
-        {
-            if (Joystick == null && !chkRun.Checked)
-                return;
-            if (chkRun.Checked)
-            {
-                chkRun.Text = "En cours...";
-                RunTask(Joystick);
-            }
-            else
-            {
-                Joystick?.Disconnect();
-                chkRun.Text = "Activer";
-            }
-
-        }
-
+        /**
+         * RTBLogger
+         */
         private ILogger<Devices> _RTBLogger;
         public ILogger<Devices> RTBLogger
         {
@@ -63,26 +45,148 @@ namespace MED
             }
         }
 
-        private IJoystick Joystick;
-        private void RunTask(IJoystick joystick = null)
+        /***
+         * Init_Joystick_Config
+         */
+        public void Init_Joystick_Config()
         {
-            if(joystick == null)
-                Joystick = new JoystickKeyboard(this, RTBLogger);
+            cboJoystickConfig.SelectedIndex = 0;
+        }
+
+        /***
+         * Init_Joystick_Usages
+         */
+        public void Init_Joystick_Usages()
+        {
+            var value = cboUsages.Text;
+            cboUsages.Items.Clear();
+            cboUsages.Items.Add($"(tous)");
+            foreach (var usage in Joystick.Usages)
+                cboUsages.Items.Add(usage);
+            cboUsages.Text = value;
+        }
+
+        /**
+         * _refresh_ticks
+         */
+        private long _refresh_ticks = 0L;
+        private readonly long _refresh_delay = 0L;
+        //private Thread _refresh_delayed_thread;
+        private Task _refresh_delayed_task;
+
+        /**
+         * chkRun CheckedChanged
+         * 
+         * */
+        private void chkRun_CheckedChanged(object sender, EventArgs e)
+        {
+            if (Joystick == null && !chkRun.Checked)
+                return;
+            if (chkRun.Checked)
+            {
+                chkRun.Text = "Connexion...";
+                if( ! RunTask(Joystick))
+                    chkRun.Checked = false;
+            }
+            else
+            {
+                Joystick?.Disconnect();
+                chkRun.Text = "Activer";
+            }
+
+        }
+
+        private IJoystick Joystick;
+
+        /**
+         * Create Joystick
+         * 
+         */
+        private IJoystick CreateJoystick()
+        {
+            if (cboJoystickConfig.SelectedIndex < 0)
+            {
+                MessageBox.Show("Veuillez sélectionner une config.");
+                return null;
+            }
+
+            var sConfig = cboJoystickConfig.Items[cboJoystickConfig.SelectedIndex].ToString();
+            int nConfig = int.Parse(sConfig.Split(':')[0].Trim());
+            switch (nConfig)
+            {
+//1 : Clavier
+//2 : Clavier / Hook
+//3 : Joystick
+//4 : Joystick #2
+//5 : Joystick #3
+                case 1:
+                    return new JoystickKeyboard(this, RTBLogger, typeof(KeyboardFormEvents));
+                case 2:
+                    return new JoystickKeyboard(this, RTBLogger, typeof(KeyboardHook));
+                case 3:
+                case 4:
+                case 5:
+                    return new JoystickHID(this, RTBLogger);
+                default:
+                    break;
+            }
+            return null;
+        }
+
+        /***
+         * 
+         * 
+         */
+        private bool RunTask(IJoystick joystick = null)
+        {
+            if (joystick == null)
+            {
+                Joystick = CreateJoystick();
+                if (Joystick == null)
+                    return false;
+}
             else
                 Joystick = joystick;
             Joystick.IsConnectedChanged += Joystick_IsConnectedChanged;
-            Joystick.AddValueChangedDelegate(this.Handle, Joystick_ValueChanged);
+
+            string usage;
+            if (cboUsages.SelectedIndex <= 0)
+                usage = Consts.ALL_USAGES;
+            else
+                usage = cboUsages.Text;
+            Joystick.AddValueChangedDelegate(this.Handle, Joystick_ValueChanged, usage);
             //Joystick.ButtonPressed += Joystick_ButtonPressed;
-            if (joystick == null)
-                Joystick.Connect();
+            if (Joystick.IsConnected)
+            {
+                Joystick_IsConnectedChanged(true);
+                return true;
+            }
+            return Joystick.Connect();
         }
 
         private void Joystick_IsConnectedChanged(bool connected)
         {
             if (connected)
-                Joystick_ValueChanged(null, null);
+            {
+                chkRun.Invalidated += OnConnexion;
+                chkRun.Invoke(chkRun.Invalidate);
+            }
             else
+            {
+                chkRun.Checked = false;
                 Joystick = null;
+            }
+        }
+
+        private void OnConnexion(object sender, InvalidateEventArgs e)
+        {
+            chkRun.Invalidated -= OnConnexion;
+
+            chkRun.Text = "En cours...";
+
+            Init_Joystick_Usages();
+
+            Joystick_ValueChanged(null, null);
         }
 
 
@@ -91,13 +195,13 @@ namespace MED
             RefreshValuesChanged();
         }
 
-        private void RefreshValuesChanged( bool invokeMainThread=true)
+        private void RefreshValuesChanged(bool invokeMainThread = true)
         {
             if (this.IsDisposed || this.Disposing)
                 return;
-            if(invokeMainThread)
+            if (invokeMainThread)
                 lvwJoystickControls.Invoke(lvwJoystickControls.Invalidate);
-            else if(!DelayRefreshValuesChanged())
+            else if (!DelayRefreshValuesChanged())
                 LvwJoystickControls_Refresh();
         }
 
@@ -118,9 +222,9 @@ namespace MED
                 {
 
                     if (_refresh_delayed_task == null
-                        || _refresh_delayed_task.IsCompleted) 
-                        //|| !(_refresh_delayed_task.ThreadState == ThreadState.Running
-                        //|| (_refresh_delayed_task != null && _refresh_delayed_task.ThreadState == ThreadState.Unstarted)))  //VS / .net bugg : _refresh_delayed_thread may be null between the two tests
+                        || _refresh_delayed_task.IsCompleted)
+                    //|| !(_refresh_delayed_task.ThreadState == ThreadState.Running
+                    //|| (_refresh_delayed_task != null && _refresh_delayed_task.ThreadState == ThreadState.Unstarted)))  //VS / .net bugg : _refresh_delayed_thread may be null between the two tests
                     {
                         _refresh_delayed_task = new(() =>
                         {
@@ -140,7 +244,8 @@ namespace MED
                             {
                                 RTBLogger.LogError("Slow Thread error : {0}", ex.ToString());
                             }
-                            finally { 
+                            finally
+                            {
                                 _refresh_delayed_task = null;
                             }
                         });
@@ -245,5 +350,10 @@ namespace MED
             f.Show();
         }
 
+        private void button2_Click(object sender, EventArgs e)
+        {
+            FMain f = new();
+            f.Show();
+        }
     }
 }

@@ -3,6 +3,8 @@
 
 
 
+
+
 namespace MED
 {
     partial class FMain
@@ -34,7 +36,7 @@ namespace MED
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            var resources = new System.ComponentModel.ComponentResourceManager(typeof(FMain));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FMain));
             tableLayoutPanel1 = new TableLayoutPanel();
             picRender = new PictureBox();
             txtLog = new RichTextBox();
@@ -43,9 +45,14 @@ namespace MED
             columnHeader1 = new ColumnHeader();
             columnHeader2 = new ColumnHeader();
             imageListEDV = new ImageList(components);
+            panel1 = new Panel();
+            cboJoystickConfig = new ComboBox();
+            cboUsages = new ComboBox();
             button1 = new Button();
+            button2 = new Button();
             tableLayoutPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)picRender).BeginInit();
+            panel1.SuspendLayout();
             SuspendLayout();
             // 
             // tableLayoutPanel1
@@ -57,23 +64,24 @@ namespace MED
             tableLayoutPanel1.Controls.Add(txtLog, 1, 2);
             tableLayoutPanel1.Controls.Add(chkRun, 0, 0);
             tableLayoutPanel1.Controls.Add(lvwJoystickControls, 0, 1);
-            tableLayoutPanel1.Controls.Add(button1, 1, 0);
+            tableLayoutPanel1.Controls.Add(panel1, 1, 0);
             tableLayoutPanel1.Dock = DockStyle.Fill;
             tableLayoutPanel1.Location = new Point(0, 0);
             tableLayoutPanel1.Name = "tableLayoutPanel1";
-            tableLayoutPanel1.RowCount = 3;
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 6.75883245F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 93.2411652F));
+            tableLayoutPanel1.RowCount = 4;
+            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 8.037825F));
+            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 91.96217F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 286F));
+            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
             tableLayoutPanel1.Size = new Size(1336, 730);
             tableLayoutPanel1.TabIndex = 0;
             // 
             // picRender
             // 
             picRender.Dock = DockStyle.Fill;
-            picRender.Location = new Point(208, 33);
+            picRender.Location = new Point(208, 37);
             picRender.Name = "picRender";
-            picRender.Size = new Size(1125, 407);
+            picRender.Size = new Size(1125, 383);
             picRender.TabIndex = 0;
             picRender.TabStop = false;
             // 
@@ -82,9 +90,9 @@ namespace MED
             txtLog.BackColor = SystemColors.WindowText;
             txtLog.Dock = DockStyle.Fill;
             txtLog.ForeColor = SystemColors.Window;
-            txtLog.Location = new Point(208, 446);
+            txtLog.Location = new Point(208, 426);
             txtLog.Name = "txtLog";
-            txtLog.Size = new Size(1125, 281);
+            txtLog.Size = new Size(1125, 280);
             txtLog.TabIndex = 2;
             txtLog.Text = "";
             // 
@@ -97,7 +105,7 @@ namespace MED
             chkRun.FlatStyle = FlatStyle.Flat;
             chkRun.Location = new Point(3, 3);
             chkRun.Name = "chkRun";
-            chkRun.Size = new Size(199, 24);
+            chkRun.Size = new Size(199, 28);
             chkRun.TabIndex = 3;
             chkRun.Text = "Activer";
             chkRun.TextAlign = ContentAlignment.MiddleCenter;
@@ -109,10 +117,10 @@ namespace MED
             lvwJoystickControls.Columns.AddRange(new ColumnHeader[] { columnHeader1, columnHeader2 });
             lvwJoystickControls.Dock = DockStyle.Fill;
             lvwJoystickControls.GridLines = true;
-            lvwJoystickControls.Location = new Point(3, 33);
+            lvwJoystickControls.Location = new Point(3, 37);
             lvwJoystickControls.Name = "lvwJoystickControls";
             tableLayoutPanel1.SetRowSpan(lvwJoystickControls, 2);
-            lvwJoystickControls.Size = new Size(199, 694);
+            lvwJoystickControls.Size = new Size(199, 669);
             lvwJoystickControls.SmallImageList = imageListEDV;
             lvwJoystickControls.StateImageList = imageListEDV;
             lvwJoystickControls.TabIndex = 4;
@@ -176,15 +184,57 @@ namespace MED
             imageListEDV.Images.SetKeyName(38, "VisualTrue");
             imageListEDV.Images.SetKeyName(39, "Web");
             // 
+            // panel1
+            // 
+            panel1.Controls.Add(cboJoystickConfig);
+            panel1.Controls.Add(cboUsages);
+            panel1.Controls.Add(button1);
+            panel1.Controls.Add(button2);
+            panel1.Dock = DockStyle.Fill;
+            panel1.Location = new Point(208, 3);
+            panel1.Name = "panel1";
+            panel1.Size = new Size(1125, 28);
+            panel1.TabIndex = 7;
+            // 
+            // cboJoystickConfig
+            // 
+            cboJoystickConfig.DropDownStyle = ComboBoxStyle.DropDownList;
+            cboJoystickConfig.FormattingEnabled = true;
+            cboJoystickConfig.Items.AddRange(new object[] { "1 : Clavier", "2 : Clavier / Hook", "3 : Joystick", "4 : Joystick #2", "5 : Joystick #3" });
+            cboJoystickConfig.Location = new Point(3, 2);
+            cboJoystickConfig.Name = "cboJoystickConfig";
+            cboJoystickConfig.Size = new Size(148, 23);
+            cboJoystickConfig.TabIndex = 8;
+            // 
+            // cboUsages
+            // 
+            cboUsages.DropDownStyle = ComboBoxStyle.DropDownList;
+            cboUsages.FormattingEnabled = true;
+            cboUsages.Items.AddRange(new object[] { "(tous)", "X", "Y", "Z", "Select", "Start" });
+            cboUsages.Location = new Point(157, 3);
+            cboUsages.Name = "cboUsages";
+            cboUsages.Size = new Size(69, 23);
+            cboUsages.TabIndex = 7;
+            // 
             // button1
             // 
-            button1.Location = new Point(208, 3);
+            button1.Location = new Point(232, 2);
             button1.Name = "button1";
-            button1.Size = new Size(107, 20);
+            button1.Size = new Size(107, 24);
             button1.TabIndex = 5;
-            button1.Text = "button1";
+            button1.Text = "Même joy";
             button1.UseVisualStyleBackColor = true;
             button1.Click += button1_Click;
+            // 
+            // button2
+            // 
+            button2.Location = new Point(345, 2);
+            button2.Name = "button2";
+            button2.Size = new Size(107, 24);
+            button2.TabIndex = 6;
+            button2.Text = "New joy";
+            button2.UseVisualStyleBackColor = true;
+            button2.Click += button2_Click;
             // 
             // FMain
             // 
@@ -197,6 +247,7 @@ namespace MED
             tableLayoutPanel1.ResumeLayout(false);
             tableLayoutPanel1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)picRender).EndInit();
+            panel1.ResumeLayout(false);
             ResumeLayout(false);
         }
         #endregion
@@ -210,5 +261,9 @@ namespace MED
         private ColumnHeader columnHeader2;
         private ImageList imageListEDV;
         private Button button1;
+        private Button button2;
+        private Panel panel1;
+        private ComboBox cboUsages;
+        private ComboBox cboJoystickConfig;
     }
 }

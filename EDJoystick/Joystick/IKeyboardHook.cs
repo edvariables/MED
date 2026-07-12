@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace MED
 {
-    internal abstract class IKeyboardHook : IDisposable
+    public abstract class IKeyboardHook : IDisposable
     {
 
         protected Form FormHandler;

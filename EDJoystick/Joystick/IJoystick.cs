@@ -98,19 +98,63 @@ namespace MED.EDJoystick
         {
             return ControlsName[ControlKey(control)];
         }
+        public abstract List<JoystickUsage> Usages { get; }
 
         /***
          * Delegates
          * 
          */
+
         public delegate void ValueChangedDelegate(string control, object new_value);
-        public ValueChangedDelegate ValueChanged;
+        private Dictionary<string, ValueChangedDelegate> ValueChangedUsagesDelegates = new();
+        //public ValueChangedDelegate ValueChanged;
 
         public delegate void ButtonPressedDelegate(string control, bool pressed);
         public ButtonPressedDelegate ButtonPressed;
 
         public delegate void IsConnectedChangedDelegate(bool connected);
         public IsConnectedChangedDelegate IsConnectedChanged;
+
+        /**
+         * Get Usages[usage, ALL_USAGES] ValueChanged
+         * 
+         */
+        private Dictionary<string, ValueChangedDelegate> GetValueChangedDelegates(string usage = Consts.ALL_USAGES){
+            var dics = new Dictionary<string, ValueChangedDelegate>();
+            if (ValueChangedUsagesDelegates.ContainsKey(usage))
+                dics.Add(usage, ValueChangedUsagesDelegates[usage]);
+            if (usage != Consts.ALL_USAGES
+                && ValueChangedUsagesDelegates.ContainsKey(Consts.ALL_USAGES))
+                dics.Add(Consts.ALL_USAGES, ValueChangedUsagesDelegates[Consts.ALL_USAGES]);
+            return dics;
+        }
+
+        /**
+         * AddValueChangedDelegate
+         * */
+        public ValueChangedDelegate AddValueChangedDelegate(long hwnd, ValueChangedDelegate _delegate, string usage = Consts.ALL_USAGES)
+        {
+            if (HwndsChangedValues.ContainsKey(hwnd))
+            {
+                Console.WriteLine($"PrivateValueChangedDelegate a déjà fourni un délégué/event pour {hwnd}. Il va être remplacé.");
+                HwndsChangedValues.Remove(hwnd);
+                //throw new Exception($"PrivateValueChangedDelegate a déjà fourni un délégué pour {hwnd}.");
+            }
+            HwndsChangedValues.Add(hwnd, new Dictionary<string, object>());
+
+            if ( ValueChangedUsagesDelegates.ContainsKey(usage))
+                ValueChangedUsagesDelegates[usage] += _delegate;
+            else
+                ValueChangedUsagesDelegates.Add(usage, new(_delegate));
+            return ValueChangedUsagesDelegates[usage];
+        }
+        /**
+         * AddValueChangedDelegate
+         * */
+        public ValueChangedDelegate AddValueChangedDelegate(long hwnd, ValueChangedDelegate _delegate, JoystickUsage usage) => AddValueChangedDelegate(hwnd, _delegate, usage.ToString());
+
+
+        //////////////////////
 
         /**
          *  Set Control Value
@@ -128,18 +172,24 @@ namespace MED.EDJoystick
 
                 if (changedValue)
                 {
-                    if (ValueChanged != null)
+                    //Cache for each Hwnd
+                    foreach (KeyValuePair<long, Dictionary<string, object>> kvp in HwndsChangedValues)
                     {
-                        foreach(KeyValuePair<long, Dictionary<string, object>> kvp in HwndsChangedValues){
 
-                            if (!kvp.Value.ContainsKey(controlKey))
-                                kvp.Value.Add(controlKey, value);
-                            else
-                                kvp.Value[controlKey] = value;
-                        }
-                        ValueChanged(controlKey, value);
+                        if (!kvp.Value.ContainsKey(controlKey))
+                            kvp.Value.Add(controlKey, value);
+                        else
+                            kvp.Value[controlKey] = value;
                     }
-
+                    //Raise event
+                    string eventUsage = ControlsName[controlKey];
+                    foreach (var valueChanged in GetValueChangedDelegates(eventUsage) )
+                    {
+                        //if (valueChanged.Value != null)
+                        //{
+                            valueChanged.Value(controlKey, value);
+                        //}
+                    }
                     if (ButtonPressed != null && ButtonControls.ContainsKey(controlKey) && value != null && (value is bool))
                         ButtonPressed(controlKey, (bool)value);
                 }
@@ -154,21 +204,6 @@ namespace MED.EDJoystick
             if (!ControlsValue.ContainsKey(controlKey))
                 return default_value;
             return ControlsValue[controlKey]?? default_value;
-        }
-
-        /**
-         * AddValueChangedDelegate
-         * */
-        public ValueChangedDelegate AddValueChangedDelegate(long hwnd, ValueChangedDelegate _delegate)
-        {
-            if (HwndsChangedValues.ContainsKey(hwnd))
-            {
-                Console.WriteLine($"PrivateValueChangedDelegate a déjà fourni un délégué/event pour {hwnd}. Il va être remplacé.");
-                HwndsChangedValues.Remove(hwnd);
-                //throw new Exception($"PrivateValueChangedDelegate a déjà fourni un délégué pour {hwnd}.");
-            }
-            HwndsChangedValues.Add(hwnd, new Dictionary<string, object>());
-            return ValueChanged += _delegate;
         }
 
         /***

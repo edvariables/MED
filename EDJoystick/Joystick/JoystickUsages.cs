@@ -48,7 +48,4 @@ namespace MED.EDJoystick
         Button_9,
         Hat_Switch
     }
-    public static partial class Joystick
-    {
-    }
 }

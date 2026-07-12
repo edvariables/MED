@@ -8,7 +8,7 @@ using System.Windows.Input;
 
 namespace MED.EDJoystick
 {
-    internal class KeyboardFormEvents : IKeyboardHook
+    public class KeyboardFormEvents : IKeyboardHook
     {
         protected bool _saved_formHandler_KeyPreview;
         /**

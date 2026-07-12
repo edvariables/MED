@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Windows.Documents;
 using DevDecoder.HIDDevices;
 using DevDecoder.HIDDevices.Controllers;
+using DynamicData;
 using HidSharp;
 using Microsoft.Extensions.Logging;
 
@@ -182,7 +183,8 @@ namespace MED.EDJoystick
         
         public override void Disconnect()
         {
-            _threadRunCancellation.Cancel();
+            if(_threadRunCancellation != null)
+                _threadRunCancellation.Cancel();
 
             IsConnected = false;
         }
@@ -218,6 +220,26 @@ namespace MED.EDJoystick
         public override string ControlUsage(object control)
         {
             return Usage.GetName(((DevDecoder.HIDDevices.Control)control).Usages);
+        }
+
+        /**
+         * Usages
+         */
+        public override List<JoystickUsage> Usages
+        {
+            get
+            {
+                List<JoystickUsage> usages = new();
+
+                foreach (var (control_key, usage) in ControlsName)
+                {
+                    var sUsage = usage.Replace(' ', '_');
+                    JoystickUsage jUsage;
+                    if (Enum.TryParse<JoystickUsage>(sUsage, true, out jUsage))
+                        usages.Add(jUsage);
+                }
+                return usages;
+            }
         }
     }
 }
