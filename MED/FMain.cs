@@ -16,6 +16,7 @@ namespace MED
 {
     public partial class FMain : Form
     {
+        int _refresh_delay;
 
         public FMain()
         {
@@ -26,7 +27,7 @@ namespace MED
         public FMain(IJoystick joystick) : this()
         {
             Joystick = joystick;
-            _refresh_delay = 200 * TimeSpan.TicksPerMillisecond;
+            _refresh_delay = 500;
             if (joystick != null)
                 chkRun.Checked = true;
         }
@@ -65,14 +66,6 @@ namespace MED
                 cboUsages.Items.Add(usage);
             cboUsages.Text = value;
         }
-
-        /**
-         * _refresh_ticks
-         */
-        private long _refresh_ticks = 0L;
-        private readonly long _refresh_delay = 0L;
-        //private Thread _refresh_delayed_thread;
-        private Task _refresh_delayed_task;
 
         /**
          * chkRun CheckedChanged
@@ -154,7 +147,7 @@ namespace MED
                 usage = Consts.ALL_USAGES;
             else
                 usage = cboUsages.Text;
-            Joystick.AddValueChangedDelegate(this.Handle, Joystick_ValueChanged, usage);
+            Joystick.AddValueChangedDelegate(this.Handle, Joystick_ValueChanged, usage, _refresh_delay);
             //Joystick.ButtonPressed += Joystick_ButtonPressed;
             if (Joystick.IsConnected)
             {
@@ -197,11 +190,11 @@ namespace MED
 
         private void RefreshValuesChanged(bool invokeMainThread = true)
         {
-            if (this.IsDisposed || this.Disposing)
-                return;
-            if (invokeMainThread)
-                lvwJoystickControls.Invoke(lvwJoystickControls.Invalidate);
-            else if (!DelayRefreshValuesChanged())
+            //if (this.IsDisposed || this.Disposing)
+            //    return;
+            //if (invokeMainThread)
+            //    lvwJoystickControls.Invoke(lvwJoystickControls.Invalidate);
+            //else if (!DelayRefreshValuesChanged())
                 LvwJoystickControls_Refresh();
         }
 
@@ -215,60 +208,10 @@ namespace MED
             RefreshValuesChanged(false);
         }
 
-        private bool DelayRefreshValuesChanged()
-        {
-            if (_refresh_delay > 0)
-                if ((_refresh_ticks + _refresh_delay) > DateTime.Now.Ticks)
-                {
-
-                    if (_refresh_delayed_task == null
-                        || _refresh_delayed_task.IsCompleted)
-                    //|| !(_refresh_delayed_task.ThreadState == ThreadState.Running
-                    //|| (_refresh_delayed_task != null && _refresh_delayed_task.ThreadState == ThreadState.Unstarted)))  //VS / .net bugg : _refresh_delayed_thread may be null between the two tests
-                    {
-                        _refresh_delayed_task = new(() =>
-                        {
-                            var delay = (_refresh_ticks + _refresh_delay) - DateTime.Now.Ticks;
-                            if (delay < 0)
-                                delay = 0L;
-                            else if (delay > _refresh_delay)
-                                delay = _refresh_delay;
-                            delay /= TimeSpan.TicksPerMillisecond;
-                            RTBLogger.LogInformation("Delayed {0} ms", delay.ToString("# ##0"));
-                            if (delay > 0L) Thread.Sleep((int)delay);
-                            try
-                            {
-                                RefreshValuesChanged();
-                            }
-                            catch (Exception ex)
-                            {
-                                RTBLogger.LogError("Slow Thread error : {0}", ex.ToString());
-                            }
-                            finally
-                            {
-                                _refresh_delayed_task = null;
-                            }
-                        });
-                        try
-                        {
-                            _refresh_delayed_task.Start();
-                        }
-                        catch (Exception ex)
-                        {
-                            _refresh_delayed_task = null;
-                            RTBLogger.LogError("_refresh_delayed_thread.Start error : {0}", ex.ToString());
-                        }
-                    }
-                    return true;
-                }
-            return false;
-        }
 
         private void LvwJoystickControls_Refresh()
         {
-            _refresh_ticks = DateTime.Now.Ticks;
-
-            if (Joystick == null)
+            if (Joystick == null || this.IsDisposed || this.Disposing)
                 return;
 
             var controlsChangedValue = Joystick.GetValuesChanged(this.Handle);

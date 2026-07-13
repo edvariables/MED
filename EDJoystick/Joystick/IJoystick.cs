@@ -1,14 +1,15 @@
 ﻿// Licensed under the Apache License, Version 2.0 (the "License").
 // See the LICENSE file in the project root for more information.
 
+using DevDecoder.HIDDevices;
+using DevDecoder.HIDDevices.Controllers;
+using Microsoft.Extensions.Logging;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using DevDecoder.HIDDevices;
-using System.Collections;
 
 namespace MED.EDJoystick
 {
@@ -104,9 +105,19 @@ namespace MED.EDJoystick
          * Delegates
          * 
          */
+        public class ValueChangedData(string usage, string controlKey, ValueChangedDelegate valueChangedDelegate, long refresh_delay)
+        {
+            public string Usage = usage;
+            public string ControlKey = controlKey;
+            public ValueChangedDelegate ValueChangedDelegate = valueChangedDelegate;
+            public long Refresh_delay = refresh_delay;
+
+            public long Refresh_ticks;
+            public Task Refresh_delayed_task;
+        }
 
         public delegate void ValueChangedDelegate(string control, object new_value);
-        private Dictionary<string, ValueChangedDelegate> ValueChangedUsagesDelegates = new();
+        private Dictionary<string, List<ValueChangedData>> ValueChangedUsagesDelegates = new();
         //public ValueChangedDelegate ValueChanged;
 
         public delegate void ButtonPressedDelegate(string control, bool pressed);
@@ -119,8 +130,8 @@ namespace MED.EDJoystick
          * Get Usages[usage, ALL_USAGES] ValueChanged
          * 
          */
-        private Dictionary<string, ValueChangedDelegate> GetValueChangedDelegates(string usage = Consts.ALL_USAGES){
-            var dics = new Dictionary<string, ValueChangedDelegate>();
+        private Dictionary<string, List<ValueChangedData>> GetValueChangedDelegates(string usage = Consts.ALL_USAGES){
+            var dics = new Dictionary<string, List<ValueChangedData>>();
             if (ValueChangedUsagesDelegates.ContainsKey(usage))
                 dics.Add(usage, ValueChangedUsagesDelegates[usage]);
             if (usage != Consts.ALL_USAGES
@@ -132,7 +143,7 @@ namespace MED.EDJoystick
         /**
          * AddValueChangedDelegate
          * */
-        public ValueChangedDelegate AddValueChangedDelegate(long hwnd, ValueChangedDelegate _delegate, string usage = Consts.ALL_USAGES)
+        public ValueChangedDelegate AddValueChangedDelegate(long hwnd, ValueChangedDelegate _delegate, string usage = Consts.ALL_USAGES, long delayed_ms = 0)
         {
             if (HwndsChangedValues.ContainsKey(hwnd))
             {
@@ -142,17 +153,96 @@ namespace MED.EDJoystick
             }
             HwndsChangedValues.Add(hwnd, new Dictionary<string, object>());
 
-            if ( ValueChangedUsagesDelegates.ContainsKey(usage))
-                ValueChangedUsagesDelegates[usage] += _delegate;
-            else
-                ValueChangedUsagesDelegates.Add(usage, new(_delegate));
-            return ValueChangedUsagesDelegates[usage];
+            if (! ValueChangedUsagesDelegates.ContainsKey(usage))
+                ValueChangedUsagesDelegates.Add(usage, new List<ValueChangedData>());
+            //ValueChangedUsagesDelegates[usage].ValueChangedDelegate += _delegate;
+            //ValueChangedUsagesDelegates[usage].Refresh_delay = delayed_ms * TimeSpan.TicksPerMillisecond;
+            var valueChangedData = new ValueChangedData(usage, usage, new(_delegate), delayed_ms * TimeSpan.TicksPerMillisecond);
+            ValueChangedUsagesDelegates[usage].Add(valueChangedData);
+            
+            return valueChangedData.ValueChangedDelegate;
         }
         /**
          * AddValueChangedDelegate
          * */
         public ValueChangedDelegate AddValueChangedDelegate(long hwnd, ValueChangedDelegate _delegate, JoystickUsage usage) => AddValueChangedDelegate(hwnd, _delegate, usage.ToString());
 
+        /**
+         * DelayRefreshValuesChanged
+         */
+        private bool DelayRefreshValuesChanged(ValueChangedData data)
+        {
+            if (data.Refresh_delay > 0)
+                if ((data.Refresh_ticks + data.Refresh_delay) > DateTime.Now.Ticks)
+                {
+
+                    if (data.Refresh_delayed_task == null
+                        || data.Refresh_delayed_task.IsCompleted)
+                    //|| !(_refresh_delayed_task.ThreadState == ThreadState.Running
+                    //|| (_refresh_delayed_task != null && _refresh_delayed_task.ThreadState == ThreadState.Unstarted)))  //VS / .net bugg : _refresh_delayed_thread may be null between the two tests
+                    {
+                        data.Refresh_delayed_task = new(() =>
+                        {
+                            var delay = (data.Refresh_ticks + data.Refresh_delay) - DateTime.Now.Ticks;
+                            if (delay < 0)
+                                delay = 0L;
+                            else if (delay > data.Refresh_delay)
+                                delay = data.Refresh_delay;
+                            delay /= TimeSpan.TicksPerMillisecond;
+                            Logger.LogInformation("Delayed {0} ms", delay.ToString("# ##0"));
+                            if (delay > 0L) Thread.Sleep((int)delay);
+                            try
+                            {
+                                RaiseValuesChanged(data);
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.LogError("Slow Thread error : {0}", ex.ToString());
+                            }
+                            finally
+                            {
+                                data.Refresh_delayed_task = null;
+                            }
+                        });
+                        try
+                        {
+                            data.Refresh_delayed_task.Start();
+                        }
+                        catch (Exception ex)
+                        {
+                            data.Refresh_delayed_task = null;
+                            Logger.LogError("_refresh_delayed_thread.Start error : {0}", ex.ToString());
+                        }
+                    }
+                    return true;
+                }
+            return false;
+        }
+        private void RaiseValuesChanged(List<ValueChangedData> listData, bool invokeMainThread = true, object value = null)
+        {
+            foreach (var data in listData)
+                RaiseValuesChanged(data, invokeMainThread, value);
+        }
+        private void RaiseValuesChanged(ValueChangedData data, bool invokeMainThread = true, object value = null)
+        {
+            if (invokeMainThread
+             || ! DelayRefreshValuesChanged(data))
+            {
+                if(value == null)
+                {
+                    //TODO controlKey(data.Usage)
+                    if(ControlsValue.ContainsKey(data.Usage))
+                        value = ControlsValue[data.Usage];
+                }
+
+                data.Refresh_ticks = DateTime.Now.Ticks;
+
+                if(invokeMainThread)
+                    FormHandler.Invoke( data.ValueChangedDelegate, data.Usage, value);
+                else
+                    data.ValueChangedDelegate(data.Usage, value);
+            }
+        }
 
         //////////////////////
 
@@ -183,18 +273,16 @@ namespace MED.EDJoystick
                     }
                     //Raise event
                     string eventUsage = ControlsName[controlKey];
-                    foreach (var valueChanged in GetValueChangedDelegates(eventUsage) )
+                    foreach (var data in GetValueChangedDelegates(eventUsage))
                     {
-                        //if (valueChanged.Value != null)
-                        //{
-                            valueChanged.Value(controlKey, value);
-                        //}
+                        RaiseValuesChanged(data.Value, false, value);
                     }
                     if (ButtonPressed != null && ButtonControls.ContainsKey(controlKey) && value != null && (value is bool))
                         ButtonPressed(controlKey, (bool)value);
                 }
             }
         }
+
         /**
          * Get Control Value
          * 
