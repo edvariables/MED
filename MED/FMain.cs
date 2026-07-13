@@ -78,7 +78,7 @@ namespace MED
             if (chkRun.Checked)
             {
                 chkRun.Text = "Connexion...";
-                if( ! RunTask(Joystick))
+                if (!RunTask(Joystick))
                     chkRun.Checked = false;
             }
             else
@@ -107,11 +107,11 @@ namespace MED
             int nConfig = int.Parse(sConfig.Split(':')[0].Trim());
             switch (nConfig)
             {
-//1 : Clavier
-//2 : Clavier / Hook
-//3 : Joystick
-//4 : Joystick #2
-//5 : Joystick #3
+                //1 : Clavier
+                //2 : Clavier / Hook
+                //3 : Joystick
+                //4 : Joystick #2
+                //5 : Joystick #3
                 case 1:
                     return new JoystickKeyboard(this, RTBLogger, typeof(KeyboardFormEvents));
                 case 2:
@@ -137,7 +137,7 @@ namespace MED
                 Joystick = CreateJoystick();
                 if (Joystick == null)
                     return false;
-}
+            }
             else
                 Joystick = joystick;
             Joystick.IsConnectedChanged += Joystick_IsConnectedChanged;
@@ -195,7 +195,7 @@ namespace MED
             //if (invokeMainThread)
             //    lvwJoystickControls.Invoke(lvwJoystickControls.Invalidate);
             //else if (!DelayRefreshValuesChanged())
-                LvwJoystickControls_Refresh();
+            LvwJoystickControls_Refresh();
         }
 
         private void Joystick_ButtonPressed(string control, bool pressed)
@@ -244,6 +244,7 @@ namespace MED
                     bool b => b ? "True" : "False",
                     double => "Num",
                     int => "Num",
+                    long => "Num",
                     string => "Selection",
                     DevDecoder.HIDDevices.Converters.Direction => "Selection",
                     null => "Null",
@@ -297,6 +298,15 @@ namespace MED
         {
             FMain f = new();
             f.Show();
+        }
+
+        private void cboUsages_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+        private void cboJoystickConfig_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            lvwJoystickControls.Items.Clear();
         }
     }
 }

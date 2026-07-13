@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MED
+namespace MED.EDJoystick
 {
     public abstract class IKeyboardHook : IDisposable
     {

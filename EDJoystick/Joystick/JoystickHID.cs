@@ -1,6 +1,11 @@
 ﻿// Licensed under the Apache License, Version 2.0 (the "License").
 // See the LICENSE file in the project root for more information.
 
+using DevDecoder.HIDDevices;
+using DevDecoder.HIDDevices.Controllers;
+using DynamicData;
+using HidSharp;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,11 +13,7 @@ using System.Reactive;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Documents;
-using DevDecoder.HIDDevices;
-using DevDecoder.HIDDevices.Controllers;
-using DynamicData;
-using HidSharp;
-using Microsoft.Extensions.Logging;
+using System.Xml.Linq;
 
 namespace MED.EDJoystick
 {
@@ -196,9 +197,8 @@ namespace MED.EDJoystick
             {
                 string ctrlKey = ControlKey(control);
                 string usage = Usage.GetName(control.Usages);
-                Controls.Add(ctrlKey, control);
-                ControlsName.Add(ctrlKey, infos.Count == 1 ? infos[0].PropertyName : usage);
-                ControlsValue.Add(ctrlKey, null);
+                string name = infos.Count == 1 ? infos[0].PropertyName : usage;
+                Controls.Add(ctrlKey, new ControlData(control, name, usage, null, control.IsPushButton || control.IsBoolean));
                 if( control.IsPushButton || control.IsBoolean)
                     ButtonControls.Add(ctrlKey, usage);
                 string propertiesName = string.Join(", ", infos.Select(info => info.PropertyName));
@@ -231,9 +231,9 @@ namespace MED.EDJoystick
             {
                 List<JoystickUsage> usages = new();
 
-                foreach (var (control_key, usage) in ControlsName)
+                foreach (var (control_key, data) in Controls)
                 {
-                    var sUsage = usage.Replace(' ', '_');
+                    var sUsage = data.Usage.Replace(' ', '_');
                     JoystickUsage jUsage;
                     if (Enum.TryParse<JoystickUsage>(sUsage, true, out jUsage))
                         usages.Add(jUsage);

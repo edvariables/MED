@@ -120,9 +120,7 @@ namespace MED.EDJoystick
             {
                 string ctrlKey = usage.ToString();
                 KBControl control = new(ctrlKey, usage, keys);
-                Controls.Add(ctrlKey, control);
-                ControlsName.Add(ctrlKey, ctrlKey);
-                ControlsValue.Add(ctrlKey, null);
+                Controls.Add(ctrlKey, new ControlData(control, ctrlKey, ctrlKey, null, control.IsPushButton || control.IsBoolean));
                 if (control.IsPushButton || control.IsBoolean)
                     ButtonControls.Add(ctrlKey, ctrlKey);
                 foreach (var key in keys)
@@ -149,20 +147,11 @@ namespace MED.EDJoystick
         {
             if (_KeyboardHook != null)
             {
-                //FormHandler.PreviewKeyDown -= FormHandler_PreviewKeyDown;
-                //FormHandler.KeyDown -= FormHandler_KeyDown;
-                //FormHandler.KeyUp -= FormHandler_KeyUp;
-                //FormHandler.KeyPreview = false;
                 _KeyboardHook.StopHook();
                 _KeyboardHook = null;
             }
             IsConnected = false;
         }
-
-        //private void FormHandler_PreviewKeyDown(object? sender, PreviewKeyDownEventArgs e) => KeyChange_Event(e.KeyCode, true);
-        //private void FormHandler_KeyDown(object? sender, System.Windows.Forms.KeyEventArgs e) => KeyChange_Event(e.KeyCode, true);
-        //private void FormHandler_KeyUp(object? sender, System.Windows.Forms.KeyEventArgs e) => KeyChange_Event(e.KeyCode, false);
-
         /**
          * 
          * */

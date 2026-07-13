@@ -13,20 +13,21 @@ using System.Threading.Tasks;
 
 namespace MED.EDJoystick
 {
-    public abstract class IJoystick
-    {
-        /**
-         * Constructor
-         * 
-         */
-        public IJoystick(Form formHandler, ILogger<Devices> _logger)
-        {
-            FormHandler = formHandler;
-            Logger = _logger;
+    using static Consts;
 
-        }
-        protected ILogger<Devices> Logger;
-        public Form FormHandler {get; internal set;}
+    public class ControlData(object control, string name, string usage, object value, bool isButton)
+    {
+        public readonly object Control = control;
+        public readonly string Name = name;
+        public readonly string Usage = usage;
+        public object Value = value;
+        public readonly bool IsButton = isButton;
+    }
+
+    public abstract class IJoystick(Form formHandler, ILogger<Devices> _logger)
+    {
+        protected ILogger<Devices> Logger = _logger;
+        public Form FormHandler { get; internal set; } = formHandler;
         public abstract bool Connect();
         public abstract void Disconnect();
         private bool _IsConnected = false;
@@ -48,15 +49,15 @@ namespace MED.EDJoystick
             } 
         }
 
-        public readonly Dictionary<string, object> Controls = new();
+        public readonly Dictionary<string, ControlData> Controls = [];
 
-        public readonly Dictionary<string, string> ControlsName = new();
+        //public readonly Dictionary<string, string> ControlsName = [];
 
-        public readonly Dictionary<string, object> ControlsValue = new();
+        //public readonly Dictionary<string, object> ControlsValue = [];
 
-        public readonly Dictionary<string, string> ButtonControls = new();
+        public readonly Dictionary<string, string> ButtonControls = [];
 
-        private readonly Dictionary<long, Dictionary<string, object>> HwndsChangedValues = new();
+        private readonly Dictionary<long, Dictionary<string, object>> HwndsChangedValues = [];
 
         /**
          * ClearControls
@@ -65,19 +66,22 @@ namespace MED.EDJoystick
         public virtual void ClearControls()
         {
             Controls.Clear();
-            ControlsValue.Clear();
-            ControlsName.Clear();
             ButtonControls.Clear();
         }
 
         public bool IsButton(string control)
         {
-            return ButtonControls.ContainsKey(control);
+            return Controls.TryGetValue(control, out ControlData? value) ? value.IsButton : false;
         }
 
-        public virtual string ControlUsage(string control_key)
+        public virtual string ControlUsage(string control)
         {
-            return ControlUsage(Controls[control_key]);
+            return Controls.TryGetValue(control, out ControlData? value) ? value.Usage : "";
+        }
+
+        public virtual object ControlValue(string control, object default_value = null)
+        {
+            return Controls.TryGetValue(control, out ControlData? value) ? value.Value : default_value;
         }
         public virtual string ControlUsage(object control)
         {
@@ -91,13 +95,13 @@ namespace MED.EDJoystick
             return control.GetHashCode().ToString();
         }
 
-        public virtual string ControlName(string control_key)
+        public virtual string ControlName(string control)
         {
-            return ControlName(Controls[control_key]);
+            return Controls.TryGetValue(control, out ControlData? value) ? value.Name : "";
         }
         public virtual string ControlName(object control)
         {
-            return ControlsName[ControlKey(control)];
+            return Controls.TryGetValue(ControlKey(control), out ControlData? value) ? value.Name : "";
         }
         public abstract List<JoystickUsage> Usages { get; }
 
@@ -113,37 +117,37 @@ namespace MED.EDJoystick
             public long Refresh_delay = refresh_delay;
 
             public long Refresh_ticks;
-            public Task Refresh_delayed_task;
+            public Task? Refresh_delayed_task;
         }
 
         public delegate void ValueChangedDelegate(string control, object new_value);
-        private Dictionary<string, List<ValueChangedData>> ValueChangedUsagesDelegates = new();
+        private Dictionary<string, List<ValueChangedData>> ValueChangedUsagesDelegates = [];
         //public ValueChangedDelegate ValueChanged;
 
         public delegate void ButtonPressedDelegate(string control, bool pressed);
-        public ButtonPressedDelegate ButtonPressed;
+        public ButtonPressedDelegate? ButtonPressed;
 
         public delegate void IsConnectedChangedDelegate(bool connected);
-        public IsConnectedChangedDelegate IsConnectedChanged;
+        public IsConnectedChangedDelegate? IsConnectedChanged;
 
         /**
          * Get Usages[usage, ALL_USAGES] ValueChanged
          * 
          */
-        private Dictionary<string, List<ValueChangedData>> GetValueChangedDelegates(string usage = Consts.ALL_USAGES){
+        private Dictionary<string, List<ValueChangedData>> GetValueChangedDelegates(string usage = ALL_USAGES){
             var dics = new Dictionary<string, List<ValueChangedData>>();
             if (ValueChangedUsagesDelegates.ContainsKey(usage))
                 dics.Add(usage, ValueChangedUsagesDelegates[usage]);
-            if (usage != Consts.ALL_USAGES
-                && ValueChangedUsagesDelegates.ContainsKey(Consts.ALL_USAGES))
-                dics.Add(Consts.ALL_USAGES, ValueChangedUsagesDelegates[Consts.ALL_USAGES]);
+            if (usage != ALL_USAGES
+                && ValueChangedUsagesDelegates.ContainsKey(ALL_USAGES))
+                dics.Add(ALL_USAGES, ValueChangedUsagesDelegates[ALL_USAGES]);
             return dics;
         }
 
         /**
          * AddValueChangedDelegate
          * */
-        public ValueChangedDelegate AddValueChangedDelegate(long hwnd, ValueChangedDelegate _delegate, string usage = Consts.ALL_USAGES, long delayed_ms = 0)
+        public ValueChangedDelegate AddValueChangedDelegate(long hwnd, ValueChangedDelegate _delegate, string usage = ALL_USAGES, long delayed_ms = 0)
         {
             if (HwndsChangedValues.ContainsKey(hwnd))
             {
@@ -230,17 +234,15 @@ namespace MED.EDJoystick
             {
                 if(value == null)
                 {
-                    //TODO controlKey(data.Usage)
-                    if(ControlsValue.ContainsKey(data.Usage))
-                        value = ControlsValue[data.Usage];
+                    value = ControlValue(data.ControlKey);
                 }
 
                 data.Refresh_ticks = DateTime.Now.Ticks;
 
-                if(invokeMainThread)
+                //if(invokeMainThread)
                     FormHandler.Invoke( data.ValueChangedDelegate, data.Usage, value);
-                else
-                    data.ValueChangedDelegate(data.Usage, value);
+                //else
+                //    data.ValueChangedDelegate(data.Usage, value);
             }
         }
 
@@ -251,14 +253,15 @@ namespace MED.EDJoystick
          * */
         protected void SetControlValue(string controlKey, object value)
         {
-            if (!ControlsValue.ContainsKey(controlKey))
+            if (!Controls.ContainsKey(controlKey))
                 return;
-            bool changedValue = ControlsValue[controlKey] == null ? value != null
-                : ! ControlsValue[controlKey].Equals( value );
+            ControlData controlData = Controls[controlKey];
+            object oldValue = controlData.Value;
+            bool changedValue = oldValue == null ? value != null : ! oldValue.Equals( value );
 
             if (changedValue)
             {
-                ControlsValue[controlKey] = value;
+                controlData.Value = value;
 
                 if (changedValue)
                 {
@@ -272,26 +275,15 @@ namespace MED.EDJoystick
                             kvp.Value[controlKey] = value;
                     }
                     //Raise event
-                    string eventUsage = ControlsName[controlKey];
+                    string eventUsage = controlData.Usage;
                     foreach (var data in GetValueChangedDelegates(eventUsage))
                     {
                         RaiseValuesChanged(data.Value, false, value);
                     }
-                    if (ButtonPressed != null && ButtonControls.ContainsKey(controlKey) && value != null && (value is bool))
+                    if (ButtonPressed != null && controlData.IsButton && value != null && (value is bool))
                         ButtonPressed(controlKey, (bool)value);
                 }
             }
-        }
-
-        /**
-         * Get Control Value
-         * 
-         */
-        protected object GetControlValue(string controlKey, object default_value = null)
-        {
-            if (!ControlsValue.ContainsKey(controlKey))
-                return default_value;
-            return ControlsValue[controlKey]?? default_value;
         }
 
         /***

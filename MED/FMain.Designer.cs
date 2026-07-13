@@ -5,6 +5,7 @@
 
 
 
+
 namespace MED
 {
     partial class FMain
@@ -205,6 +206,7 @@ namespace MED
             cboJoystickConfig.Name = "cboJoystickConfig";
             cboJoystickConfig.Size = new Size(148, 23);
             cboJoystickConfig.TabIndex = 8;
+            cboJoystickConfig.SelectedIndexChanged += this.cboJoystickConfig_SelectedIndexChanged;
             // 
             // cboUsages
             // 
@@ -215,6 +217,7 @@ namespace MED
             cboUsages.Name = "cboUsages";
             cboUsages.Size = new Size(69, 23);
             cboUsages.TabIndex = 7;
+            cboUsages.SelectedIndexChanged += cboUsages_SelectedIndexChanged;
             // 
             // button1
             // 
@@ -250,6 +253,7 @@ namespace MED
             panel1.ResumeLayout(false);
             ResumeLayout(false);
         }
+
         #endregion
 
         private TableLayoutPanel tableLayoutPanel1;
