@@ -51,6 +51,7 @@ namespace MED
             cboUsages = new ComboBox();
             button1 = new Button();
             button2 = new Button();
+            button3 = new Button();
             tableLayoutPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)picRender).BeginInit();
             panel1.SuspendLayout();
@@ -187,6 +188,7 @@ namespace MED
             // 
             // panel1
             // 
+            panel1.Controls.Add(button3);
             panel1.Controls.Add(cboJoystickConfig);
             panel1.Controls.Add(cboUsages);
             panel1.Controls.Add(button1);
@@ -206,7 +208,7 @@ namespace MED
             cboJoystickConfig.Name = "cboJoystickConfig";
             cboJoystickConfig.Size = new Size(148, 23);
             cboJoystickConfig.TabIndex = 8;
-            cboJoystickConfig.SelectedIndexChanged += this.cboJoystickConfig_SelectedIndexChanged;
+            cboJoystickConfig.SelectedIndexChanged += cboJoystickConfig_SelectedIndexChanged;
             // 
             // cboUsages
             // 
@@ -239,6 +241,16 @@ namespace MED
             button2.UseVisualStyleBackColor = true;
             button2.Click += button2_Click;
             // 
+            // button3
+            // 
+            button3.Location = new Point(542, 0);
+            button3.Name = "button3";
+            button3.Size = new Size(93, 27);
+            button3.TabIndex = 9;
+            button3.Text = "button3";
+            button3.UseVisualStyleBackColor = true;
+            button3.Click += button3_Click;
+            // 
             // FMain
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -269,5 +281,6 @@ namespace MED
         private Panel panel1;
         private ComboBox cboUsages;
         private ComboBox cboJoystickConfig;
+        private Button button3;
     }
 }

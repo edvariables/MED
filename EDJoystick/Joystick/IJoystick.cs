@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 namespace MED.EDJoystick
 {
     using static Consts;
+    using static MED.EDJoystick.IJoystick;
 
     public class ControlData(object control, string name, string usage, object value, bool isButton)
     {
@@ -22,6 +23,16 @@ namespace MED.EDJoystick
         public readonly string Usage = usage;
         public object Value = value;
         public readonly bool IsButton = isButton;
+    }
+    public class ValueChangedData(string usage, string controlKey, ValueChangedDelegate valueChangedDelegate, long refresh_delay)
+    {
+        public string Usage = usage;
+        public string ControlKey = controlKey;
+        public ValueChangedDelegate ValueChangedDelegate = valueChangedDelegate;
+        public long Refresh_delay = refresh_delay;
+
+        public long Refresh_ticks;
+        public Task? Refresh_delayed_task;
     }
 
     public abstract class IJoystick(Form formHandler, ILogger<Devices> _logger)
@@ -109,18 +120,8 @@ namespace MED.EDJoystick
          * Delegates
          * 
          */
-        public class ValueChangedData(string usage, string controlKey, ValueChangedDelegate valueChangedDelegate, long refresh_delay)
-        {
-            public string Usage = usage;
-            public string ControlKey = controlKey;
-            public ValueChangedDelegate ValueChangedDelegate = valueChangedDelegate;
-            public long Refresh_delay = refresh_delay;
 
-            public long Refresh_ticks;
-            public Task? Refresh_delayed_task;
-        }
-
-        public delegate void ValueChangedDelegate(string control, object new_value);
+        public delegate void ValueChangedDelegate(ValueChangedData valueChangedData);
         private Dictionary<string, List<ValueChangedData>> ValueChangedUsagesDelegates = [];
         //public ValueChangedDelegate ValueChanged;
 
@@ -174,12 +175,11 @@ namespace MED.EDJoystick
         /**
          * DelayRefreshValuesChanged
          */
-        private bool DelayRefreshValuesChanged(ValueChangedData data)
+        private bool DelayRaiseValuesChanged(ValueChangedData data)
         {
             if (data.Refresh_delay > 0)
                 if ((data.Refresh_ticks + data.Refresh_delay) > DateTime.Now.Ticks)
                 {
-
                     if (data.Refresh_delayed_task == null
                         || data.Refresh_delayed_task.IsCompleted)
                     //|| !(_refresh_delayed_task.ThreadState == ThreadState.Running
@@ -227,22 +227,14 @@ namespace MED.EDJoystick
             foreach (var data in listData)
                 RaiseValuesChanged(data, invokeMainThread, value);
         }
-        private void RaiseValuesChanged(ValueChangedData data, bool invokeMainThread = true, object value = null)
+        private void RaiseValuesChanged(ValueChangedData data, bool noDelay = true, object value = null)
         {
-            if (invokeMainThread
-             || ! DelayRefreshValuesChanged(data))
+            if (noDelay
+             || ! DelayRaiseValuesChanged(data))
             {
-                if(value == null)
-                {
-                    value = ControlValue(data.ControlKey);
-                }
-
                 data.Refresh_ticks = DateTime.Now.Ticks;
 
-                //if(invokeMainThread)
-                    FormHandler.Invoke( data.ValueChangedDelegate, data.Usage, value);
-                //else
-                //    data.ValueChangedDelegate(data.Usage, value);
+                FormHandler.Invoke( data.ValueChangedDelegate, data);
             }
         }
 
@@ -287,13 +279,13 @@ namespace MED.EDJoystick
         }
 
         /***
-         * Get Hwnd ValuesChanged
+         * Get Hwnd ValuesChanged cached since last Clear
          * 
          */
         public Dictionary<string, object> GetValuesChanged(long hwnd)
         {
-            if(HwndsChangedValues.ContainsKey(hwnd))
-                return HwndsChangedValues[hwnd];
+            if(HwndsChangedValues.TryGetValue(hwnd, out Dictionary<string, object>? value))
+                return value;
             return null;
         }
     }

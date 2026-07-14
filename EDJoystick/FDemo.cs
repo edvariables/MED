@@ -15,40 +15,25 @@ namespace MED.EDJoystick;
 
 public partial class FDemo : Form
 {
+    int _refresh_delay;
 
     public FDemo()
     {
         InitializeComponent();
+        Init_Joystick_Config();
     }
 
-    public FDemo(IJoystick joystick):this()
+    public FDemo(IJoystick joystick) : this()
     {
         Joystick = joystick;
-        _slow_form_delay = 2000 * TimeSpan.TicksPerMillisecond;
+        _refresh_delay = 500;
         if (joystick != null)
             chkRun.Checked = true;
     }
 
-    private long _slow_form = 0L;
-    private readonly long _slow_form_delay = 0L;
-
-    private void chkRun_CheckedChanged(object sender, EventArgs e)
-    {
-        if (Joystick == null && !chkRun.Checked)
-            return;
-        if (chkRun.Checked)
-        {
-            chkRun.Text = "En cours...";
-            RunTask(Joystick);
-        }
-        else
-        {
-            Joystick?.Disconnect();
-            chkRun.Text = "Activer";
-        }
-
-    }
-
+    /**
+     * RTBLogger
+     */
     private ILogger<Devices> _RTBLogger;
     public ILogger<Devices> RTBLogger
     {
@@ -60,56 +45,175 @@ public partial class FDemo : Form
         }
     }
 
+    /***
+     * Init_Joystick_Config
+     */
+    public void Init_Joystick_Config()
+    {
+        cboJoystickConfig.SelectedIndex = 0;
+    }
+
+    /***
+     * Init_Joystick_Usages
+     */
+    public void Init_Joystick_Usages()
+    {
+        var value = cboUsages.Text;
+        cboUsages.Items.Clear();
+        cboUsages.Items.Add($"(tous)");
+        foreach (var usage in Joystick.Usages)
+            cboUsages.Items.Add(usage);
+        cboUsages.Text = value;
+    }
+
+    /**
+     * chkRun CheckedChanged
+     * 
+     * */
+    private void chkRun_CheckedChanged(object sender, EventArgs e)
+    {
+        if (Joystick == null && !chkRun.Checked)
+            return;
+        if (chkRun.Checked)
+        {
+            chkRun.Text = "Connexion...";
+            if (!RunTask(Joystick))
+                chkRun.Checked = false;
+        }
+        else
+        {
+            Joystick?.Disconnect();
+            chkRun.Text = "Activer";
+        }
+
+    }
+
     private IJoystick Joystick;
-    private void RunTask(IJoystick joystick = null)
+
+    /**
+     * Create Joystick
+     * 
+     */
+    private IJoystick CreateJoystick()
+    {
+        if (cboJoystickConfig.SelectedIndex < 0)
+        {
+            MessageBox.Show("Veuillez sélectionner une config.");
+            return null;
+        }
+
+        var sConfig = cboJoystickConfig.Items[cboJoystickConfig.SelectedIndex].ToString();
+        int nConfig = int.Parse(sConfig.Split(':')[0].Trim());
+        switch (nConfig)
+        {
+            //1 : Clavier
+            //2 : Clavier / Hook
+            //3 : Joystick
+            //4 : Joystick #2
+            //5 : Joystick #3
+            case 1:
+                return new JoystickKeyboard(this, RTBLogger, typeof(KeyboardFormEvents));
+            case 2:
+                return new JoystickKeyboard(this, RTBLogger, typeof(KeyboardHook));
+            case 3:
+            case 4:
+            case 5:
+                return new JoystickHID(this, RTBLogger);
+            default:
+                break;
+        }
+        return null;
+    }
+
+    /***
+     * 
+     * 
+     */
+    private bool RunTask(IJoystick joystick = null)
     {
         if (joystick == null)
-            Joystick = new JoystickKeyboard(this, RTBLogger);
+        {
+            Joystick = CreateJoystick();
+            if (Joystick == null)
+                return false;
+        }
         else
             Joystick = joystick;
         Joystick.IsConnectedChanged += Joystick_IsConnectedChanged;
-        Joystick.AddValueChangedDelegate(this.Handle, Joystick_ValueChanged);
+
+        string usage;
+        if (cboUsages.SelectedIndex <= 0)
+            usage = Consts.ALL_USAGES;
+        else
+            usage = cboUsages.Text;
+        Joystick.AddValueChangedDelegate(this.Handle, Joystick_ValueChanged, usage, _refresh_delay);
         //Joystick.ButtonPressed += Joystick_ButtonPressed;
-        if (joystick == null)
-            Joystick.Connect();
+        if (Joystick.IsConnected)
+        {
+            Joystick_IsConnectedChanged(true);
+            return true;
+        }
+        return Joystick.Connect();
     }
 
     private void Joystick_IsConnectedChanged(bool connected)
     {
         if (connected)
-            Joystick_ValueChanged(null, null);
+        {
+            chkRun.Invalidated += OnConnexion;
+            chkRun.Invoke(chkRun.Invalidate);
+        }
         else
+        {
+            chkRun.Checked = false;
             Joystick = null;
+        }
+    }
+
+    private void OnConnexion(object sender, InvalidateEventArgs e)
+    {
+        chkRun.Invalidated -= OnConnexion;
+
+        chkRun.Text = "En cours...";
+
+        Init_Joystick_Usages();
+
+        Joystick_ValueChanged(null);
     }
 
 
-    private void Joystick_ValueChanged(string control, object new_value)
+    private void Joystick_ValueChanged(ValueChangedData valueChangedData)
     {
-        lvwJoystickControls.Invoke(lvwJoystickControls.Invalidate);
+        RefreshValuesChanged();
     }
 
-    private void Joystick_ButtonPressed(string control, bool pressed)
+    private void RefreshValuesChanged(bool invokeMainThread = true)
     {
-        Joystick_ValueChanged(control, pressed);
+        //if (this.IsDisposed || this.Disposing)
+        //    return;
+        //if (invokeMainThread)
+        //    lvwJoystickControls.Invoke(lvwJoystickControls.Invalidate);
+        //else if (!DelayRefreshValuesChanged())
+        LvwJoystickControls_Refresh();
+    }
+
+    private void Joystick_ButtonPressed(ValueChangedData valueChangedData)
+    {
+        Joystick_ValueChanged(valueChangedData);
     }
 
     private void LvwJoystickControls_Invalidated(object sender, InvalidateEventArgs e)
     {
-        LvwJoystickControls_Refresh();
+        RefreshValuesChanged(false);
     }
+
 
     private void LvwJoystickControls_Refresh()
     {
-        if (Joystick == null)
+        if (Joystick == null || this.IsDisposed || this.Disposing)
             return;
 
-        if (_slow_form_delay > 0)
-            if (_slow_form + _slow_form_delay > DateTime.Now.Ticks)
-                return;
-            else
-                _slow_form = DateTime.Now.Ticks;
-
-                var controlsChangedValue = Joystick.GetValuesChanged(this.Handle);
+        var controlsChangedValue = Joystick.GetValuesChanged(this.Handle);
         if (controlsChangedValue == null || controlsChangedValue.Count == 0)
             return;
         Dictionary<string, object> controlsValue = new(controlsChangedValue);
@@ -139,6 +243,7 @@ public partial class FDemo : Form
                 bool b => b ? "True" : "False",
                 double => "Num",
                 int => "Num",
+                long => "Num",
                 string => "Selection",
                 DevDecoder.HIDDevices.Converters.Direction => "Selection",
                 null => "Null",
@@ -186,5 +291,20 @@ public partial class FDemo : Form
     {
         FDemo f = new(Joystick);
         f.Show();
+    }
+
+    private void button2_Click(object sender, EventArgs e)
+    {
+        FDemo f = new();
+        f.Show();
+    }
+
+    private void cboUsages_SelectedIndexChanged(object sender, EventArgs e)
+    {
+
+    }
+    private void cboJoystickConfig_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        lvwJoystickControls.Items.Clear();
     }
 }

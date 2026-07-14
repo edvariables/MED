@@ -1,0 +1,32 @@
+﻿using DirectShowLib;
+using Emgu.CV;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using static MED.EDWebCam.Render;
+using static MED.WebCam;
+
+namespace MED.EDWebCam
+{
+    public class Render(string paramSection = "Render", StringBuilder progressMessage = null, Form formHandler = null, IImageConsumer imageConsumer = null)
+        : ImageProcess(paramSection, progressMessage , formHandler , imageConsumer)
+    {
+        public override Bitmap Image
+        {
+            get
+            {
+                if (ImageProvider == null)
+                    return null;
+
+                return ImageProvider.Image;
+            }
+            set
+            {
+                if (ImageProvider != null)
+                    ImageProvider.Image = value;
+            }
+        }
+    }
+}

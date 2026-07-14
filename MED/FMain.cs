@@ -179,11 +179,11 @@ namespace MED
 
             Init_Joystick_Usages();
 
-            Joystick_ValueChanged(null, null);
+            Joystick_ValueChanged(null);
         }
 
 
-        private void Joystick_ValueChanged(string control, object new_value)
+        private void Joystick_ValueChanged(ValueChangedData valueChangedData)
         {
             RefreshValuesChanged();
         }
@@ -198,9 +198,9 @@ namespace MED
             LvwJoystickControls_Refresh();
         }
 
-        private void Joystick_ButtonPressed(string control, bool pressed)
+        private void Joystick_ButtonPressed(ValueChangedData valueChangedData)
         {
-            Joystick_ValueChanged(control, pressed);
+            Joystick_ValueChanged(valueChangedData);
         }
 
         private void LvwJoystickControls_Invalidated(object sender, InvalidateEventArgs e)
@@ -307,6 +307,14 @@ namespace MED
         private void cboJoystickConfig_SelectedIndexChanged(object sender, EventArgs e)
         {
             lvwJoystickControls.Items.Clear();
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+
+            //var view = new EDWebCam.WebcamCaptureForm();
+            //var presenter = new WebcamCapturer.Core.WebcamCapturePresenter(view);
+            //view.Show();
         }
     }
 }

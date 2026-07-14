@@ -1,11 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.37411.7 d17.14
+VisualStudioVersion = 17.14.37411.7
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MED", "MED\MED.csproj", "{2C09070B-78B0-4CC9-BD11-EBBB2E08E5CA}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EDJoystick", "EDJoystick\EDJoystick.csproj", "{E6785686-03EA-28BB-3E57-FE26075B4FC2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "prevEDWebCam", "EDWebCam\prevEDWebCam.csproj", "{93514AE7-BEA6-4941-A616-B80D8709C85D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "Core\Core.csproj", "{6E30245E-7296-499D-B60C-06EAB639E393}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EDWebCam", "EDWebCam\EDWebCam.csproj", "{3D85FBFB-257B-4137-86DE-D956D773BDE2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +27,18 @@ Global
 		{E6785686-03EA-28BB-3E57-FE26075B4FC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E6785686-03EA-28BB-3E57-FE26075B4FC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E6785686-03EA-28BB-3E57-FE26075B4FC2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{93514AE7-BEA6-4941-A616-B80D8709C85D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{93514AE7-BEA6-4941-A616-B80D8709C85D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{93514AE7-BEA6-4941-A616-B80D8709C85D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{93514AE7-BEA6-4941-A616-B80D8709C85D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6E30245E-7296-499D-B60C-06EAB639E393}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6E30245E-7296-499D-B60C-06EAB639E393}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6E30245E-7296-499D-B60C-06EAB639E393}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6E30245E-7296-499D-B60C-06EAB639E393}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3D85FBFB-257B-4137-86DE-D956D773BDE2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D85FBFB-257B-4137-86DE-D956D773BDE2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D85FBFB-257B-4137-86DE-D956D773BDE2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D85FBFB-257B-4137-86DE-D956D773BDE2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

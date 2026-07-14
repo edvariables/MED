@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EDJoystick\EDJoystick.csproj" />
+    <ProjectReference Include="..\EDWebCam\prevEDWebCam.csproj" />
   </ItemGroup>
 
   <ItemGroup>
