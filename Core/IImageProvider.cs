@@ -8,6 +8,8 @@ namespace MED
 {
     public interface IImageProvider
     {
+        public Size ImageSizeMax { get; set; }
+
         public bool HasImageChanged { get; set; }
         public Bitmap Image { get; set; }
 

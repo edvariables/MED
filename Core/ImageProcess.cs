@@ -8,7 +8,7 @@ namespace MED
 {
     public abstract class ImageProcess : IDisposable, IImageConsumer, IImageProvider
     {
-        public ImageProcess(string paramSection, StringBuilder progressMessage = null, Form formHandler = null, IImageConsumer imageConsumer = null, bool isAynchrone = false)
+        public ImageProcess(string paramSection, Performance performance = null, Form formHandler = null, IImageConsumer imageConsumer = null, bool isAynchrone = false)
         {
             FormHandler = formHandler;
             IsAsynchrone = isAynchrone;
@@ -20,7 +20,7 @@ namespace MED
             else
                 OnImageChanged = imageConsumer.ImageChanged;
             ParamSection = paramSection.Trim();
-            ProgressMessage = progressMessage;
+            Performance = performance == null ? performance.Empty() : performance;
 
             LoadSettings();
         }
@@ -29,15 +29,14 @@ namespace MED
         public string ParamSection { get; set; }
 
         public Form FormHandler;
-        public StringBuilder ProgressMessage;
 
-        public Performance Performance = new();
-        public KnownColor PerfColor;
+        public Performance Performance;
 
         public delegate void ImageChangedDelegate(IImageProvider sender);
         public ImageChangedDelegate OnImageChanged;
 
         protected IImageProvider ImageProvider;
+        public Size ImageSizeMax { get; set; }
 
         /***
          * ImageChanged
@@ -69,52 +68,27 @@ namespace MED
                 }
                 else
                 {
-                    Performance.Resume("OnImageChanged", true);
                     OnImageChanged(this is IImageProvider ? (IImageProvider)this : sender);
-                    Performance.Pause("Event raised");
                 }
-            }
-        }
-
-        /**
-         * LoggerEnabled
-         * */
-        private bool _LoggerEnabled;
-        public bool LoggerEnabled
-        {
-            get
-            {
-                return _LoggerEnabled;
-            }
-            set
-            {
-                _LoggerEnabled = value;
-                if (Performance != null)
-                    Performance.Enabled = _LoggerEnabled;
             }
         }
 
         protected virtual void LoadSettings()
         {
-            LoggerEnabled = bool.Parse(Core.Settings.GetValue("Logger", ParamSection, true).ToString());
-            PerfColor = (KnownColor)Enum.Parse(typeof(KnownColor), Core.Settings.GetValue("PerfColor", ParamSection, KnownColor.Green).ToString());
+            Performance.LoadSettings(ParamSection);
+
+            var value = Core.Settings.GetValue("ImageSizeMax", ParamSection, Size.Empty);
+            if (value is Size)
+                ImageSizeMax = (Size)value;
+            else
+                ImageSizeMax = Size.Empty;
         }
         public virtual void SaveSettings()
         {
-            Core.Settings.SetValue("Logger", ParamSection, LoggerEnabled);
-            Core.Settings.SetValue("PerfColor", ParamSection, PerfColor);
+            Performance.SaveSettings(ParamSection);
+
+            Core.Settings.SetValue("ImageSizeMax", ParamSection, ImageSizeMax.IsEmpty ? "" : ImageSizeMax);
             Core.Settings.Save();
-        }
-
-        protected virtual void PerformanceStart()
-        {
-            bool perfColored = Performance == null ? false : Performance.LoggerColored;
-
-            Performance = new(ParamSection, ProgressMessage, LoggerEnabled, PerfColor);
-            Performance.LoggerColored = perfColored;
-
-            // Create the counters.
-            Performance.Start();
         }
 
         private bool _IsRunning;
@@ -151,19 +125,19 @@ namespace MED
         {
             IsRunning = true;
 
-            PerformanceStart();
+            Performance.Start();
         }
 
         public bool Disposing { get; private set; }
         public bool IsDisposed { get; private set; }
-        public abstract Bitmap Image { get; set; }
-        public bool HasImageChanged { get; set; }
+        public virtual Bitmap Image { get; set; }
+        public virtual bool HasImageChanged { get; set; }
 
         public virtual void Dispose()
         {
             Disposing = true;
             ImageProvider = null;
-            ProgressMessage = null;
+            Performance = null;
             Stop();
         }
 

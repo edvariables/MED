@@ -118,6 +118,29 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+  <data name="chkClearLogOnRun.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+    <value>
+        iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
+        vAAADrwBlbxySQAAAy5JREFUOE9NU1tTGmcYfv9E/0vv8oN62SYxbe9qe5uDh3BS5KC77LK77LLAAgqI
+        OsbgMVFrIoKIgiiwLMZ02pnM0/fjpr145tv5ZvZ5n8P70YqS/R8ytJzIUFy2v2ccLC1bzVDEaM6Hkquz
+        AfW7N36FBF77EvTqbYJeMkg3V8kpbtFqeYdK67XJmdDyMmNGt0pPFGP1yVxI21yI2z8krQrpdpWUVIlW
+        kkXiOyI7t05GuvRjQnN6qlFwVb3g8vc/ctL5sqLm3JiccUNR8+/AUuqrfynlvl3Q3ZlgsheIWk8FCVnZ
+        Ck90eiPvES5j4D7ifvCAXn+M7p2Hm9sR2h0XVzdDXLYHaFz1+exjNqj1Y0qeyMyUSUweP/yFkfcVw9Ej
+        +sMvuOs/4PbeQ6c3wnXXZZIhWteDyc+CbH7R8GIJh4R8EeA2B/hN0fOQkg44PISiKSzELLB0cIDg8DC3
+        oE/w2q98e+VTahEpSySrObKdKiefdlvtO9SbXWhmEYLs+KyNo5MWJDWHuJzB9l4dtcMLBMK6J+tr5Fs0
+        iHwhidK5KnFobrfnocXyrOw6jHQZny56OPnchZpag6wVsHvUwuHJtVDmqWaZZoMq0dSvf1C2sEWS6rgd
+        DqzJQZmZCrhCnJ7f4uNZB1wlWyvg/eEl9o/bbM/0jMwmzYc0Jvjld8rmt0hUJsJqtPpI2WW2sYbjTx0c
+        nV4joRexoubxbr+J3Q9XCEZMT7c3aC6YJHrOBHZ+k5aVrCuSrl/eTeQL2R/+vMEBT5S1IuJKHlu7Dbxn
+        G4FIytPSG2yBCZ79PE1pZ4Piiawravrc6E3kC9nC7x5PlNQCuDJs1C6wwzZ4obykVaWZAGfw9MU0L1OV
+        xMaJjs/qt0iyfCF7/2MbNZ64zNOjcg7rO/WJDV/Y8FQmeOMXBFPTpFtlikq222jd45RT19MVtlBivy3s
+        HFxygMJCAZV351wlE/ASSXqJH5VC9NPUb8R+KRy3es2r+0l1p+ddTv9mEqBIXagQ0rd5+h6TzvEax9Xi
+        fwSSVqConH22GLMG4Xh6zD2PQ1FrHIya40CEsZQa+8OpsY/BL3PI54uI5PCTTtC/HPDgi7fttTwAAAAA
+        SUVORK5CYII=
+</value>
+  </data>
+  <metadata name="toolTip1.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>17, 17</value>
+  </metadata>
   <data name="chkLogColored.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO

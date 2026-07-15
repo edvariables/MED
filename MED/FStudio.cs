@@ -1,4 +1,6 @@
 ﻿using DynamicData;
+using MED.EDJoystick;
+using MED.EDWebCam;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -19,6 +21,56 @@ namespace MED
         {
             InitializeComponent();
         }
+
+
+        private void FStudio_Load(object sender, EventArgs e)
+        {
+            LoadSettings();
+        }
+
+        private void FStudio_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            SaveSettings();
+        }
+
+        private string SettingsSection
+        {
+            get
+            {
+                return this.GetType().Name;
+            }
+        }
+
+        private void LoadSettings()
+        {
+            string settingsSection = this.SettingsSection;
+            object v = Core.Settings.GetValue("Location", settingsSection, this.Location);
+            this.Location = (Point)v;
+
+            v = Core.Settings.GetValue("Size", settingsSection, this.Size);
+            this.Size = (Size)v;
+
+            this.WindowState = Enum.Parse<FormWindowState>(Core.Settings.GetValue("WindowState", settingsSection, this.WindowState).ToString());
+        }
+
+        private void SaveSettings()
+        {
+            string settingsSection = SettingsSection;
+            if (this.WindowState == FormWindowState.Normal)
+            {
+                Core.Settings.SetValue("Location", settingsSection, this.Location);
+                Core.Settings.SetValue("Size", settingsSection, this.Size);
+            }
+            Core.Settings.SetValue("WindowState", settingsSection, this.WindowState);
+            Core.Settings.Save();
+        }
+
+        private void ExitToolsStripMenuItem_Click(object sender, EventArgs e)
+        {
+            SaveSettings();
+            this.Close();
+        }
+
 
         private void ShowNewForm(object sender, EventArgs e)
         {
@@ -48,11 +100,6 @@ namespace MED
             {
                 string FileName = saveFileDialog.FileName;
             }
-        }
-
-        private void ExitToolsStripMenuItem_Click(object sender, EventArgs e)
-        {
-            this.Close();
         }
 
         private void CutToolStripMenuItem_Click(object sender, EventArgs e)
@@ -109,6 +156,7 @@ namespace MED
         {
             MED.EDWebCam.FWebCam form = new();
             form.MdiParent = this;
+            form.WindowState = FormWindowState.Maximized;
             form.Show();
 
         }
@@ -117,7 +165,19 @@ namespace MED
         {
             FJoystick form = new();
             form.MdiParent = this;
+            form.WindowState = FormWindowState.Maximized;
             form.Show();
+        }
+
+        private void saveToolStripButton_Click(object sender, EventArgs e)
+        {
+            if (ActiveMdiChild is FWebCam)
+            {
+                ((FWebCam)ActiveMdiChild).SaveSettings();
+                toolStripStatusLabel.Text = "WebCam enregistrée";
+            }
+            else
+                toolStripStatusLabel.Text = "Rien à sauvegarder !";
         }
     }
 }

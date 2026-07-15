@@ -1,9 +1,11 @@
 ﻿using System;
+using System.CodeDom;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using static System.Collections.Specialized.BitVector32;
 
 
@@ -68,7 +70,7 @@ namespace MED.Core
             {
                 object value = _saveValues[cacheKey];
                 string[] path = ParseCacheKey(cacheKey);
-                IniFile.WriteValue(path[1], value == null ? "" : value.ToString(), path[0]);
+                IniFile.WriteValue(path[1], value == null ? "" : Parser.ObjectToString(value), path[0]);
             }
             ClearCache();
         }
@@ -89,8 +91,9 @@ namespace MED.Core
             string key = GetCacheKey(section, setting);
             if (_useCache
                 && _values.ContainsKey(key) )
-                return _values[key].ToString();
-            object value = IniFile.ReadValue(setting, section, default_value == null ? "" : default_value.ToString());
+                return _values[key];
+            object value = IniFile.ReadValue(setting, section, default_value == null ? "" : default_value?.ToString());
+            value = Parser.ObjectFromString((string)value, default_value);
             if (_useCache
                 && ! _values.ContainsKey(key))
                 _values.Add(key, value);
@@ -104,6 +107,8 @@ namespace MED.Core
             if (_useCache)
             {
                 string key = GetCacheKey(section, setting);
+
+
                 if (_values.ContainsKey(key))
                     _values[key] = set_value;
                 else if (set_value != null)
@@ -114,7 +119,9 @@ namespace MED.Core
                     _saveValues.Add(key, set_value);
             }
             else
-                IniFile.WriteValue(setting, set_value == null ? "" : set_value.ToString(), section);
+            {
+                IniFile.WriteValue(setting, Parser.ObjectToString(set_value), section);
+            }
         }
 
         /*********

@@ -1,5 +1,6 @@
 using DirectShowLib;
 using Emgu.CV;
+using MED.Imaging;
 using System.Drawing.Imaging;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -32,15 +33,23 @@ namespace MED.EDWebCam
 
         private void LoadSettings()
         {
-            chkRenderLogger.Checked = Render.LoggerEnabled;
-            chkVideoCaptureLogger.Checked = WebCam.LoggerEnabled;
+            chkRenderLogger.Checked = Render.Performance.Enabled;
+            chkVideoCaptureLogger.Checked = WebCam.Performance.Enabled;
+
+            chkClearLogOnRun.Checked = (bool)Core.Settings.GetValue("ClearLogOnRun", this.Name, chkClearLogOnRun.Checked);
+
+            var value = WebCam.ImageSizeMax;
+            if (WebCam.ImageSizeMax.IsEmpty)
+                cboCaptureSize.Text = "";
+            else
+                cboCaptureSize.Text = Core.Parser.SizeToPretty(WebCam.ImageSizeMax);
         }
-        private void SaveSettings()
+        public void SaveSettings()
         {
-            Render.LoggerEnabled = chkRenderLogger.Checked;
             Render.SaveSettings();
-            WebCam.LoggerEnabled = chkVideoCaptureLogger.Checked;
             WebCam.SaveSettings();
+
+            Core.Settings.SetValue("ClearLogOnRun", this.Name, chkClearLogOnRun.Checked);
             Core.Settings.Save();
         }
         private void Init_AvailableCameras()
@@ -53,6 +62,7 @@ namespace MED.EDWebCam
         }
 
         StringBuilder ProgressMessage = new();
+        Performance Performance;
 
 
         public bool IsRunning { get; private set; }
@@ -79,21 +89,43 @@ namespace MED.EDWebCam
          */
         private void Initialize_Objects()
         {
+            Performance = new("WebCam", ProgressMessage);
+
             ImageProcesses.Clear();
 
-            Render = new Render("Render", ProgressMessage, this);
-            Render.LoggerEnabled = chkRenderLogger.Checked;
-            Render.PerfColor = KnownColor.Yellow;
-            Render.Performance.LoggerColored = chkLogColored.Checked;
+            //Render
+            Render = new Render(
+                "Render"
+                , Performance.Sub("Render", chkRenderLogger.Checked, KnownColor.Yellow)
+                , this
+                );
+            Render.Performance.IsColored = chkLogColored.Checked;
             ImageProcesses.Add(Render);
 
-            ImageProcess imgProc = new MovingRegions();
+            //MovingRegions
+            ImageProcess imgProc = new MED.Imaging.MovingRegions(
+                "MovingRegions"
+                , Performance.Sub("MovingRegions", chkRenderLogger.Checked, KnownColor.GreenYellow)
+                , this
+                , ImageProcesses.Last()
+            );
+            ImageProcesses.Add(imgProc);
 
-
-            WebCam = new WebCam("WebCam", ProgressMessage, this, Render);
-            WebCam.LoggerEnabled = chkVideoCaptureLogger.Checked;
-            WebCam.PerfColor = KnownColor.White;
-            WebCam.Performance.LoggerColored = chkLogColored.Checked;
+            //WebCam
+            WebCam = new WebCam(
+                "WebCam"
+                , Performance.Sub("WebCam", chkVideoCaptureLogger.Checked, rtbLog.ForeColor.ToKnownColor())
+                , this
+                , ImageProcesses.Last()
+                );
+            WebCam.Performance.IsColored = chkLogColored.Checked;
+            if (cboCaptureSize.Text == "")
+            {
+                if ( ! WebCam.ImageSizeMax.IsEmpty)
+                    cboCaptureSize.Text = Core.Parser.SizeToPretty(WebCam.ImageSizeMax);
+            }
+            else
+                WebCam.ImageSizeMax = Core.Parser.SizeFromPretty(cboCaptureSize.Text);
             ImageProcesses.Add(WebCam);
         }
 
@@ -104,11 +136,22 @@ namespace MED.EDWebCam
         private void Run()
         {
             Initialize_Objects();
-            Render.Run();
 
-            int nCamera = cboCameras.SelectedIndex;
-            WebCam.Run(nCamera);
+            if (chkClearLogOnRun.Checked)
+                rtbLog.Clear();
 
+            foreach (var item in ImageProcesses)
+            {
+                if (item == WebCam)
+                {
+                    int nCamera = cboCameras.SelectedIndex;
+                    WebCam.Run(nCamera);
+                }
+                else
+                {
+                    item.Run();
+                }
+            }
             RTGBAppendPerf?.Start();
         }
 
@@ -124,8 +167,10 @@ namespace MED.EDWebCam
             if (WebCam == null)
                 return;
 
-            WebCam.Stop();
-            Render.Stop();
+            foreach (var item in ImageProcesses.Reverse<ImageProcess>())
+            {
+                item.Stop();
+            }
 
             RTGBAppendPerf?.Stop();
             RTGBAppendRegex = null;
@@ -157,17 +202,21 @@ namespace MED.EDWebCam
         }
         private void RefreshImage(Render sender)
         {
-            if (sender.Image == null || !sender.IsRunning)
+            if (!sender.IsRunning)
                 return;
-            try
+            Render.Performance.Resume("RefreshImage", true);
+            if (sender.Image != null)
             {
-                Render.Performance.Step("RefreshImage");
-                picRender.Image = (sender as Render).Image;
+                try
+                {
+                    picRender.Image = (sender as Render).Image;
+                }
+                catch (Exception ex)
+                {
+                    rtbLog.AppendText("\n" + ex.ToString());
+                }
             }
-            catch (Exception ex)
-            {
-                rtbLog.AppendText("\n" + ex.ToString());
-            }
+            Render.Performance.Pause();
         }
 
         private void RefreshProgress(ImageProcess sender)
@@ -176,6 +225,8 @@ namespace MED.EDWebCam
                 return;
             if (ProgressMessage.Length > 0)
             {
+                rtbLog.SuspendLayout();
+
                 if (rtbLog.TextLength > 1024 * 1024)
                 {
                     rtbLog.Select(0, rtbLog.TextLength / 2);
@@ -194,6 +245,8 @@ namespace MED.EDWebCam
                 //}
                 rtbLog.SelectionStart = int.MaxValue;
                 rtbLog.ScrollToCaret();
+
+                rtbLog.ResumeLayout();
             }
             this.Text = $"Webcam [{WebCam.Performance.Counter}]";
         }
@@ -212,7 +265,7 @@ namespace MED.EDWebCam
                     var delimter = Regex.Escape("\b");
                     var pattern = $"{delimter}{Regex.Escape("{")}(?<property>(\\w|\\d)+){Regex.Escape(":")}(?<value>[^{delimter}]*){Regex.Escape("}")}=(?<log>[^{delimter}]*){delimter}(?<crlf>[^{delimter}]*)";
                     RTGBAppendRegex = new(pattern);
-                    RTGBAppendPerf.LoggerColored = true;
+                    RTGBAppendPerf.IsColored = true;
                     RTGBAppendPerf.Start();
                 }
 
@@ -251,22 +304,29 @@ namespace MED.EDWebCam
         private void chkRenderLogger_CheckedChanged(object sender, EventArgs e)
         {
             if (Render != null)
-                Render.LoggerEnabled = chkRenderLogger.Checked;
+                Render.Performance.Enabled = chkRenderLogger.Checked;
         }
         private void chkVideoCaptureLogger_CheckedChanged(object sender, EventArgs e)
         {
             if (WebCam != null)
-                WebCam.LoggerEnabled = chkVideoCaptureLogger.Checked;
+                WebCam.Performance.Enabled = chkVideoCaptureLogger.Checked;
         }
         private void chkLogColoredNot_CheckedChanged(object sender, EventArgs e)
         {
             if (Render == null)
                 return;
-            Render.Performance.LoggerColored = chkLogColored.Checked;
-            WebCam.Performance.LoggerColored = chkLogColored.Checked;
+            Render.Performance.IsColored = chkLogColored.Checked;
+            WebCam.Performance.IsColored = chkLogColored.Checked;
             if (RTGBAppendPerf != null)
-                RTGBAppendPerf.LoggerColored = chkLogColored.Checked;
+                RTGBAppendPerf.IsColored = chkLogColored.Checked;
         }
+
+        private void ChkClearLogOnRun_CheckStateChanged(object sender, EventArgs e)
+        {
+            if (chkClearLogOnRun.CheckState != CheckState.Unchecked)
+                rtbLog.Clear();
+        }
+
 
         private void cmdSaveSettings_Click(object sender, EventArgs e)
         {
@@ -281,7 +341,7 @@ namespace MED.EDWebCam
             this.Text = $"delta = {delta} = {e.SplitY} - {e.Y}, rtbLog.Top = {rtbLog.Top}, rtbLog.Height = {rtbLog.Height} => {rtbLog.Bottom - e.SplitY + delta}";
             //this.Text = $"delta = {delta} = {e.SplitY} - {e.Y}, tableLayoutPan.Top = {tableLayoutPan.Top}, tableLayoutPan.Bottom = {tableLayoutPan.Bottom}, tableLayoutPan.Height = {tableLayoutPan.Height}";
             rtbLog.Size = new Size(rtbLog.Width, rtbLog.Bottom - e.SplitY + delta);
-            tableLayoutPan.Size = new Size(tableLayoutPan.Width, e.Y-5);
+            tableLayoutPan.Size = new Size(tableLayoutPan.Width, e.Y - 5);
         }
 
         private void SplitterLog_SplitterMoved(object sender, SplitterEventArgs e)
@@ -291,10 +351,27 @@ namespace MED.EDWebCam
 
         }
 
-        private void cmdNewForm_Click(object sender, EventArgs e)
+        private void cboCaptureSize_SelectedIndexChanged(object sender, EventArgs e)
         {
-            (new FWebCam()).Show();
+            if (cboCaptureSize.Text == "")
+                WebCam.ImageSizeMax = Size.Empty;
+            else
+                WebCam.ImageSizeMax = Core.Parser.SizeFromPretty(cboCaptureSize.Text);
         }
 
+        private long _chkClearLogOnRun_CheckedChanged_ticks = 0L;
+        private void chkClearLogOnRun_CheckedChanged(object sender, EventArgs e)
+        {
+            if (!((Control)sender).ContainsFocus)
+                return;
+            var now = DateTime.Now.Ticks;
+            if ((now -_chkClearLogOnRun_CheckedChanged_ticks)/TimeSpan.TicksPerSecond < 1)
+            {
+                //Double-click < 1sec
+                rtbLog.Clear();
+            }
+            _chkClearLogOnRun_CheckedChanged_ticks = now;
+
+        }
     }
 }

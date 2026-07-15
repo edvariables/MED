@@ -10,8 +10,8 @@ using System.Threading.Tasks;
 
 namespace MED
 {
-    public class WebCam(string paramSection = "WebCam", StringBuilder progressMessage = null, Form formHandler = null, IImageConsumer imageConsumer = null)
-        : ImageProcess(paramSection, progressMessage, formHandler, imageConsumer, true), IImageProvider
+    public class WebCam(string paramSection = "WebCam", Performance performance = null, Form formHandler = null, IImageConsumer imageConsumer = null, bool isAynchrone = true)
+        : ImageProcess(paramSection, performance, formHandler, imageConsumer, isAynchrone), IImageProvider
     {
 
         public static List<string> AvailableCameras()
@@ -46,6 +46,7 @@ namespace MED
                     if (LastFrame == null)
                         return null;
                     //Generated at first query
+                    Performance.Step("LastFrame.ToBitmap()");
                     _LastImage = LastFrame.ToBitmap();
 
                     HasImageChanged = false;
@@ -64,6 +65,9 @@ namespace MED
          */
         public void Run(int nCamera = 0)
         {
+            if (!isAynchrone)
+                throw new ArgumentException("WebCam may be isAynchrone = true (constructor)");
+
             base.Run();
 
             var t = new Thread(() =>
@@ -77,14 +81,22 @@ namespace MED
                 using (Mat frame = new Mat())
                 using (VideoCapture capture = new VideoCapture(nCamera))
                 {
-                    Performance.Step("Connected");
+                    if (!ImageSizeMax.IsEmpty)
+                    {
+                        Performance.Step($"ImageSizeMax From {capture.Get(Emgu.CV.CvEnum.CapProp.FrameWidth)} x {capture.Get(Emgu.CV.CvEnum.CapProp.FrameHeight)}");
+                        capture.Set(Emgu.CV.CvEnum.CapProp.FrameWidth, ImageSizeMax.Width);
+                        capture.Set(Emgu.CV.CvEnum.CapProp.FrameHeight, ImageSizeMax.Height);
+                        Performance.Step($"To {capture.Get(Emgu.CV.CvEnum.CapProp.FrameWidth)} x {capture.Get(Emgu.CV.CvEnum.CapProp.FrameHeight)}");
+                    }
+
+                    Performance.Step($"Connected {capture.Get(Emgu.CV.CvEnum.CapProp.Fps)}");
                     int counter_max = -500;
                     int sleep = 0;
                     while (IsRunning
                     && (counter_max <= 0 || counter_max > Performance.Counter)
                     /*&& CvInvoke.WaitKey(1) == -1*/)
                     {
-                        Performance.Increment("ReadFrame");
+                        Performance.Increment($"ReadFrame {capture.Get(Emgu.CV.CvEnum.CapProp.Fps)}");
 
                         capture.Read(frame);
 

@@ -10,8 +10,8 @@ using static MED.WebCam;
 
 namespace MED.EDWebCam
 {
-    public class Render(string paramSection = "Render", StringBuilder progressMessage = null, Form formHandler = null, IImageConsumer imageConsumer = null)
-        : ImageProcess(paramSection, progressMessage , formHandler , imageConsumer)
+    public class Render(string paramSection = "Render", Performance performance = null, Form formHandler = null, IImageConsumer imageConsumer = null)
+        : ImageProcess(paramSection, performance, formHandler , imageConsumer)
     {
         public override Bitmap Image
         {

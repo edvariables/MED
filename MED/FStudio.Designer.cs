@@ -97,7 +97,7 @@
             menuStrip.MdiWindowListItem = windowsMenu;
             menuStrip.Name = "menuStrip";
             menuStrip.Padding = new Padding(7, 2, 0, 2);
-            menuStrip.Size = new Size(1126, 24);
+            menuStrip.Size = new Size(1138, 24);
             menuStrip.TabIndex = 0;
             menuStrip.Text = "MenuStrip";
             // 
@@ -187,7 +187,7 @@
             // 
             exitToolStripMenuItem.Name = "exitToolStripMenuItem";
             exitToolStripMenuItem.Size = new Size(231, 22);
-            exitToolStripMenuItem.Text = "&quitter";
+            exitToolStripMenuItem.Text = "&Quitter";
             exitToolStripMenuItem.Click += ExitToolsStripMenuItem_Click;
             // 
             // editMenu
@@ -397,7 +397,7 @@
             toolStrip.Items.AddRange(new ToolStripItem[] { newToolStripButton, openToolStripButton, saveToolStripButton, toolStripSeparator1, printToolStripButton, printPreviewToolStripButton, toolStripSeparator2, helpToolStripButton, toolStripSeparator9, btnWebCam, btnJoystick });
             toolStrip.Location = new Point(0, 24);
             toolStrip.Name = "toolStrip";
-            toolStrip.Size = new Size(1126, 25);
+            toolStrip.Size = new Size(1138, 25);
             toolStrip.TabIndex = 1;
             toolStrip.Text = "ToolStrip";
             // 
@@ -429,6 +429,7 @@
             saveToolStripButton.Name = "saveToolStripButton";
             saveToolStripButton.Size = new Size(23, 22);
             saveToolStripButton.Text = "Enregistrer";
+            saveToolStripButton.Click += saveToolStripButton_Click;
             // 
             // toolStripSeparator1
             // 
@@ -495,10 +496,10 @@
             // statusStrip
             // 
             statusStrip.Items.AddRange(new ToolStripItem[] { toolStripStatusLabel });
-            statusStrip.Location = new Point(0, 663);
+            statusStrip.Location = new Point(0, 924);
             statusStrip.Name = "statusStrip";
             statusStrip.Padding = new Padding(1, 0, 16, 0);
-            statusStrip.Size = new Size(1126, 22);
+            statusStrip.Size = new Size(1138, 22);
             statusStrip.TabIndex = 2;
             statusStrip.Text = "StatusStrip";
             // 
@@ -512,7 +513,7 @@
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1126, 685);
+            ClientSize = new Size(1138, 946);
             Controls.Add(statusStrip);
             Controls.Add(toolStrip);
             Controls.Add(menuStrip);
@@ -521,6 +522,8 @@
             Margin = new Padding(4, 3, 4, 3);
             Name = "FStudio";
             Text = "MED Studio";
+            FormClosing += FStudio_FormClosing;
+            Load += FStudio_Load;
             menuStrip.ResumeLayout(false);
             menuStrip.PerformLayout();
             toolStrip.ResumeLayout(false);

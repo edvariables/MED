@@ -30,20 +30,23 @@ namespace MED.EDWebCam
         /// </summary>
         private void InitializeComponent()
         {
+            components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FWebCam));
             cboCameras = new ComboBox();
             rtbLog = new RichTextBox();
             panBottom = new Panel();
+            chkClearLogOnRun = new CheckBox();
             chkLogColored = new CheckBox();
             chkVideoCaptureLogger = new CheckBox();
             chkRenderLogger = new CheckBox();
             picRender = new PictureBox();
             chkRun = new CheckBox();
             cmdSaveSettings = new Button();
-            cmdNewForm = new Button();
             panTopTools = new Panel();
+            cboCaptureSize = new ComboBox();
             tableLayoutPan = new TableLayoutPanel();
             splitterLog = new Splitter();
+            toolTip1 = new ToolTip(components);
             panBottom.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)picRender).BeginInit();
             panTopTools.SuspendLayout();
@@ -64,7 +67,7 @@ namespace MED.EDWebCam
             rtbLog.Dock = DockStyle.Bottom;
             rtbLog.Font = new Font("Consolas", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
             rtbLog.ForeColor = SystemColors.Window;
-            rtbLog.Location = new Point(0, 580);
+            rtbLog.Location = new Point(0, 577);
             rtbLog.MaximumSize = new Size(0, 200);
             rtbLog.Name = "rtbLog";
             rtbLog.Size = new Size(925, 100);
@@ -73,14 +76,36 @@ namespace MED.EDWebCam
             // 
             // panBottom
             // 
+            panBottom.Controls.Add(chkClearLogOnRun);
             panBottom.Controls.Add(chkLogColored);
             panBottom.Controls.Add(chkVideoCaptureLogger);
             panBottom.Controls.Add(chkRenderLogger);
             panBottom.Dock = DockStyle.Bottom;
-            panBottom.Location = new Point(0, 680);
+            panBottom.Location = new Point(0, 677);
             panBottom.Name = "panBottom";
-            panBottom.Size = new Size(925, 23);
+            panBottom.Size = new Size(925, 26);
             panBottom.TabIndex = 7;
+            // 
+            // chkClearLogOnRun
+            // 
+            chkClearLogOnRun.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            chkClearLogOnRun.Appearance = Appearance.Button;
+            chkClearLogOnRun.AutoSize = true;
+            chkClearLogOnRun.BackColor = SystemColors.Control;
+            chkClearLogOnRun.Checked = true;
+            chkClearLogOnRun.CheckState = CheckState.Checked;
+            chkClearLogOnRun.FlatAppearance.BorderSize = 0;
+            chkClearLogOnRun.FlatStyle = FlatStyle.Flat;
+            chkClearLogOnRun.ForeColor = SystemColors.ControlText;
+            chkClearLogOnRun.Image = (Image)resources.GetObject("chkClearLogOnRun.Image");
+            chkClearLogOnRun.Location = new Point(896, 2);
+            chkClearLogOnRun.Name = "chkClearLogOnRun";
+            chkClearLogOnRun.Size = new Size(22, 22);
+            chkClearLogOnRun.TabIndex = 5;
+            toolTip1.SetToolTip(chkClearLogOnRun, "Cocher pour vider le log à chaque lancement.\r\nDouble-clic pour effacer maintenant.");
+            chkClearLogOnRun.UseVisualStyleBackColor = false;
+            chkClearLogOnRun.CheckedChanged += chkClearLogOnRun_CheckedChanged;
+            chkClearLogOnRun.CheckStateChanged += ChkClearLogOnRun_CheckStateChanged;
             // 
             // chkLogColored
             // 
@@ -93,10 +118,11 @@ namespace MED.EDWebCam
             chkLogColored.FlatStyle = FlatStyle.Flat;
             chkLogColored.ForeColor = SystemColors.ControlText;
             chkLogColored.Image = (Image)resources.GetObject("chkLogColored.Image");
-            chkLogColored.Location = new Point(894, 1);
+            chkLogColored.Location = new Point(852, 2);
             chkLogColored.Name = "chkLogColored";
             chkLogColored.Size = new Size(22, 22);
             chkLogColored.TabIndex = 5;
+            toolTip1.SetToolTip(chkLogColored, "Colorise les traces.\r\nAttention, cela consomme des ressources.");
             chkLogColored.UseVisualStyleBackColor = false;
             chkLogColored.CheckedChanged += chkLogColoredNot_CheckedChanged;
             // 
@@ -109,11 +135,12 @@ namespace MED.EDWebCam
             chkVideoCaptureLogger.CheckState = CheckState.Checked;
             chkVideoCaptureLogger.FlatStyle = FlatStyle.Flat;
             chkVideoCaptureLogger.ForeColor = SystemColors.ControlText;
-            chkVideoCaptureLogger.Location = new Point(795, 3);
+            chkVideoCaptureLogger.Location = new Point(753, 4);
             chkVideoCaptureLogger.Name = "chkVideoCaptureLogger";
             chkVideoCaptureLogger.Size = new Size(95, 19);
             chkVideoCaptureLogger.TabIndex = 5;
             chkVideoCaptureLogger.Text = "VideoCapture";
+            toolTip1.SetToolTip(chkVideoCaptureLogger, "Active la trace");
             chkVideoCaptureLogger.UseVisualStyleBackColor = false;
             chkVideoCaptureLogger.CheckedChanged += chkVideoCaptureLogger_CheckedChanged;
             // 
@@ -126,11 +153,12 @@ namespace MED.EDWebCam
             chkRenderLogger.CheckState = CheckState.Checked;
             chkRenderLogger.FlatStyle = FlatStyle.Flat;
             chkRenderLogger.ForeColor = SystemColors.ControlText;
-            chkRenderLogger.Location = new Point(729, 3);
+            chkRenderLogger.Location = new Point(687, 4);
             chkRenderLogger.Name = "chkRenderLogger";
             chkRenderLogger.Size = new Size(60, 19);
             chkRenderLogger.TabIndex = 5;
             chkRenderLogger.Text = "Render";
+            toolTip1.SetToolTip(chkRenderLogger, "Active la trace");
             chkRenderLogger.UseVisualStyleBackColor = false;
             chkRenderLogger.CheckedChanged += chkRenderLogger_CheckedChanged;
             // 
@@ -171,30 +199,29 @@ namespace MED.EDWebCam
             cmdSaveSettings.UseVisualStyleBackColor = true;
             cmdSaveSettings.Click += cmdSaveSettings_Click;
             // 
-            // cmdNewForm
-            // 
-            cmdNewForm.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            cmdNewForm.Location = new Point(796, 6);
-            cmdNewForm.Name = "cmdNewForm";
-            cmdNewForm.Size = new Size(56, 25);
-            cmdNewForm.TabIndex = 9;
-            cmdNewForm.Text = "New";
-            cmdNewForm.UseVisualStyleBackColor = true;
-            cmdNewForm.Click += cmdNewForm_Click;
-            // 
             // panTopTools
             // 
             panTopTools.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             panTopTools.BackColor = SystemColors.ControlLight;
             tableLayoutPan.SetColumnSpan(panTopTools, 2);
+            panTopTools.Controls.Add(cboCaptureSize);
             panTopTools.Controls.Add(cboCameras);
-            panTopTools.Controls.Add(cmdNewForm);
             panTopTools.Controls.Add(chkRun);
             panTopTools.Controls.Add(cmdSaveSettings);
             panTopTools.Location = new Point(3, 3);
             panTopTools.Name = "panTopTools";
             panTopTools.Size = new Size(919, 41);
             panTopTools.TabIndex = 10;
+            // 
+            // cboCaptureSize
+            // 
+            cboCaptureSize.FormattingEnabled = true;
+            cboCaptureSize.Items.AddRange(new object[] { "800x600", "640x480", "320x240", "160x120", "80x60" });
+            cboCaptureSize.Location = new Point(235, 6);
+            cboCaptureSize.Name = "cboCaptureSize";
+            cboCaptureSize.Size = new Size(71, 23);
+            cboCaptureSize.TabIndex = 10;
+            cboCaptureSize.SelectedIndexChanged += cboCaptureSize_SelectedIndexChanged;
             // 
             // tableLayoutPan
             // 
@@ -219,14 +246,14 @@ namespace MED.EDWebCam
             // 
             splitterLog.BackColor = SystemColors.ActiveCaption;
             splitterLog.Dock = DockStyle.Bottom;
-            splitterLog.Location = new Point(0, 576);
+            splitterLog.Location = new Point(0, 573);
             splitterLog.MinimumSize = new Size(10, 3);
             splitterLog.Name = "splitterLog";
             splitterLog.Size = new Size(925, 4);
             splitterLog.TabIndex = 11;
             splitterLog.TabStop = false;
             // 
-            // Form1
+            // FWebCam
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
@@ -235,8 +262,8 @@ namespace MED.EDWebCam
             Controls.Add(rtbLog);
             Controls.Add(panBottom);
             Controls.Add(tableLayoutPan);
-            Name = "Form1";
-            Text = "Form1";
+            Name = "FWebCam";
+            Text = "WebCam";
             FormClosed += Form1_FormClosed;
             Load += Form1_Load;
             panBottom.ResumeLayout(false);
@@ -259,9 +286,11 @@ namespace MED.EDWebCam
         private Button cmdSaveSettings;
         private Panel panBottom;
         private CheckBox chkLogColored;
-        private Button cmdNewForm;
         private Panel panTopTools;
         private TableLayoutPanel tableLayoutPan;
         private Splitter splitterLog;
+        private ComboBox cboCaptureSize;
+        private CheckBox chkClearLogOnRun;
+        private ToolTip toolTip1;
     }
 }
