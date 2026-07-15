@@ -44,6 +44,7 @@ namespace MED
          */
         public virtual void ImageChanged(IImageProvider sender)
         {
+            HasImageChanged = true;
             ImageProvider = sender;
             InvokeImageChanged(sender);
         }
@@ -156,6 +157,7 @@ namespace MED
         public bool Disposing { get; private set; }
         public bool IsDisposed { get; private set; }
         public abstract Bitmap Image { get; set; }
+        public bool HasImageChanged { get; set; }
 
         public virtual void Dispose()
         {

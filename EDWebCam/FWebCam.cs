@@ -5,9 +5,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 namespace MED.EDWebCam
 {
-    public partial class Form1 : Form, IImageConsumer
+    public partial class FWebCam : Form, IImageConsumer
     {
-        public Form1()
+        public FWebCam()
         {
             InitializeComponent();
 
@@ -26,6 +26,7 @@ namespace MED.EDWebCam
             Stop();
         }
 
+        List<ImageProcess> ImageProcesses = new();
         WebCam WebCam;
         Render Render;
 
@@ -78,15 +79,22 @@ namespace MED.EDWebCam
          */
         private void Initialize_Objects()
         {
+            ImageProcesses.Clear();
+
             Render = new Render("Render", ProgressMessage, this);
             Render.LoggerEnabled = chkRenderLogger.Checked;
             Render.PerfColor = KnownColor.Yellow;
             Render.Performance.LoggerColored = chkLogColored.Checked;
+            ImageProcesses.Add(Render);
+
+            ImageProcess imgProc = new MED.Imaging.MovingRegions();
+
 
             WebCam = new WebCam("WebCam", ProgressMessage, this, Render);
             WebCam.LoggerEnabled = chkVideoCaptureLogger.Checked;
             WebCam.PerfColor = KnownColor.White;
             WebCam.Performance.LoggerColored = chkLogColored.Checked;
+            ImageProcesses.Add(WebCam);
         }
 
         /**
@@ -269,21 +277,24 @@ namespace MED.EDWebCam
         private void SplitterLog_SplitterMoving(object sender, SplitterEventArgs e)
         {
             var delta = e.SplitY - e.Y;
-            rtbLog.Size = new Size(rtbLog.Size.Width, rtbLog.Size.Height + delta);
+            this.Text = $"delta = {delta} = {e.SplitY} - {e.Y}, rtbLog.Height = {rtbLog.Height}";
+            this.Text = $"delta = {delta} = {e.SplitY} - {e.Y}, rtbLog.Top = {rtbLog.Top}, rtbLog.Height = {rtbLog.Height} => {rtbLog.Bottom - e.SplitY + delta}";
+            //this.Text = $"delta = {delta} = {e.SplitY} - {e.Y}, tableLayoutPan.Top = {tableLayoutPan.Top}, tableLayoutPan.Bottom = {tableLayoutPan.Bottom}, tableLayoutPan.Height = {tableLayoutPan.Height}";
+            rtbLog.Size = new Size(rtbLog.Width, rtbLog.Bottom - e.SplitY + delta);
+            tableLayoutPan.Size = new Size(tableLayoutPan.Width, e.Y-5);
         }
-        private void splitterLog_SplitterMoved(object sender, SplitterEventArgs e)
+
+        private void SplitterLog_SplitterMoved(object sender, SplitterEventArgs e)
         {
             var delta = e.SplitY - e.Y;
-            rtbLog.Size = new Size(rtbLog.Size.Width, rtbLog.Size.Height + delta);
-            //var location = ((Control)sender).Location;
-            //((Control)sender).Location = new Point(e.X, location.Y - delta);
-            //rtbLog.Location = new Point(e.X, location.Y - delta);
-            ((Control)sender).BringToFront();
+            this.Text = $"delta = {delta} = {e.SplitY} - {e.Y}, rtbLog.Top = {rtbLog.Top}, rtbLog.Height = {rtbLog.Height} => {rtbLog.Bottom - e.SplitY + delta}";
+
         }
 
         private void cmdNewForm_Click(object sender, EventArgs e)
         {
-            (new Form1()).Show();
+            (new FWebCam()).Show();
         }
+
     }
 }

@@ -8,6 +8,7 @@ namespace MED
 {
     public interface IImageProvider
     {
+        public bool HasImageChanged { get; set; }
         public Bitmap Image { get; set; }
 
         public void InvokeImageChanged(IImageProvider sender = null);

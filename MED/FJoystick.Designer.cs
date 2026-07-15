@@ -8,7 +8,7 @@
 
 namespace MED
 {
-    partial class FMain
+    partial class FJoystick
     {
         /// <summary>
         ///  Required designer variable.
@@ -37,7 +37,7 @@ namespace MED
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FMain));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FJoystick));
             tableLayoutPanel1 = new TableLayoutPanel();
             picRender = new PictureBox();
             txtLog = new RichTextBox();
@@ -47,11 +47,11 @@ namespace MED
             columnHeader2 = new ColumnHeader();
             imageListEDV = new ImageList(components);
             panel1 = new Panel();
+            button3 = new Button();
             cboJoystickConfig = new ComboBox();
             cboUsages = new ComboBox();
             button1 = new Button();
             button2 = new Button();
-            button3 = new Button();
             tableLayoutPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)picRender).BeginInit();
             panel1.SuspendLayout();
@@ -199,6 +199,16 @@ namespace MED
             panel1.Size = new Size(1125, 28);
             panel1.TabIndex = 7;
             // 
+            // button3
+            // 
+            button3.Location = new Point(542, 0);
+            button3.Name = "button3";
+            button3.Size = new Size(93, 27);
+            button3.TabIndex = 9;
+            button3.Text = "button3";
+            button3.UseVisualStyleBackColor = true;
+            button3.Click += button3_Click;
+            // 
             // cboJoystickConfig
             // 
             cboJoystickConfig.DropDownStyle = ComboBoxStyle.DropDownList;
@@ -241,22 +251,13 @@ namespace MED
             button2.UseVisualStyleBackColor = true;
             button2.Click += button2_Click;
             // 
-            // button3
-            // 
-            button3.Location = new Point(542, 0);
-            button3.Name = "button3";
-            button3.Size = new Size(93, 27);
-            button3.TabIndex = 9;
-            button3.Text = "button3";
-            button3.UseVisualStyleBackColor = true;
-            button3.Click += button3_Click;
-            // 
             // FMain
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1336, 730);
             Controls.Add(tableLayoutPanel1);
+            FormBorderStyle = FormBorderStyle.SizableToolWindow;
             Name = "FMain";
             Text = "EDJoystick";
             tableLayoutPanel1.ResumeLayout(false);

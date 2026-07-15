@@ -14,17 +14,17 @@ using MED.EDJoystick;
 
 namespace MED
 {
-    public partial class FMain : Form
+    public partial class FJoystick : Form
     {
         int _refresh_delay;
 
-        public FMain()
+        public FJoystick()
         {
             InitializeComponent();
             Init_Joystick_Config();
         }
 
-        public FMain(IJoystick joystick) : this()
+        public FJoystick(IJoystick joystick) : this()
         {
             Joystick = joystick;
             _refresh_delay = 500;
@@ -290,13 +290,13 @@ namespace MED
 
         private void button1_Click(object sender, EventArgs e)
         {
-            FMain f = new(Joystick);
+            FJoystick f = new(Joystick);
             f.Show();
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
-            FMain f = new();
+            FJoystick f = new();
             f.Show();
         }
 

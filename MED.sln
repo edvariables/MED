@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "Core\Core.csproj", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EDWebCam", "EDWebCam\EDWebCam.csproj", "{3D85FBFB-257B-4137-86DE-D956D773BDE2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Imaging", "Imaging\Imaging.csproj", "{32180E18-71F7-4D91-B00F-FC566FB9877B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{3D85FBFB-257B-4137-86DE-D956D773BDE2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3D85FBFB-257B-4137-86DE-D956D773BDE2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3D85FBFB-257B-4137-86DE-D956D773BDE2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{32180E18-71F7-4D91-B00F-FC566FB9877B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{32180E18-71F7-4D91-B00F-FC566FB9877B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{32180E18-71F7-4D91-B00F-FC566FB9877B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{32180E18-71F7-4D91-B00F-FC566FB9877B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

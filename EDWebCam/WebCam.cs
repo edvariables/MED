@@ -47,6 +47,8 @@ namespace MED
                         return null;
                     //Generated at first query
                     _LastImage = LastFrame.ToBitmap();
+
+                    HasImageChanged = false;
                 }
                 return _LastImage;
             }
