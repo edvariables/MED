@@ -167,7 +167,6 @@ namespace MED
         {
             if (IsEmpty)
                 return "";
-            Ticks_Pause = Now;
 
             if (pause_subs && Subs != null)
                 foreach (var kvp in Subs)
@@ -179,6 +178,8 @@ namespace MED
                     step += " (pause)";
                 step = Step(step);
             }
+
+            Ticks_Pause = Now;
 
             return step;
         }

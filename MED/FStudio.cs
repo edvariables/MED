@@ -20,12 +20,15 @@ namespace MED
         public FStudio()
         {
             InitializeComponent();
+
+            Current = this;
         }
 
 
         private void FStudio_Load(object sender, EventArgs e)
         {
             LoadSettings();
+            LoadChilds();
         }
 
         private void FStudio_FormClosing(object sender, FormClosingEventArgs e)
@@ -62,8 +65,26 @@ namespace MED
                 Core.Settings.SetValue("Size", settingsSection, this.Size);
             }
             Core.Settings.SetValue("WindowState", settingsSection, this.WindowState);
+
+            FLogger.Current.SaveSettings();
+
             Core.Settings.Save();
         }
+
+        public static FStudio Current { get; private set; }
+
+        private void LoadChilds()
+        {
+            var f = new FLogger();
+            f.MdiParent = this;
+            f.Show();
+            f.Dock = DockStyle.Bottom;
+        }
+
+        /*
+         * 
+         * 
+         */
 
         private void ExitToolsStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -154,9 +175,9 @@ namespace MED
 
         private void btnWebCam_Click(object sender, EventArgs e)
         {
-            MED.EDWebCam.FWebCam form = new();
+            FWebCam form = new();
             form.MdiParent = this;
-            form.WindowState = FormWindowState.Maximized;
+            form.Dock = DockStyle.Fill;
             form.Show();
 
         }
@@ -165,7 +186,7 @@ namespace MED
         {
             FJoystick form = new();
             form.MdiParent = this;
-            form.WindowState = FormWindowState.Maximized;
+            form.Dock = DockStyle.Fill;
             form.Show();
         }
 

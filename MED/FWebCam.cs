@@ -17,9 +17,26 @@ namespace MED.EDWebCam
         {
             Init_AvailableCameras();
 
+            Initialize_Logger();
+
             Initialize_Objects();
 
             LoadSettings();
+        }
+
+
+        private CheckBox chkLogColored;
+        private CheckBox chkVideoCaptureLogger;
+        private CheckBox chkRenderLogger;
+        private void Initialize_Logger()
+        {
+            chkLogColored = (CheckBox)FLogger.Current.Controls["chkLogColored"];
+            chkVideoCaptureLogger = (CheckBox)FLogger.Current.Controls["chkVideoCaptureLogger"];
+            chkRenderLogger = (CheckBox)FLogger.Current.Controls["chkRenderLogger"];
+
+            chkVideoCaptureLogger.CheckedChanged += chkVideoCaptureLogger_CheckedChanged;
+            chkRenderLogger.CheckedChanged += chkRenderLogger_CheckedChanged;
+            chkLogColored.CheckedChanged += chkLogColoredNot_CheckedChanged;
         }
 
         private void Form1_FormClosed(object sender, FormClosedEventArgs e)
@@ -36,8 +53,6 @@ namespace MED.EDWebCam
             chkRenderLogger.Checked = Render.Performance.Enabled;
             chkVideoCaptureLogger.Checked = WebCam.Performance.Enabled;
 
-            chkClearLogOnRun.Checked = (bool)Core.Settings.GetValue("ClearLogOnRun", this.Name, chkClearLogOnRun.Checked);
-
             var value = WebCam.ImageSizeMax;
             if (WebCam.ImageSizeMax.IsEmpty)
                 cboCaptureSize.Text = "";
@@ -48,9 +63,6 @@ namespace MED.EDWebCam
         {
             Render.SaveSettings();
             WebCam.SaveSettings();
-
-            Core.Settings.SetValue("ClearLogOnRun", this.Name, chkClearLogOnRun.Checked);
-            Core.Settings.Save();
         }
         private void Init_AvailableCameras()
         {
@@ -61,7 +73,6 @@ namespace MED.EDWebCam
                 cboCameras.SelectedIndex = 0;
         }
 
-        StringBuilder ProgressMessage = new();
         Performance Performance;
 
 
@@ -89,7 +100,7 @@ namespace MED.EDWebCam
          */
         private void Initialize_Objects()
         {
-            Performance = new("WebCam", ProgressMessage);
+            Performance = new("WebCam", FLogger.Current.ProgressMessage);
 
             ImageProcesses.Clear();
 
@@ -114,14 +125,14 @@ namespace MED.EDWebCam
             //WebCam
             WebCam = new WebCam(
                 "WebCam"
-                , Performance.Sub("WebCam", chkVideoCaptureLogger.Checked, rtbLog.ForeColor.ToKnownColor())
+                , Performance.Sub("WebCam", chkVideoCaptureLogger.Checked, FLogger.Current.LoggerForeColor.ToKnownColor())
                 , this
                 , ImageProcesses.Last()
                 );
             WebCam.Performance.IsColored = chkLogColored.Checked;
             if (cboCaptureSize.Text == "")
             {
-                if ( ! WebCam.ImageSizeMax.IsEmpty)
+                if (!WebCam.ImageSizeMax.IsEmpty)
                     cboCaptureSize.Text = Core.Parser.SizeToPretty(WebCam.ImageSizeMax);
             }
             else
@@ -137,8 +148,7 @@ namespace MED.EDWebCam
         {
             Initialize_Objects();
 
-            if (chkClearLogOnRun.Checked)
-                rtbLog.Clear();
+            FLogger.Current.Run();
 
             foreach (var item in ImageProcesses)
             {
@@ -152,7 +162,6 @@ namespace MED.EDWebCam
                     item.Run();
                 }
             }
-            RTGBAppendPerf?.Start();
         }
 
         /**
@@ -172,11 +181,8 @@ namespace MED.EDWebCam
                 item.Stop();
             }
 
-            RTGBAppendPerf?.Stop();
-            RTGBAppendRegex = null;
-            RTGBAppendPerf = null;
+            FLogger.Current.Stop();
 
-            RefreshProgress(null);
             chkRun.Checked = false;
         }
 
@@ -198,7 +204,9 @@ namespace MED.EDWebCam
 
             if (sender is Render)
                 RefreshImage((Render)sender);
-            RefreshProgress((ImageProcess)sender);
+            FLogger.Current.RefreshProgress((ImageProcess)sender);
+
+            this.Text = $"Webcam [{WebCam.Performance.Counter}]";
         }
         private void RefreshImage(Render sender)
         {
@@ -213,93 +221,12 @@ namespace MED.EDWebCam
                 }
                 catch (Exception ex)
                 {
-                    rtbLog.AppendText("\n" + ex.ToString());
+                    Render.Performance.Step(ex.ToString());
                 }
             }
             Render.Performance.Pause();
         }
 
-        private void RefreshProgress(ImageProcess sender)
-        {
-            if (ProgressMessage == null)
-                return;
-            if (ProgressMessage.Length > 0)
-            {
-                rtbLog.SuspendLayout();
-
-                if (rtbLog.TextLength > 1024 * 1024)
-                {
-                    rtbLog.Select(0, rtbLog.TextLength / 2);
-                    rtbLog.SelectedText = "";
-                }
-                rtbLog.SelectionStart = int.MaxValue;
-                if (ProgressMessage.Length > 0)
-                    //if (ProgressMessage[0] == '\b')
-                    //{
-                    RTGBAppend(rtbLog, ProgressMessage);
-                //}
-                //else
-                //{
-                //    rtbLog.AppendText(ProgressMessage.ToString());
-                //    ProgressMessage.Clear();
-                //}
-                rtbLog.SelectionStart = int.MaxValue;
-                rtbLog.ScrollToCaret();
-
-                rtbLog.ResumeLayout();
-            }
-            this.Text = $"Webcam [{WebCam.Performance.Counter}]";
-        }
-
-        Regex RTGBAppendRegex = null;
-        Performance RTGBAppendPerf;
-        private void RTGBAppend(RichTextBox rtb, StringBuilder strB)
-        {
-            var str = strB.ToString();
-            strB.Clear();
-            if (str.Contains('\b'))
-            {
-                if (RTGBAppendRegex == null)
-                {
-                    RTGBAppendPerf = new Performance("RTGBAppend", strB, chkLogColored.Checked, KnownColor.MediumPurple);
-                    var delimter = Regex.Escape("\b");
-                    var pattern = $"{delimter}{Regex.Escape("{")}(?<property>(\\w|\\d)+){Regex.Escape(":")}(?<value>[^{delimter}]*){Regex.Escape("}")}=(?<log>[^{delimter}]*){delimter}(?<crlf>[^{delimter}]*)";
-                    RTGBAppendRegex = new(pattern);
-                    RTGBAppendPerf.IsColored = true;
-                    RTGBAppendPerf.Start();
-                }
-
-                RTGBAppendPerf.Resume("RTGBAppendRegex.Matches", true);
-                var matches = RTGBAppendRegex.Matches(str);
-                foreach (var match in matches)
-                {
-                    var startSel = rtb.Text.Length;
-                    rtb.SelectionStart = startSel;
-                    string value = ((Match)match).Groups["value"].Value;
-                    var prop = ((Match)match).Groups["property"].Value.ToLower();
-                    switch (prop)
-                    {
-                        case "color":
-                            rtb.SelectionColor = Color.FromKnownColor((KnownColor)Enum.Parse(typeof(KnownColor), value));
-                            break;
-                        default:
-                            Console.WriteLine($"RTGBAppend : unknown property {prop}");
-                            break;
-                    }
-                    rtb.AppendText(((Match)match).Groups["log"].Value);
-                    rtb.SelectionStart = int.MaxValue;
-                    rtb.SelectionColor = rtb.ForeColor;
-                    rtb.AppendText(((Match)match).Groups["crlf"].Value);
-                    //rtb.Select(startSel, rtb.Text.Length);
-                }
-                RTGBAppendPerf.Pause();
-                if (matches.Count > 0)
-                    return;
-            }
-
-            rtbLog.AppendText(str);
-
-        }
 
         private void chkRenderLogger_CheckedChanged(object sender, EventArgs e)
         {
@@ -317,38 +244,6 @@ namespace MED.EDWebCam
                 return;
             Render.Performance.IsColored = chkLogColored.Checked;
             WebCam.Performance.IsColored = chkLogColored.Checked;
-            if (RTGBAppendPerf != null)
-                RTGBAppendPerf.IsColored = chkLogColored.Checked;
-        }
-
-        private void ChkClearLogOnRun_CheckStateChanged(object sender, EventArgs e)
-        {
-            if (chkClearLogOnRun.CheckState != CheckState.Unchecked)
-                rtbLog.Clear();
-        }
-
-
-        private void cmdSaveSettings_Click(object sender, EventArgs e)
-        {
-            SaveSettings();
-        }
-
-
-        private void SplitterLog_SplitterMoving(object sender, SplitterEventArgs e)
-        {
-            var delta = e.SplitY - e.Y;
-            this.Text = $"delta = {delta} = {e.SplitY} - {e.Y}, rtbLog.Height = {rtbLog.Height}";
-            this.Text = $"delta = {delta} = {e.SplitY} - {e.Y}, rtbLog.Top = {rtbLog.Top}, rtbLog.Height = {rtbLog.Height} => {rtbLog.Bottom - e.SplitY + delta}";
-            //this.Text = $"delta = {delta} = {e.SplitY} - {e.Y}, tableLayoutPan.Top = {tableLayoutPan.Top}, tableLayoutPan.Bottom = {tableLayoutPan.Bottom}, tableLayoutPan.Height = {tableLayoutPan.Height}";
-            rtbLog.Size = new Size(rtbLog.Width, rtbLog.Bottom - e.SplitY + delta);
-            tableLayoutPan.Size = new Size(tableLayoutPan.Width, e.Y - 5);
-        }
-
-        private void SplitterLog_SplitterMoved(object sender, SplitterEventArgs e)
-        {
-            var delta = e.SplitY - e.Y;
-            this.Text = $"delta = {delta} = {e.SplitY} - {e.Y}, rtbLog.Top = {rtbLog.Top}, rtbLog.Height = {rtbLog.Height} => {rtbLog.Bottom - e.SplitY + delta}";
-
         }
 
         private void cboCaptureSize_SelectedIndexChanged(object sender, EventArgs e)
@@ -357,21 +252,6 @@ namespace MED.EDWebCam
                 WebCam.ImageSizeMax = Size.Empty;
             else
                 WebCam.ImageSizeMax = Core.Parser.SizeFromPretty(cboCaptureSize.Text);
-        }
-
-        private long _chkClearLogOnRun_CheckedChanged_ticks = 0L;
-        private void chkClearLogOnRun_CheckedChanged(object sender, EventArgs e)
-        {
-            if (!((Control)sender).ContainsFocus)
-                return;
-            var now = DateTime.Now.Ticks;
-            if ((now -_chkClearLogOnRun_CheckedChanged_ticks)/TimeSpan.TicksPerSecond < 1)
-            {
-                //Double-click < 1sec
-                rtbLog.Clear();
-            }
-            _chkClearLogOnRun_CheckedChanged_ticks = now;
-
         }
     }
 }
