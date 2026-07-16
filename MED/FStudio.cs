@@ -235,5 +235,51 @@ namespace MED
             else
                 toolStripStatusLabel.Text = "Rien à sauvegarder !";
         }
+
+        private IProcess _active_Process;
+        public IProcess ActiveProcess
+        {
+            get
+            {
+                if (this.ActiveMdiChild is IProcess)
+                    return _active_Process = (this.ActiveMdiChild as IProcess);
+                return _active_Process;
+            }
+            set
+            {
+                _active_Process = value;
+                if (_active_Process != null)
+                    if (_active_Process is Form)
+                        (_active_Process as Form).Activate();
+            }
+        }
+        private void btnProcessStart_Click(object sender, EventArgs e)
+        {
+            var p = ActiveProcess;
+            if (p != null)
+                p.Start();
+            else
+                MessageBox.Show("Aucun process actif. Sélectionnez une fenêtre.");
+        }
+
+        private void btnProcessPause_Click(object sender, EventArgs e)
+        {
+            var p = ActiveProcess;
+            if (p != null)
+                p.Pause();
+            else
+                MessageBox.Show("Aucun process actif. Sélectionnez une fenêtre.");
+
+        }
+
+        private void btnProcessStop_Click(object sender, EventArgs e)
+        {
+            var p = ActiveProcess;
+            if (p != null)
+                p.Stop();
+            else
+                MessageBox.Show("Aucun process actif. Sélectionnez une fenêtre.");
+
+        }
     }
 }

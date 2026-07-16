@@ -7,10 +7,12 @@ using System.Threading.Tasks;
 
 namespace MED
 {
-    public abstract class ImageProcess : IDisposable, IImageConsumer, IImageProvider
+    public abstract class ImageProcess : IProcess, IDisposable, IImageConsumer, IImageProvider
     {
         public ImageProcess(string paramSection, Performance performance = null, Form formHandler = null, IImageConsumer imageConsumer = null, bool isAynchrone = false)
         {
+            ProcessState = ThreadState.Unstarted;
+
             FormHandler = formHandler;
             IsAsynchrone = isAynchrone;
             if (imageConsumer == null)
@@ -20,8 +22,8 @@ namespace MED
             }
             else
                 OnImageChanged = imageConsumer.ImageChanged;
-            ParamSection = paramSection.Trim();
-            Performance = performance == null ? performance.Empty() : performance;
+            Name = paramSection.Trim();
+            Performance = performance == null ? MED.Performance.Empty() : performance;
 
             LoadSettings();
         }
@@ -32,8 +34,8 @@ namespace MED
             get
             {
                 var dict = new Dictionary<string, object>();
-                dict.Add(this.ParamSection, this);
-                dict.Add(this.ParamSection + ".Performance", Performance);
+                dict.Add(this.Name, this);
+                dict.Add(this.Name + ".Performance", Performance);
 
                 return dict;
             }
@@ -43,7 +45,7 @@ namespace MED
         public bool IsAsynchrone { get; set; }
 
         [ReadOnly(true)]
-        public string ParamSection { get; set; }
+        public string Name { get; set; }
 
         [Browsable(false)]
         public Form FormHandler;
@@ -54,7 +56,7 @@ namespace MED
         public delegate void ImageChangedDelegate(IImageProvider sender);
         public ImageChangedDelegate OnImageChanged;
 
-        public delegate void IsRunningChangedDelegate(ImageProcess sender);
+        public delegate void IsRunningChangedDelegate(ImageProcess sender, bool isRunning);
         public IsRunningChangedDelegate IsRunningChanged;
 
         protected IImageProvider ImageProvider;
@@ -100,11 +102,11 @@ namespace MED
 
         protected virtual void LoadSettings()
         {
-            Core.Settings.ClearCache(true, true, ParamSection);
+            Core.Settings.ClearCache(true, true, Name);
 
-            Performance.LoadSettings(ParamSection);
+            Performance.LoadSettings(Name);
 
-            var value = Core.Settings.GetValue("ImageSizeMax", ParamSection, ImageSizeMax);
+            var value = Core.Settings.GetValue("ImageSizeMax", Name, ImageSizeMax);
             if (value is Size)
                 ImageSizeMax = (Size)value;
             else
@@ -112,9 +114,9 @@ namespace MED
         }
         public virtual void SaveSettings()
         {
-            Performance.SaveSettings(ParamSection);
+            Performance.SaveSettings(Name);
 
-            Core.Settings.SetValue("ImageSizeMax", ParamSection, ImageSizeMax.IsEmpty ? "" : ImageSizeMax);
+            Core.Settings.SetValue("ImageSizeMax", Name, ImageSizeMax.IsEmpty ? "" : ImageSizeMax);
             Core.Settings.Save();
         }
 
@@ -125,29 +127,41 @@ namespace MED
             {
                 if (this.IsDisposed || this.Disposing)
                     return _IsRunning = false;
+
+                bool changed = _IsRunning != (ProcessState == ThreadState.Running || ProcessState == ThreadState.Suspended);
+                _IsRunning = (ProcessState == ThreadState.Running || ProcessState == ThreadState.Suspended);
+                if (changed && IsRunningChanged != null)
+                    IsRunningChanged(this, _IsRunning);
                 return _IsRunning;
             }
             protected set
             {
-                if (_IsRunning != value && IsRunningChanged != null)
-                    IsRunningChanged(this);
+                bool changed = _IsRunning != value;
                 _IsRunning = value;
+                if (changed && IsRunningChanged != null)
+                    IsRunningChanged(this, value);
             }
         }
 
         public virtual void Stop()
         {
+            if (!IsRunning)
+                return;
+
+            ProcessState = ThreadState.StopRequested;
 
             if (Performance != null && Performance.IsRunning)
                 Performance.Stop();
-
-            IsRunning = false;
 
             //Kills delegate links to object
             OnImageChanged = null;
             //if (OnImageChanged != null)
             //    foreach (var del in OnImageChanged.GetInvocationList())
             //        OnImageChanged -= (ImageChangedDelegate)del;
+
+            IsRunning = false;
+
+            ProcessState = ThreadState.Stopped;
 
             if (Disposing)
                 IsDisposed = true;
@@ -157,11 +171,24 @@ namespace MED
          * Run
          * 
          */
-        public virtual void Run()
+        public virtual void Start()
         {
-            IsRunning = true;
+            if (IsRunning)
+            {
+                if (ProcessState == ThreadState.Suspended)
+                    Resume();
+                return;
+            }
+
+            ProcessState = ThreadState.Unstarted;
 
             Performance.Start();
+
+            //Override next :
+            /*
+            ProcessState = ThreadState.Running;
+            IsRunning = true;
+            */
         }
 
 
@@ -176,6 +203,26 @@ namespace MED
         [Browsable(false)]
         public virtual bool HasImageChanged { get; set; }
 
+        public virtual ThreadState ProcessState { get; set; }
+
+        public virtual void Pause()
+        {
+            if (IsRunning)
+            {
+                ProcessState = ThreadState.Suspended;
+                Performance.Suspend("Process.Pause");
+            }
+        }
+
+        public virtual void Resume()
+        {
+            if (IsRunning)
+            {
+                ProcessState = ThreadState.Running;
+                Performance.Resume("Process.Resume");
+            }
+        }
+
         public virtual void Dispose()
         {
             Disposing = true;
@@ -183,6 +230,5 @@ namespace MED
             Performance = null;
             Stop();
         }
-
     }
 }

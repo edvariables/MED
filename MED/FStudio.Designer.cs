@@ -79,6 +79,10 @@
             printPreviewToolStripButton = new ToolStripButton();
             toolStripSeparator2 = new ToolStripSeparator();
             helpToolStripButton = new ToolStripButton();
+            toolStripSeparator10 = new ToolStripSeparator();
+            btnProcessStart = new ToolStripButton();
+            btnProcessPause = new ToolStripButton();
+            btnProcessStop = new ToolStripButton();
             toolStripSeparator9 = new ToolStripSeparator();
             btnWebCam = new ToolStripButton();
             btnJoystick = new ToolStripButton();
@@ -394,7 +398,7 @@
             // 
             // toolStrip
             // 
-            toolStrip.Items.AddRange(new ToolStripItem[] { newToolStripButton, openToolStripButton, saveToolStripButton, toolStripSeparator1, printToolStripButton, printPreviewToolStripButton, toolStripSeparator2, helpToolStripButton, toolStripSeparator9, btnWebCam, btnJoystick });
+            toolStrip.Items.AddRange(new ToolStripItem[] { newToolStripButton, openToolStripButton, saveToolStripButton, toolStripSeparator1, printToolStripButton, printPreviewToolStripButton, toolStripSeparator2, helpToolStripButton, toolStripSeparator10, btnProcessStart, btnProcessPause, btnProcessStop, toolStripSeparator9, btnWebCam, btnJoystick });
             toolStrip.Location = new Point(0, 24);
             toolStrip.Name = "toolStrip";
             toolStrip.Size = new Size(1138, 25);
@@ -468,6 +472,38 @@
             helpToolStripButton.Size = new Size(23, 22);
             helpToolStripButton.Text = "Aide";
             // 
+            // toolStripSeparator10
+            // 
+            toolStripSeparator10.Name = "toolStripSeparator10";
+            toolStripSeparator10.Size = new Size(6, 25);
+            // 
+            // btnProcessStart
+            // 
+            btnProcessStart.Image = (Image)resources.GetObject("btnProcessStart.Image");
+            btnProcessStart.ImageTransparentColor = Color.Magenta;
+            btnProcessStart.Name = "btnProcessStart";
+            btnProcessStart.Size = new Size(51, 22);
+            btnProcessStart.Text = "Start";
+            btnProcessStart.Click += btnProcessStart_Click;
+            // 
+            // btnProcessPause
+            // 
+            btnProcessPause.Image = (Image)resources.GetObject("btnProcessPause.Image");
+            btnProcessPause.ImageTransparentColor = Color.Magenta;
+            btnProcessPause.Name = "btnProcessPause";
+            btnProcessPause.Size = new Size(58, 22);
+            btnProcessPause.Text = "Pause";
+            btnProcessPause.Click += btnProcessPause_Click;
+            // 
+            // btnProcessStop
+            // 
+            btnProcessStop.Image = (Image)resources.GetObject("btnProcessStop.Image");
+            btnProcessStop.ImageTransparentColor = Color.Magenta;
+            btnProcessStop.Name = "btnProcessStop";
+            btnProcessStop.Size = new Size(51, 22);
+            btnProcessStop.Text = "Stop";
+            btnProcessStop.Click += btnProcessStop_Click;
+            // 
             // toolStripSeparator9
             // 
             toolStripSeparator9.Name = "toolStripSeparator9";
@@ -475,21 +511,19 @@
             // 
             // btnWebCam
             // 
-            btnWebCam.DisplayStyle = ToolStripItemDisplayStyle.Image;
             btnWebCam.Image = (Image)resources.GetObject("btnWebCam.Image");
             btnWebCam.ImageTransparentColor = Color.Magenta;
             btnWebCam.Name = "btnWebCam";
-            btnWebCam.Size = new Size(23, 22);
+            btnWebCam.Size = new Size(76, 22);
             btnWebCam.Text = "WebCam";
             btnWebCam.Click += btnWebCam_Click;
             // 
             // btnJoystick
             // 
-            btnJoystick.DisplayStyle = ToolStripItemDisplayStyle.Image;
             btnJoystick.Image = (Image)resources.GetObject("btnJoystick.Image");
             btnJoystick.ImageTransparentColor = Color.Magenta;
             btnJoystick.Name = "btnJoystick";
-            btnJoystick.Size = new Size(23, 22);
+            btnJoystick.Size = new Size(68, 22);
             btnJoystick.Text = "Joystick";
             btnJoystick.Click += btnJoystick_Click;
             // 
@@ -593,6 +627,10 @@
         private ToolStripSeparator toolStripSeparator9;
         private ToolStripButton btnWebCam;
         private ToolStripButton btnJoystick;
+        private ToolStripSeparator toolStripSeparator10;
+        private ToolStripButton btnProcessStart;
+        private ToolStripButton btnProcessPause;
+        private ToolStripButton btnProcessStop;
     }
 }
 

@@ -85,12 +85,12 @@ namespace MED
          * Run
          * 
          */
-        public void Run()
+        public override void Start()
         {
             if (!isAynchrone)
                 throw new ArgumentException("WebCam may be isAynchrone = true (constructor)");
 
-            base.Run();
+            base.Start();
 
             var t = new Thread(() =>
             {
@@ -118,6 +118,12 @@ namespace MED
                     && (counter_max <= 0 || counter_max > Performance.Counter)
                     /*&& CvInvoke.WaitKey(1) == -1*/)
                     {
+                        if(ProcessState == System.Threading.ThreadState.Suspended)
+                        {
+                            Thread.Sleep(200);
+                            continue;
+                        }
+
                         Performance.Increment($"ReadFrame {capture.Get(Emgu.CV.CvEnum.CapProp.Fps)}");
 
                         capture.Read(frame);
@@ -144,6 +150,9 @@ namespace MED
                 }
             });
             t.Start();
+
+            ProcessState = System.Threading.ThreadState.Running;
+            IsRunning = true;
         }
 
     }

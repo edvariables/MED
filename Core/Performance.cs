@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -170,6 +171,13 @@ namespace MED
                     _Counter = value;
             }
         }
+
+        /***
+         * Process
+         * */
+        #region Process
+        public System.Threading.ThreadState ProcessState => throw new NotImplementedException();
+
         public string Start(string step = "Start", bool start_subs = true)
         {
             if (IsEmpty)
@@ -203,6 +211,10 @@ namespace MED
 
             return Log(Report());
         }
+        public string Suspend(string step = "Suspend", bool suspend_subs = false)
+        {
+            return Pause(step, suspend_subs);
+        }
         public string Pause(string step = "Pause", bool pause_subs = false)
         {
             if (IsEmpty)
@@ -214,7 +226,7 @@ namespace MED
 
             if (step != "")
             {
-                if (!step.Contains("Pause"))
+                if (!step.Contains("Pause") && !step.Contains("Suspend"))
                     step += " (pause)";
                 step = Step(step);
             }
@@ -246,6 +258,8 @@ namespace MED
                 step += " (Resume)";
             return Step(step);
         }
+        #endregion
+
         public string Increment(string step = "", long add = 1)
         {
             if (IsEmpty)
@@ -358,6 +372,7 @@ namespace MED
                 return DateTime.Now.Ticks;
             }
         }
+
         public long To_msec(long ticks)
         {
             return ticks / TimeSpan.TicksPerMillisecond;

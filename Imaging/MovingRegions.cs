@@ -24,9 +24,9 @@ namespace MED.Imaging
                 var dict = base.ObjectsProperties;
                 if (MoveDetector != null)
                 {
-                    dict.Add(this.ParamSection + ".MoveDetector", MoveDetector);
+                    dict.Add(this.Name + ".MoveDetector", MoveDetector);
                     for(int i= 0; i < MoveDetector.IdxLimites; i++)
-                        dict.Add($"{this.ParamSection}.MoveDetector.Limites{i}", MoveDetector.get_Limites(i));
+                        dict.Add($"{this.Name}.MoveDetector.Limites{i}", MoveDetector.get_Limites(i));
                 }
 
                 return dict;
@@ -51,11 +51,14 @@ namespace MED.Imaging
             }
         }
 
-        public override void Run()
+        public override void Start()
         {
             MoveDetectInit = false;
 
-            base.Run();
+            base.Start();
+
+            ProcessState = System.Threading.ThreadState.Running;
+            IsRunning = true;
         }
 
         public bool MoveDetectInit = false;

@@ -172,7 +172,7 @@ namespace MED
          * 
          */
         #region Run and Stop
-        public void Run()
+        public void Start()
         {
             if (chkClearLogOnRun.Checked)
                 rtbLog.Clear();

@@ -7,9 +7,10 @@ using System.ComponentModel;
 using System.Drawing.Imaging;
 using System.Text;
 using System.Text.RegularExpressions;
+
 namespace MED.EDWebCam
 {
-    public partial class FWebCam : Form, IImageConsumer
+    public partial class FWebCam : Form, IImageConsumer, IProcess
     {
         public FWebCam()
         {
@@ -24,7 +25,6 @@ namespace MED.EDWebCam
             Initialize_Objects();
 
             LoadSettings();
-
 
         }
 
@@ -117,20 +117,36 @@ namespace MED.EDWebCam
         Performance Performance;
 
 
-        public bool IsRunning { get; private set; }
+        public bool IsRunning { get => ProcessState == ThreadState.Running || ProcessState == ThreadState.Suspended; }
+
+        private ThreadState _ProcessState = ThreadState.Unstarted;
+        public System.Threading.ThreadState ProcessState
+        {
+            get
+            {
+                if (WebCam == null)
+                    return ProcessState;
+                return WebCam.ProcessState;
+            }
+            set
+            {
+                if (WebCam == null)
+                    _ProcessState = value;
+                WebCam.ProcessState = value;
+            }
+        }
 
         private void chkRun_CheckedChanged(object sender, EventArgs e)
         {
             if (chkRun.Checked)
             {
-                Run();
-                IsRunning = true;
+                if (!IsRunning)
+                    Start();
                 chkRun.Text = "En cours...";
             }
             else
             {
                 Stop();
-                IsRunning = false;
                 chkRun.Text = "Démarrer";
             }
         }
@@ -139,6 +155,7 @@ namespace MED.EDWebCam
          * 
          * 
          */
+        #region Initialize_Objects
         private void Initialize_Objects(bool resetAll = false)
         {
 
@@ -212,6 +229,7 @@ namespace MED.EDWebCam
                 , ImageProcesses.Last()
                 );
                 WebCam.Performance.IsColored = chkLogColored.Checked;
+                WebCam.IsRunningChanged += WebCam_IsRunningChanged;
             }
             else
             {
@@ -229,40 +247,66 @@ namespace MED.EDWebCam
             //Add process
             ImageProcesses.Add(WebCam);
         }
+        #endregion
 
-        /**
-         * 
-         * 
-         */
-        private void Run()
+        #region Process
+        private void WebCam_IsRunningChanged(ImageProcess sender, bool isRunning)
         {
-            Initialize_Objects();
-
-            FLogger.Current.Run();
-
-            foreach (var item in ImageProcesses)
+            if (isRunning)
             {
-                if (item == WebCam)
-                {
-                    WebCam.CameraIndex = cboCameras.SelectedIndex;
-                    WebCam.Run();
-                }
-                else
-                {
-                    item.Run();
-                }
+                chkRun.Checked = true;
             }
+            else
+                Stop();
         }
 
         /**
          * 
          * 
          */
-        private void Stop()
+        public void Start()
+        {
+            if (IsRunning)
+            {
+                if (ProcessState == System.Threading.ThreadState.Suspended)
+                {
+                    ProcessState = ThreadState.Running;
+                }
+                return;
+            }
+
+            ProcessState = ThreadState.Unstarted;
+
+            Initialize_Objects();
+
+            FLogger.Current.Start();
+
+            foreach (var item in ImageProcesses)
+            {
+                if (item == WebCam)
+                {
+                    WebCam.CameraIndex = cboCameras.SelectedIndex;
+                }
+                item.Start();
+            }
+
+            chkRun.Checked = true;
+        }
+
+        /**
+         * 
+         * 
+         */
+        public void Stop()
         {
             if (chkRun.Checked)
                 chkRun.Text = "Arrêt en cours...";
-            IsRunning = false;
+
+            if (!IsRunning)
+                return;
+
+            ProcessState = ThreadState.StopRequested;
+
             if (WebCam == null)
                 return;
 
@@ -274,8 +318,27 @@ namespace MED.EDWebCam
             FLogger.Current.Stop();
 
             chkRun.Checked = false;
+
+            ProcessState = ThreadState.Stopped;
         }
 
+        public void Resume()
+        {
+            if (IsRunning)
+                foreach (var item in ImageProcesses)
+                    item.Resume();
+        }
+
+        public void Pause()
+        {
+            if (IsRunning)
+                foreach (var item in ImageProcesses)
+                    item.Pause();
+        }
+        #endregion
+        /**
+         * Image
+         * */
         public void ImageChanged(IImageProvider sender)
         {
             if (this.Disposing || this.IsDisposed)
