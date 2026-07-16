@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -14,6 +15,23 @@ namespace MED.Imaging
         {
         }
 
+
+        [Browsable(false)]
+        public override Dictionary<string, object> ObjectsProperties
+        {
+            get
+            {
+                var dict = base.ObjectsProperties;
+                if (MoveDetector != null)
+                {
+                    dict.Add(this.ParamSection + ".MoveDetector", MoveDetector);
+                    for(int i= 0; i < MoveDetector.IdxLimites; i++)
+                        dict.Add($"{this.ParamSection}.MoveDetector.Limites{i}", MoveDetector.get_Limites(i));
+                }
+
+                return dict;
+            }
+        }
 
         public override bool HasImageChanged
         {
@@ -41,7 +59,8 @@ namespace MED.Imaging
         }
 
         public bool MoveDetectInit = false;
-        public EDMovDetect MoveDetector;
+        [Browsable(false)]
+        public EDMovDetect MoveDetector { get; private set; }
 
         public override Bitmap Image
         {
@@ -63,8 +82,8 @@ namespace MED.Imaging
                     float newWidth = 256F;
                     var size = new Size((int)newWidth, (int)(image.Height * newWidth / image.Width));
                     image = new Bitmap(image, size);
+                    ImageProvider.Image = image;
                 }
-                ImageProvider.Image = image;
 
                 if (!MoveDetectInit)
                 {
@@ -118,10 +137,12 @@ namespace MED.Imaging
 
             Graphics gr = Graphics.FromImage(image);
 
-            if (MoveDetector.GetZonesMove != null && MoveDetector.GetZonesMove.Count > 0)
+            var zones = MoveDetector.GetZonesMove;
+
+            if (zones != null && zones.Count > 0)
             {
 
-                Performance.Step($"Move Detection : {MoveDetector.GetZonesMove.Count}, {MoveDetector.RegionDetect.GetBounds(gr)}, {MoveDetector.get_Limites(0).RectAnalyse}");
+                Performance.Step($"Move Detection : Zones : {MoveDetector.GetZonesMove.Count}, RegionDetect : {MoveDetector.RegionDetect.GetBounds(gr)}, Limites(0).RectAnalyse : {MoveDetector.get_Limites(0).RectAnalyse}");
                 Performance.Step(MoveDetector.GetStats());
 
                 SolidBrush brush = new SolidBrush(Color.Blue);
@@ -132,12 +153,12 @@ namespace MED.Imaging
             }
             if (!MoveDetector.RegionDetect.IsEmpty(gr))
             {
-
-                Performance.Step($"move Detection : {MoveDetector.GetZonesMove.Count}, {MoveDetector.RegionDetect.GetBounds(gr)}");
+                if (zones != null && zones.Count > 0)
+                    Performance.Step($"move Detection : No zone, RegionDetect : {MoveDetector.RegionDetect.GetBounds(gr)}");
                 Pen pen = new(Color.Green);
                 gr.DrawRectangle(pen, MoveDetector.RegionDetect.GetBounds(gr));
             }
-            else
+            else if(zones == null || zones.Count == 0)
             {
                 Performance.Step($"NO move Detection");
             }

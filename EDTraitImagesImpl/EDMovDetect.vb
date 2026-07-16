@@ -3,6 +3,7 @@ Imports System.Drawing.Graphics
 Imports System.Drawing.Imaging
 Imports System.Drawing
 Imports System.Drawing.Drawing2D
+Imports System.ComponentModel
 
 Public Class EDMovDetect
     Private Const Angle90 As Double = Math.PI / 2
@@ -78,6 +79,7 @@ Public Class EDMovDetect
             End With
         End Set
     End Property
+
     Public ReadOnly Property Limites(Optional ByVal pIdxLimites As Integer = 0) As EDMovDetectLimites
         Get
             If pIdxLimites > 0 Then mIdxLimites = pIdxLimites
@@ -220,6 +222,8 @@ Public Class EDMovDetect
     '/////////////////////////////
     Private mRegionDetect As Region
     Private mOldRegion As Region
+
+    <Browsable(False)>
     Public ReadOnly Property RegionDetect() As Region
         Get
             Return mRegionDetect

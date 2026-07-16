@@ -14,8 +14,6 @@ namespace MED.EDWebCam
         public FWebCam()
         {
             InitializeComponent();
-
-            ImageProcesses = new();
         }
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -57,7 +55,7 @@ namespace MED.EDWebCam
             {
                 MdiParent = FStudio.Current;
                 if (WindowState == FormWindowState.Normal)
-                    Dock =DockStyle.Fill;
+                    Dock = DockStyle.Fill;
             }
         }
 
@@ -141,38 +139,86 @@ namespace MED.EDWebCam
          * 
          * 
          */
-        private void Initialize_Objects()
+        private void Initialize_Objects(bool resetAll = false)
         {
-            Performance = new("FWebCam", FLogger.Current.Logger);
 
-            ImageProcesses.Clear();
+            if (ImageProcesses != null && !resetAll)
+            {
+                if (ImageProcesses.Count > 0)
+                {
+                    //Restaure delegates
+                    ImageProcess prevHandler = null;
+                    foreach (var handler in ImageProcesses)
+                    {
+                        if (prevHandler == null)
+                            handler.OnImageChanged += this.ImageChanged;
+                        else
+                            handler.OnImageChanged += prevHandler.ImageChanged;
+                        prevHandler = handler;
+                    }
+                }
+
+                return;
+            }
+
+            if (Performance == null || resetAll)
+            {
+                Performance = new("FWebCam", FLogger.Current.Logger);
+            }
+
+            if (ImageProcesses == null)
+                ImageProcesses = new();
+            else
+                ImageProcesses.Clear();
 
             //Render
-            Render = new Render(
-                "Render"
-                , Performance.Sub("Render", chkRenderLogger.Checked, KnownColor.Yellow)
-                , this
-                );
-            Render.Performance.IsColored = chkLogColored.Checked;
+            if (Render == null || resetAll)
+            {
+                Render = new Render(
+                    "Render"
+                    , Performance.Sub("Render", chkRenderLogger.Checked, KnownColor.Yellow)
+                    , this
+                    );
+                Render.Performance.IsColored = chkLogColored.Checked;
+            }
+            else
+            {
+                //ImageProcess.Stop() kills OnImageChanged register
+                Render.OnImageChanged += this.ImageChanged;
+            }
+            //Add process
             ImageProcesses.Add(Render);
 
+            ImageProcess imgProc;
+
             //MovingRegions
-            ImageProcess imgProc = new MED.Imaging.MovingRegions(
-                "MovingRegions"
+            imgProc = new MovingRegions(
+                        "MovingRegions"
+
                 , Performance.Sub("MovingRegions", chkRenderLogger.Checked, KnownColor.GreenYellow)
-                , this
-                , ImageProcesses.Last()
-            );
+                        , this
+                        , ImageProcesses.Last()
+                    );
+            //Add process
             ImageProcesses.Add(imgProc);
 
             //WebCam
-            WebCam = new WebCam(
+            if (WebCam == null || resetAll)
+            {
+                WebCam = new WebCam(
                 "WebCam"
                 , Performance.Sub("WebCam", chkVideoCaptureLogger.Checked, FLogger.Current.DefaultLoggerColor.ToKnownColor())
                 , this
                 , ImageProcesses.Last()
                 );
-            WebCam.Performance.IsColored = chkLogColored.Checked;
+                WebCam.Performance.IsColored = chkLogColored.Checked;
+            }
+            else
+            {
+                //ImageProcess.Stop() kills OnImageChanged register
+                WebCam.OnImageChanged += ImageProcesses.Last().ImageChanged;
+            }
+            //WebCam.ImageSizeMax
             if (cboCaptureSize.Text == "")
             {
                 if (!WebCam.ImageSizeMax.IsEmpty)
@@ -180,6 +226,7 @@ namespace MED.EDWebCam
             }
             else
                 WebCam.ImageSizeMax = Core.Parser.SizeFromPretty(cboCaptureSize.Text);
+            //Add process
             ImageProcesses.Add(WebCam);
         }
 

@@ -27,7 +27,8 @@ namespace MED
         }
 
         [Browsable(false)]
-        public virtual Dictionary<string, object> ObjectsProperties {
+        public virtual Dictionary<string, object> ObjectsProperties
+        {
             get
             {
                 var dict = new Dictionary<string, object>();
@@ -52,6 +53,9 @@ namespace MED
 
         public delegate void ImageChangedDelegate(IImageProvider sender);
         public ImageChangedDelegate OnImageChanged;
+
+        public delegate void IsRunningChangedDelegate(ImageProcess sender);
+        public IsRunningChangedDelegate IsRunningChanged;
 
         protected IImageProvider ImageProvider;
 
@@ -100,7 +104,7 @@ namespace MED
 
             Performance.LoadSettings(ParamSection);
 
-            var value = Core.Settings.GetValue("ImageSizeMax", ParamSection, Size.Empty);
+            var value = Core.Settings.GetValue("ImageSizeMax", ParamSection, ImageSizeMax);
             if (value is Size)
                 ImageSizeMax = (Size)value;
             else
@@ -123,7 +127,12 @@ namespace MED
                     return _IsRunning = false;
                 return _IsRunning;
             }
-            protected set { _IsRunning = value; }
+            protected set
+            {
+                if (_IsRunning != value && IsRunningChanged != null)
+                    IsRunningChanged(this);
+                _IsRunning = value;
+            }
         }
 
         public virtual void Stop()
@@ -134,10 +143,14 @@ namespace MED
 
             IsRunning = false;
 
+            //Kills delegate links to object
+            OnImageChanged = null;
+            //if (OnImageChanged != null)
+            //    foreach (var del in OnImageChanged.GetInvocationList())
+            //        OnImageChanged -= (ImageChangedDelegate)del;
+
             if (Disposing)
                 IsDisposed = true;
-            //else if (!IsDisposed && RenderChanged != null)
-            //    RenderChanged(this);
         }
 
         /**

@@ -73,9 +73,10 @@ namespace MED
         }
 
 
+        
         [Browsable(true)]
         [ReadOnly(true)]
-        public virtual Size ImageSizeMax { get; set; }
+        public override Size ImageSizeMax { get; set; }
 
         [ReadOnly(true)]
         public int CameraIndex{get;set;}
