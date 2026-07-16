@@ -16,6 +16,7 @@ namespace MED
     public partial class FStudio : Form
     {
         private int childFormNumber = 0;
+        public static FStudio Current { get; private set; }
 
         public FStudio()
         {
@@ -36,6 +37,10 @@ namespace MED
             SaveSettings();
         }
 
+        /**
+         * Settings
+         * */
+        #region Settings
         private string SettingsSection
         {
             get
@@ -47,11 +52,15 @@ namespace MED
         private void LoadSettings()
         {
             string settingsSection = this.SettingsSection;
+            Core.Settings.ClearCache(true, true, settingsSection);
+
             object v = Core.Settings.GetValue("Location", settingsSection, this.Location);
             this.Location = (Point)v;
 
             v = Core.Settings.GetValue("Size", settingsSection, this.Size);
             this.Size = (Size)v;
+
+            EnsureFormLocationAndSize();
 
             this.WindowState = Enum.Parse<FormWindowState>(Core.Settings.GetValue("WindowState", settingsSection, this.WindowState).ToString());
         }
@@ -66,19 +75,45 @@ namespace MED
             }
             Core.Settings.SetValue("WindowState", settingsSection, this.WindowState);
 
+            Core.Settings.SetValue("FProperties.Width", settingsSection, FProperties.Current.Width);
+
             FLogger.Current.SaveSettings();
 
             Core.Settings.Save();
         }
 
-        public static FStudio Current { get; private set; }
+        private void EnsureFormLocationAndSize()
+        {
+            var screen = Screen.FromHandle(this.Handle);
+            if (screen == null)
+                screen = Screen.PrimaryScreen;
+            if (this.Width >= screen.WorkingArea.Width)
+                this.Width = screen.WorkingArea.Width;
+            if (this.Height >= screen.WorkingArea.Height)
+                this.Width = screen.WorkingArea.Height;
+
+            if (this.Left >= screen.WorkingArea.Width)
+                this.Left = Math.Max(0, screen.WorkingArea.Right - this.Size.Width);
+
+            if (this.Top >= screen.WorkingArea.Width)
+                this.Top = Math.Max(0, screen.WorkingArea.Top - this.Size.Height);
+        }
+        #endregion
+
 
         private void LoadChilds()
         {
-            var f = new FLogger();
+            Form f = new FLogger();
             f.MdiParent = this;
-            f.Show();
             f.Dock = DockStyle.Bottom;
+
+            f = new FProperties();
+            f.MdiParent = this;
+            f.Width = (int)(Core.Settings.GetValue("FProperties.Width", SettingsSection, f.Width));
+            f.Dock = DockStyle.Right;
+
+            FProperties.Current.Show();
+            FLogger.Current.Show();
         }
 
         /*

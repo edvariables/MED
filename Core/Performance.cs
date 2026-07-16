@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -11,13 +12,13 @@ namespace MED
     {
         public string Name;
         public KnownColor LoggerColor;
-        public bool IsColored;
+        private bool _IsColored;
 
         public long Ticks_Start;
         public long Ticks_Pause;
         public long Ticks_Stop;
         public long Ticks_Previous;
-        public StringBuilder Logger;
+        public Logger Logger;
         public bool Enabled = true;
         public long IgnoreFirsts = 10L;
         public bool IgnoreFirsts_done;
@@ -26,11 +27,12 @@ namespace MED
         public long AverageSample = 100L;
         public long AverageSample_Counter = 0L;
         public long AverageSample_Start = 0L;
-        private const long AverageSample_Smooth = 10L;//Integrate previous average
+        private const long AverageSample_Smooth = 10L;//Integrate previous average at 10%
+
         /***
          * 
          */
-        public Performance(string name = "", StringBuilder? logger = null, bool enabled = true, KnownColor color = KnownColor.Transparent)
+        public Performance(string name = "", Logger? logger = null, bool enabled = true, KnownColor color = KnownColor.Transparent)
         {
             LoggerColor = color;
             Logger = logger;
@@ -40,12 +42,12 @@ namespace MED
         }
 
         /**
-         * IsEmpty
-         * 
+         * Empty
          * */
+        #region Empty
         public bool IsEmpty { get; private set; }
 
-        public static Performance Empty(string name = "", StringBuilder? logger = null, bool enabled = true, KnownColor color = KnownColor.Transparent)
+        public static Performance Empty(string name = "", Logger? logger = null, bool enabled = true, KnownColor color = KnownColor.Transparent)
         {
             var p = new Performance(name, logger, enabled, color);
             p.IsEmpty = true;
@@ -61,11 +63,16 @@ namespace MED
             p.IsEmpty = true;
             return p;
         }
+        #endregion
 
         /**
          * Subs
          */
-        private Dictionary<string, Performance> Subs;
+        #region Subs
+
+        [Browsable(true)]
+        public Dictionary<string, Performance> Subs { get; private set; }
+
         private Performance _Parent;
 
         //Sub performance, auto instanciated
@@ -88,9 +95,40 @@ namespace MED
             );
             Subs.Add(name, p);
             p._Parent = this;
+            p.IsColored = IsColored;
             return p;
         }
+        #endregion
 
+        /**
+         * Properties
+         * */
+        #region Properties
+        /**
+         * IsColored
+         * Propagate to Subs
+         */
+        [Browsable(false)]
+        public bool IsColored
+        {
+            get
+            {
+                return _IsColored;
+            }
+            set
+            {
+                _IsColored = value;
+                if (Subs != null)
+                    foreach (var sub in Subs.Values)
+                        sub.IsColored = _IsColored;
+            }
+        }
+        #endregion
+
+        /**
+         * Process
+         * */
+        #region Process
         /**
          * 
          */
@@ -104,6 +142,8 @@ namespace MED
         }
 
         private long _Counter;
+
+        [Browsable(false)]
         public long Counter
         {
             get { return _Counter; }
@@ -255,6 +295,7 @@ namespace MED
             return Log(step);
         }
 
+
         public string Log(string s)
         {
             if (IsEmpty || !Enabled)
@@ -273,6 +314,7 @@ namespace MED
             return $"\b{{color:{LoggerColor.ToString()}}}={s}\b";
         }
 
+        [Browsable(false)]
         public long Duration
         {
             get
@@ -292,6 +334,7 @@ namespace MED
                 return To_msec(Duration);
             }
         }
+        [Browsable(false)]
         public long Average
         {
             get
@@ -299,6 +342,7 @@ namespace MED
                 return Duration / (Counter == 0L ? 1L : Counter);
             }
         }
+        [Browsable(false)]
         public long Average_msec
         {
             get
@@ -306,6 +350,7 @@ namespace MED
                 return To_msec(Average);
             }
         }
+        [Browsable(false)]
         public long Now
         {
             get
@@ -341,14 +386,17 @@ namespace MED
         }
         public override string ToString() => Report();
 
+        #endregion
 
         /**
-         * 
+         * Settings
          * */
-        public virtual void LoadSettings(string ParamSection = "Performance")
+        #region Settings
+        public virtual void LoadSettings(string paramSection = "Performance")
         {
-            Enabled = bool.Parse(Core.Settings.GetValue("Perf.Enabled", ParamSection, true).ToString());
-            LoggerColor = (KnownColor)Enum.Parse(typeof(KnownColor), Core.Settings.GetValue("Perf.Color", ParamSection, KnownColor.Green).ToString());
+            Core.Settings.ClearCache(true, true, paramSection);
+            Enabled = bool.Parse(Core.Settings.GetValue("Perf.Enabled", paramSection, true).ToString());
+            LoggerColor = (KnownColor)Enum.Parse(typeof(KnownColor), Core.Settings.GetValue("Perf.Color", paramSection, LoggerColor).ToString());
         }
         /**
          * 
@@ -360,5 +408,6 @@ namespace MED
             Core.Settings.SetValue("Perf.Enabled", ParamSection, Enabled);
             Core.Settings.SetValue("Perf.Color", ParamSection, LoggerColor);
         }
+        #endregion
     }
 }

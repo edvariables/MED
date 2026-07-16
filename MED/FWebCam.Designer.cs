@@ -31,6 +31,7 @@ namespace MED.EDWebCam
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FWebCam));
             cboCameras = new ComboBox();
             picRender = new PictureBox();
             chkRun = new CheckBox();
@@ -125,16 +126,19 @@ namespace MED.EDWebCam
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(925, 703);
             Controls.Add(tableLayoutPan);
+            Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "FWebCam";
             Text = "WebCam";
             FormClosed += Form1_FormClosed;
             Load += Form1_Load;
+            Activated += FWebCam_Activated;
             ((System.ComponentModel.ISupportInitialize)picRender).EndInit();
             panTopTools.ResumeLayout(false);
             panTopTools.PerformLayout();
             tableLayoutPan.ResumeLayout(false);
             ResumeLayout(false);
         }
+
 
 
         #endregion

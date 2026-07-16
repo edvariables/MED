@@ -262,6 +262,7 @@ namespace MED
             Text = "EDJoystick";
             tableLayoutPanel1.ResumeLayout(false);
             tableLayoutPanel1.PerformLayout();
+            Activated += FJoystick_Activated;
             ((System.ComponentModel.ISupportInitialize)picRender).EndInit();
             panel1.ResumeLayout(false);
             ResumeLayout(false);

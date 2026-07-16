@@ -22,6 +22,12 @@ namespace MED
         {
             InitializeComponent();
             Init_Joystick_Config();
+
+        }
+
+        private void FJoystick_Activated(object sender, EventArgs e)
+        {
+            FProperties.CurrentProperty = Joystick;
         }
 
         public FJoystick(IJoystick joystick) : this()

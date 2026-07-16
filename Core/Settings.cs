@@ -1,6 +1,7 @@
 ﻿using System;
 using System.CodeDom;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -21,8 +22,8 @@ namespace MED.Core
 {
     public static class Settings
     {
-        private static Hashtable _values = new Hashtable();
-        private static Hashtable _saveValues = new Hashtable();
+        private static ConcurrentDictionary<string, object> _values = new();
+        private static ConcurrentDictionary<string, object> _saveValues = new();
         private static readonly bool _useCache = true;
 
         public static string Namespace
@@ -75,12 +76,39 @@ namespace MED.Core
             ClearCache();
         }
 
-        public static void ClearCache(bool saveValues = true, bool values = true)
+        public static void ClearCache(bool saveValues = true, bool values = true, string section = null)
         {
             if (saveValues)
-                _saveValues.Clear();
+            {
+                if(section != null && section != "")
+                {
+                    string pattern = GetCacheKey(section, "");
+                    foreach (var kvp in _saveValues)
+                        if (kvp.Key.StartsWith(pattern))
+                        {
+                            object value = kvp.Value;
+                            _saveValues.Remove(kvp.Key, out value);
+                        }
+                }
+                else
+                    _saveValues.Clear();
+            }
             if (values)
-                _values.Clear(); //safely
+            {
+                if (section != null && section != "")
+                {
+                    string pattern = GetCacheKey(section, "");
+
+                    foreach (var kvp in _values)
+                        if (kvp.Key.StartsWith(pattern))
+                        {
+                            object value = kvp.Value;
+                            _values.Remove(kvp.Key, out value);
+                        }
+                }
+                else
+                    _values.Clear(); //safely
+            }
         }
 
         /**
@@ -95,8 +123,8 @@ namespace MED.Core
             object value = IniFile.ReadValue(setting, section, default_value == null ? "" : default_value?.ToString());
             value = Parser.ObjectFromString((string)value, default_value);
             if (_useCache
-                && ! _values.ContainsKey(key))
-                _values.Add(key, value);
+                && !_values.ContainsKey(key))
+                _values.TryAdd(key, value);
             return value;
         }
         /**
@@ -108,15 +136,14 @@ namespace MED.Core
             {
                 string key = GetCacheKey(section, setting);
 
-
                 if (_values.ContainsKey(key))
                     _values[key] = set_value;
                 else if (set_value != null)
-                    _values.Add(key, set_value);
+                    _values.TryAdd(key, set_value);
                 if (_saveValues.ContainsKey(key))
                     _saveValues[key] = set_value;
                 else if (set_value != null)
-                    _saveValues.Add(key, set_value);
+                    _saveValues.TryAdd(key, set_value);
             }
             else
             {

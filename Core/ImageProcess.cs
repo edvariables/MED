@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -25,22 +26,42 @@ namespace MED
             LoadSettings();
         }
 
+        [Browsable(false)]
+        public virtual Dictionary<string, object> ObjectsProperties {
+            get
+            {
+                var dict = new Dictionary<string, object>();
+                dict.Add(this.ParamSection, this);
+                dict.Add(this.ParamSection + ".Performance", Performance);
+
+                return dict;
+            }
+        }
+
+        [ReadOnly(true)]
         public bool IsAsynchrone { get; set; }
+
+        [ReadOnly(true)]
         public string ParamSection { get; set; }
 
+        [Browsable(false)]
         public Form FormHandler;
 
+        [Browsable(true)]//SIC unvisible
         public Performance Performance;
 
         public delegate void ImageChangedDelegate(IImageProvider sender);
         public ImageChangedDelegate OnImageChanged;
 
         protected IImageProvider ImageProvider;
-        public Size ImageSizeMax { get; set; }
+
+        [Browsable(false)]
+        public virtual Size ImageSizeMax { get; set; }
 
         /***
          * ImageChanged
          */
+        [Browsable(false)]
         public virtual void ImageChanged(IImageProvider sender)
         {
             HasImageChanged = true;
@@ -75,6 +96,8 @@ namespace MED
 
         protected virtual void LoadSettings()
         {
+            Core.Settings.ClearCache(true, true, ParamSection);
+
             Performance.LoadSettings(ParamSection);
 
             var value = Core.Settings.GetValue("ImageSizeMax", ParamSection, Size.Empty);
@@ -128,9 +151,16 @@ namespace MED
             Performance.Start();
         }
 
+
+        [Browsable(false)]
         public bool Disposing { get; private set; }
+        [Browsable(false)]
         public bool IsDisposed { get; private set; }
+
+        [Browsable(false)]
         public virtual Bitmap Image { get; set; }
+
+        [Browsable(false)]
         public virtual bool HasImageChanged { get; set; }
 
         public virtual void Dispose()

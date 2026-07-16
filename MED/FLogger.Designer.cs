@@ -31,6 +31,7 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FLogger));
             rtbLog = new RichTextBox();
             panBottom = new Panel();
+            lblProgressMessage = new Label();
             chkClearLogOnRun = new CheckBox();
             chkLogColored = new CheckBox();
             chkVideoCaptureLogger = new CheckBox();
@@ -53,6 +54,7 @@
             // 
             // panBottom
             // 
+            panBottom.Controls.Add(lblProgressMessage);
             panBottom.Controls.Add(chkClearLogOnRun);
             panBottom.Controls.Add(chkLogColored);
             panBottom.Controls.Add(chkVideoCaptureLogger);
@@ -63,6 +65,15 @@
             panBottom.Size = new Size(1137, 26);
             panBottom.TabIndex = 9;
             // 
+            // lblProgressMessage
+            // 
+            lblProgressMessage.AutoSize = true;
+            lblProgressMessage.Location = new Point(3, 4);
+            lblProgressMessage.Name = "lblProgressMessage";
+            lblProgressMessage.Size = new Size(16, 15);
+            lblProgressMessage.TabIndex = 6;
+            lblProgressMessage.Text = "...";
+            // 
             // chkClearLogOnRun
             // 
             chkClearLogOnRun.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
@@ -72,6 +83,7 @@
             chkClearLogOnRun.Checked = true;
             chkClearLogOnRun.CheckState = CheckState.Checked;
             chkClearLogOnRun.FlatAppearance.BorderSize = 0;
+            chkClearLogOnRun.FlatAppearance.CheckedBackColor = Color.FromArgb(255, 255, 192);
             chkClearLogOnRun.FlatStyle = FlatStyle.Flat;
             chkClearLogOnRun.ForeColor = SystemColors.ControlText;
             chkClearLogOnRun.Image = (Image)resources.GetObject("chkClearLogOnRun.Image");
@@ -140,9 +152,11 @@
             ControlBox = false;
             Controls.Add(rtbLog);
             Controls.Add(panBottom);
-            FormBorderStyle = FormBorderStyle.None;
+            FormBorderStyle = FormBorderStyle.SizableToolWindow;
             Name = "FLogger";
+            ShowInTaskbar = false;
             Text = "Traces et Performances";
+            Activated += FLogger_Activated;
             panBottom.ResumeLayout(false);
             panBottom.PerformLayout();
             ResumeLayout(false);
@@ -156,5 +170,6 @@
         private CheckBox chkLogColored;
         private CheckBox chkVideoCaptureLogger;
         private CheckBox chkRenderLogger;
+        private Label lblProgressMessage;
     }
 }

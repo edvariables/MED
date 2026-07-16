@@ -26,16 +26,30 @@ namespace MED
 
         }
 
+        private void FLogger_Activated(object sender, EventArgs e)
+        {
+            if (FProperties.CurrentProperty is ImageProcess)
+                FProperties.CurrentProperty = (FProperties.CurrentProperty as ImageProcess).Performance;
+            else
+                FProperties.CurrentProperty = Performance;
+        }
         public static FLogger Current { get; private set; }
 
-        public StringBuilder ProgressMessage = new();
+        public Logger Logger = new();
 
+        public Color DefaultLoggerColor { get { return rtbLog.ForeColor; } }
 
+        public string ProgressMessage { 
+            get => lblProgressMessage.Text;
+            set => lblProgressMessage.Text = value;
+        }
+
+        #region Refresh
         public void RefreshProgress(ImageProcess sender)
         {
-            if (ProgressMessage == null)
+            if (Logger == null)
                 return;
-            if (ProgressMessage.Length > 0)
+            if (Logger.BufferLength > 0)
             {
                 rtbLog.SuspendLayout();
 
@@ -45,15 +59,15 @@ namespace MED
                     rtbLog.SelectedText = "";
                 }
                 rtbLog.SelectionStart = int.MaxValue;
-                if (ProgressMessage.Length > 0)
-                    //if (ProgressMessage[0] == '\b')
+                if (Logger.BufferLength > 0)
+                    //if (Logger.ProgressMessage[0] == '\b')
                     //{
-                    RTGBAppend(rtbLog, ProgressMessage);
+                    RTGBAppend(rtbLog);
                 //}
                 //else
                 //{
-                //    rtbLog.AppendText(ProgressMessage.ToString());
-                //    ProgressMessage.Clear();
+                //    rtbLog.AppendText(Logger.ProgressMessage.ToString());
+                //    Logger.ProgressMessage.Clear();
                 //}
                 rtbLog.SelectionStart = int.MaxValue;
                 rtbLog.ScrollToCaret();
@@ -63,24 +77,23 @@ namespace MED
         }
 
         Regex RTGBAppendRegex = null;
-        Performance RTGBAppendPerf;
-        private void RTGBAppend(RichTextBox rtb, StringBuilder strB)
+        Performance Performance;
+        private void RTGBAppend(RichTextBox rtb)
         {
-            var str = strB.ToString();
-            strB.Clear();
+            var str = Logger.BufferString(true);
             if (str.Contains('\b'))
             {
                 if (RTGBAppendRegex == null)
                 {
-                    RTGBAppendPerf = new Performance("RTGBAppend", strB, chkLogColored.Checked, KnownColor.MediumPurple);
+                    Performance = new Performance("RTGBAppend", Logger, chkLogColored.Checked, KnownColor.MediumPurple);
                     var delimter = Regex.Escape("\b");
                     var pattern = $"{delimter}{Regex.Escape("{")}(?<property>(\\w|\\d)+){Regex.Escape(":")}(?<value>[^{delimter}]*){Regex.Escape("}")}=(?<log>[^{delimter}]*){delimter}(?<crlf>[^{delimter}]*)";
                     RTGBAppendRegex = new(pattern);
-                    RTGBAppendPerf.IsColored = true;
-                    RTGBAppendPerf.Start();
+                    Performance.IsColored = true;
+                    Performance.Start();
                 }
 
-                RTGBAppendPerf.Resume("RTGBAppendRegex.Matches", true);
+                Performance.Resume("RTGBAppendRegex.Matches", true);
                 var matches = RTGBAppendRegex.Matches(str);
                 foreach (var match in matches)
                 {
@@ -103,7 +116,7 @@ namespace MED
                     rtb.AppendText(((Match)match).Groups["crlf"].Value);
                     //rtb.Select(startSel, rtb.Text.Length);
                 }
-                RTGBAppendPerf.Pause();
+                Performance.Pause();
                 if (matches.Count > 0)
                     return;
             }
@@ -111,11 +124,13 @@ namespace MED
             rtbLog.AppendText(str);
 
         }
+        #endregion
 
+        #region Form controls
         private void chkLogColored_CheckedChanged(object sender, EventArgs e)
         {
-            if (RTGBAppendPerf != null)
-                RTGBAppendPerf.IsColored = chkLogColored.Checked;
+            if (Performance != null)
+                Performance.IsColored = chkLogColored.Checked;
         }
 
         private long _chkClearLogOnRun_CheckedChanged_ticks = 0L;
@@ -131,9 +146,18 @@ namespace MED
             }
             _chkClearLogOnRun_CheckedChanged_ticks = now;
         }
-        
+        #endregion
+
+
+        /**
+         * Settings
+         * */
+
+        #region Settings
         private void LoadSettings()
         {
+            Core.Settings.ClearCache(true, true, this.Name);
+
             chkClearLogOnRun.Checked = (bool)Core.Settings.GetValue("ClearLogOnRun", this.Name, chkClearLogOnRun.Checked);
         }
         public void SaveSettings()
@@ -141,17 +165,18 @@ namespace MED
             Core.Settings.SetValue("ClearLogOnRun", this.Name, chkClearLogOnRun.Checked);
             Core.Settings.Save();
         }
-
+        #endregion
 
         /**
          * 
          * 
          */
+        #region Run and Stop
         public void Run()
         {
             if (chkClearLogOnRun.Checked)
                 rtbLog.Clear();
-            RTGBAppendPerf?.Start();
+            Performance?.Start();
         }
 
         /**
@@ -160,16 +185,13 @@ namespace MED
          */
         public void Stop()
         {
-            RTGBAppendPerf?.Stop();
+            Performance?.Stop();
             RTGBAppendRegex = null;
-            RTGBAppendPerf = null;
+            Performance = null;
 
             RefreshProgress(null);
         }
+        #endregion
 
-        /**
-         * 
-         */
-        public Color LoggerForeColor { get { return rtbLog.ForeColor; } }
     }
 }

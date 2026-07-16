@@ -1,6 +1,9 @@
 using DirectShowLib;
+using DynamicData;
 using Emgu.CV;
 using MED.Imaging;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing.Imaging;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -12,6 +15,7 @@ namespace MED.EDWebCam
         {
             InitializeComponent();
 
+            ImageProcesses = new();
         }
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -22,17 +26,49 @@ namespace MED.EDWebCam
             Initialize_Objects();
 
             LoadSettings();
+
+
         }
 
+
+        private void FWebCam_Activated(object sender, EventArgs e)
+        {
+            List<object> objects = new();
+            foreach (var process in ImageProcesses)
+                objects.AddRange(process.ObjectsProperties.Values);
+            if (ImageProcesses.Count > 0)
+                objects.Add(Performance);
+            FProperties.CurrentProperties = objects.ToArray();
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            FormWindowState org = this.WindowState;
+            base.WndProc(ref m);
+            if (this.WindowState != org)
+                this.FWebCam_WindowStateChanged(null, EventArgs.Empty);
+        }
+
+        private void FWebCam_WindowStateChanged(object sender, EventArgs e)
+        {
+            if (WindowState == FormWindowState.Maximized)
+                MdiParent = null;
+            else
+            {
+                MdiParent = FStudio.Current;
+                if (WindowState == FormWindowState.Normal)
+                    Dock =DockStyle.Fill;
+            }
+        }
 
         private CheckBox chkLogColored;
         private CheckBox chkVideoCaptureLogger;
         private CheckBox chkRenderLogger;
         private void Initialize_Logger()
         {
-            chkLogColored = (CheckBox)FLogger.Current.Controls["chkLogColored"];
-            chkVideoCaptureLogger = (CheckBox)FLogger.Current.Controls["chkVideoCaptureLogger"];
-            chkRenderLogger = (CheckBox)FLogger.Current.Controls["chkRenderLogger"];
+            chkLogColored = (CheckBox)FLogger.Current.Controls.Find("chkLogColored", true).First();
+            chkVideoCaptureLogger = (CheckBox)FLogger.Current.Controls.Find("chkVideoCaptureLogger", true).First();
+            chkRenderLogger = (CheckBox)FLogger.Current.Controls.Find("chkRenderLogger", true).First();
 
             chkVideoCaptureLogger.CheckedChanged += chkVideoCaptureLogger_CheckedChanged;
             chkRenderLogger.CheckedChanged += chkRenderLogger_CheckedChanged;
@@ -44,12 +80,17 @@ namespace MED.EDWebCam
             Stop();
         }
 
-        List<ImageProcess> ImageProcesses = new();
+        [Browsable(true)]
+        List<ImageProcess> ImageProcesses { get; set; }
         WebCam WebCam;
         Render Render;
 
+        #region Settings
+
         private void LoadSettings()
         {
+            Core.Settings.ClearCache(true, true, this.Name);
+
             chkRenderLogger.Checked = Render.Performance.Enabled;
             chkVideoCaptureLogger.Checked = WebCam.Performance.Enabled;
 
@@ -64,6 +105,8 @@ namespace MED.EDWebCam
             Render.SaveSettings();
             WebCam.SaveSettings();
         }
+        #endregion
+
         private void Init_AvailableCameras()
         {
             cboCameras.Items.Clear();
@@ -100,7 +143,7 @@ namespace MED.EDWebCam
          */
         private void Initialize_Objects()
         {
-            Performance = new("WebCam", FLogger.Current.ProgressMessage);
+            Performance = new("FWebCam", FLogger.Current.Logger);
 
             ImageProcesses.Clear();
 
@@ -125,7 +168,7 @@ namespace MED.EDWebCam
             //WebCam
             WebCam = new WebCam(
                 "WebCam"
-                , Performance.Sub("WebCam", chkVideoCaptureLogger.Checked, FLogger.Current.LoggerForeColor.ToKnownColor())
+                , Performance.Sub("WebCam", chkVideoCaptureLogger.Checked, FLogger.Current.DefaultLoggerColor.ToKnownColor())
                 , this
                 , ImageProcesses.Last()
                 );
@@ -154,8 +197,8 @@ namespace MED.EDWebCam
             {
                 if (item == WebCam)
                 {
-                    int nCamera = cboCameras.SelectedIndex;
-                    WebCam.Run(nCamera);
+                    WebCam.CameraIndex = cboCameras.SelectedIndex;
+                    WebCam.Run();
                 }
                 else
                 {
@@ -186,17 +229,6 @@ namespace MED.EDWebCam
             chkRun.Checked = false;
         }
 
-        //private void InvokeRefreshRender()
-        //{
-        //    PerfImageRender.Step("InvokeRefresh", false);
-        //    if (this.Disposing || this.IsDisposed)
-        //        return;
-        //    try
-        //    {
-        //        this.Invoke(RefreshRender);
-        //    }
-        //    catch { }
-        //}
         public void ImageChanged(IImageProvider sender)
         {
             if (this.Disposing || this.IsDisposed)
@@ -206,7 +238,7 @@ namespace MED.EDWebCam
                 RefreshImage((Render)sender);
             FLogger.Current.RefreshProgress((ImageProcess)sender);
 
-            this.Text = $"Webcam [{WebCam.Performance.Counter}]";
+            FLogger.Current.ProgressMessage = $"Webcam [{WebCam.Performance.Counter}]";
         }
         private void RefreshImage(Render sender)
         {
@@ -242,8 +274,7 @@ namespace MED.EDWebCam
         {
             if (Render == null)
                 return;
-            Render.Performance.IsColored = chkLogColored.Checked;
-            WebCam.Performance.IsColored = chkLogColored.Checked;
+            Performance.IsColored = chkLogColored.Checked;
         }
 
         private void cboCaptureSize_SelectedIndexChanged(object sender, EventArgs e)

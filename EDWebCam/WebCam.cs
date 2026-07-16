@@ -3,6 +3,7 @@ using Emgu.CV;
 using MED.EDWebCam;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
@@ -23,6 +24,7 @@ namespace MED
             return cams;
         }
 
+
         private Mat _LastFrame = null;
         private Mat LastFrame
         {
@@ -37,6 +39,7 @@ namespace MED
             }
         }
         private Bitmap _LastImage = null;
+
         public override Bitmap Image
         {
             get
@@ -47,8 +50,18 @@ namespace MED
                         return null;
                     //Generated at first query
                     Performance.Step("LastFrame.ToBitmap()");
-                    _LastImage = LastFrame.ToBitmap();
-
+                    try
+                    {
+                        _LastImage = LastFrame.ToBitmap();
+                    }
+                    catch(System.AccessViolationException ex)
+                    {
+                        Performance.Step("ERROR AccessViolationException in LastFrame.ToBitmap()");
+                    }
+                    catch(Exception ex)
+                    {
+                        Performance.Step("ERROR in LastFrame.ToBitmap() : " + ex.ToString());
+                    }
                     HasImageChanged = false;
                 }
                 return _LastImage;
@@ -59,11 +72,19 @@ namespace MED
             }
         }
 
+
+        [Browsable(true)]
+        [ReadOnly(true)]
+        public virtual Size ImageSizeMax { get; set; }
+
+        [ReadOnly(true)]
+        public int CameraIndex{get;set;}
+
         /**
          * Run
          * 
          */
-        public void Run(int nCamera = 0)
+        public void Run()
         {
             if (!isAynchrone)
                 throw new ArgumentException("WebCam may be isAynchrone = true (constructor)");
@@ -79,7 +100,7 @@ namespace MED
                 //string fileName = "C:\\Users\\Manu\\Desktop\\TheEndOfSuburbia.avi";
                 //string fileName = "https://www.youtube.com/watch?v=Q62SJ--JNiY";
                 using (Mat frame = new Mat())
-                using (VideoCapture capture = new VideoCapture(nCamera))
+                using (VideoCapture capture = new VideoCapture(CameraIndex))
                 {
                     if (!ImageSizeMax.IsEmpty)
                     {
