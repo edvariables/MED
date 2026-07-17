@@ -292,20 +292,23 @@ namespace MED
                 Increment();
             var now = Now;
 
-            if (!IsPaused && IsRunning)
-            {
-                if (Steps.Count > short.MaxValue)
-                    Steps.RemoveRange(0, short.MaxValue / 2);
-
-                Steps.Add(new KeyValuePair<long, string>(now, step ?? ""));
-                if (Steps.Count > 1)
+            if (IsRunning)
+                if (!IsPaused)
                 {
-                    var prev = Steps[Steps.Count - 2];
-                    step = $"{To_msec(now - prev.Key).ToString("# ###").PadLeft(5, ' ')} msec {Name} .{step}";
-                    if (!Steps_KeepAll)
-                        Steps.Remove(prev);
+                    if (Steps.Count > short.MaxValue)
+                        Steps.RemoveRange(0, short.MaxValue / 2);
+
+                    Steps.Add(new KeyValuePair<long, string>(now, step ?? ""));
+                    if (Steps.Count > 1)
+                    {
+                        var prev = Steps[Steps.Count - 2];
+                        step = $"{To_msec(now - prev.Key).ToString("# ###").PadLeft(5, ' ')} msec {Name} .{step}";
+                        if (!Steps_KeepAll)
+                            Steps.Remove(prev);
+                    }
                 }
-            }
+                else
+                    step = $"{"".PadLeft(5, ' ')}      {Name} .{step}";
             return Log(step);
         }
 

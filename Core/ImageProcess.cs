@@ -15,17 +15,29 @@ namespace MED
 
             FormHandler = formHandler;
             IsAsynchrone = isAynchrone;
-            if (imageConsumer == null)
-            {
-                if (formHandler is IImageConsumer)
-                    OnImageChanged = ((IImageConsumer)formHandler).ImageChanged;
-            }
-            else
-                OnImageChanged = imageConsumer.ImageChanged;
+            ImageConsumer = imageConsumer;
+
             Name = paramSection.Trim();
             Performance = performance == null ? MED.Performance.Empty() : performance;
 
             LoadSettings();
+        }
+
+        private IImageConsumer _ImageConsumer;
+        public virtual IImageConsumer ImageConsumer
+        {
+            get => _ImageConsumer;
+            set
+            {
+                if (value == null)
+                {
+                    if (FormHandler is IImageConsumer)
+                        OnImageChanged = ((IImageConsumer)FormHandler).ImageChanged;//TODO +=
+                }
+                else
+                    OnImageChanged = value.ImageChanged;
+                _ImageConsumer = value;
+            }
         }
 
         [Browsable(false)]
@@ -79,23 +91,42 @@ namespace MED
          * InvokeImageChanged
          * 
          */
+        protected bool IsInvokingImageChanged;
         public virtual void InvokeImageChanged(IImageProvider sender = null)
         {
             if (FormHandler == null || FormHandler.Disposing || FormHandler.IsDisposed)
                 return;
             if (OnImageChanged != null && IsRunning)
             {
-                if (IsAsynchrone)
+                //IsAsynchrone but if next Consumer is also asynchrone
+                bool invoke = IsAsynchrone && !(ImageConsumer != null && ImageConsumer is IImageProvider && (ImageConsumer as IImageProvider).IsAsynchrone);
+                string invoke_str = invoke ? "Invoke" : "Call";
+                try
                 {
-                    try
+                    IsInvokingImageChanged = true;
+                    var invocationList = OnImageChanged.GetInvocationList();
+                    if (invocationList.Count() > 1)
                     {
-                        FormHandler.Invoke(OnImageChanged, this is IImageProvider ? (IImageProvider)this : sender);
+                        Performance.Step($"{this.Name} : {invoke_str} for {invocationList.Count()}");
+                        foreach (var del in invocationList)
+                        {
+                            Performance.Step($"-> {del.Target.ToString()}.{del.Method.Name}");
+                        }
+
                     }
-                    catch { }
+
+                    if (invoke)
+                        FormHandler.Invoke(OnImageChanged, this is IImageProvider ? (IImageProvider)this : sender);
+                    else
+                        OnImageChanged(this is IImageProvider ? (IImageProvider)this : sender);
                 }
-                else
+                catch (Exception ex)
                 {
-                    OnImageChanged(this is IImageProvider ? (IImageProvider)this : sender);
+                    Performance.Step("ERROR : " + ex.Message);
+                }
+                finally
+                {
+                    IsInvokingImageChanged = false;
                 }
             }
         }
@@ -145,13 +176,14 @@ namespace MED
 
         public virtual void Stop()
         {
+
+            if (Performance != null && Performance.IsRunning)
+                Performance.Stop();
+
             if (!IsRunning)
                 return;
 
             ProcessState = ThreadState.StopRequested;
-
-            if (Performance != null && Performance.IsRunning)
-                Performance.Stop();
 
             //Kills delegate links to object
             OnImageChanged = null;
@@ -168,8 +200,9 @@ namespace MED
         }
 
         /**
-         * Run
+         * Start
          * 
+         * Inherits to set ProcessState = ThreadState.Started;
          */
         public virtual void Start()
         {
@@ -183,6 +216,8 @@ namespace MED
             ProcessState = ThreadState.Unstarted;
 
             Performance.Start();
+
+            IsInvokingImageChanged = false;
 
             //Override next :
             /*
@@ -226,9 +261,18 @@ namespace MED
         public virtual void Dispose()
         {
             Disposing = true;
+
+            Stop();
+
+            ProcessState = ThreadState.Aborted;
+
             ImageProvider = null;
             Performance = null;
-            Stop();
+            _ImageConsumer = null;
+            FormHandler = null;
+
+            if (Disposing)
+                IsDisposed = true;
         }
     }
 }

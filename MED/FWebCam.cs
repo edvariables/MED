@@ -80,7 +80,7 @@ namespace MED.EDWebCam
 
         [Browsable(true)]
         List<ImageProcess> ImageProcesses { get; set; }
-        WebCam WebCam;
+        EDVideoCapture WebCam;
         Render Render;
 
         #region Settings
@@ -108,7 +108,7 @@ namespace MED.EDWebCam
         private void Init_AvailableCameras()
         {
             cboCameras.Items.Clear();
-            foreach (var cam in WebCam.AvailableCameras())
+            foreach (var cam in EDVideoCapture.AvailableCameras())
                 cboCameras.Items.Add(cam);
             if (cboCameras.Items.Count > 0)
                 cboCameras.SelectedIndex = 0;
@@ -159,20 +159,28 @@ namespace MED.EDWebCam
         private void Initialize_Objects(bool resetAll = false)
         {
 
+            if (ImageProcesses != null)
+                foreach (var handler in ImageProcesses)
+                    if (resetAll)
+                        handler.Dispose();
+                    else
+                        handler.Stop();
+
             if (ImageProcesses != null && !resetAll)
             {
-                if (ImageProcesses.Count > 0)
+                foreach (var handler in ImageProcesses)
+                    handler.Stop();
+
+                //Restaure delegates
+                ImageProcess prevHandler = null;
+                foreach (var handler in ImageProcesses)
                 {
-                    //Restaure delegates
-                    ImageProcess prevHandler = null;
-                    foreach (var handler in ImageProcesses)
-                    {
-                        if (prevHandler == null)
-                            handler.OnImageChanged += this.ImageChanged;
-                        else
-                            handler.OnImageChanged += prevHandler.ImageChanged;
-                        prevHandler = handler;
-                    }
+                    if (prevHandler != null)
+                        handler.OnImageChanged += prevHandler.ImageChanged;
+                    else
+                        handler.OnImageChanged += this.ImageChanged;
+
+                    prevHandler = handler;
                 }
 
                 return;
@@ -209,20 +217,29 @@ namespace MED.EDWebCam
             ImageProcess imgProc;
 
             //MovingRegions
-            imgProc = new MovingRegions(
-                        "MovingRegions"
+            imgProc = new EmguMoving(
+                        "EmguMoving"
 
-                , Performance.Sub("MovingRegions", chkRenderLogger.Checked, KnownColor.GreenYellow)
+                , Performance.Sub("EmguMoving", chkRenderLogger.Checked, KnownColor.AliceBlue)
                         , this
                         , ImageProcesses.Last()
                     );
+
+            ////MovingRegions
+            //imgProc = new MovingRegions(
+            //            "MovingRegions"
+
+            //    , Performance.Sub("MovingRegions", chkRenderLogger.Checked, KnownColor.GreenYellow)
+            //            , this
+            //            , ImageProcesses.Last()
+            //        );
             //Add process
             ImageProcesses.Add(imgProc);
 
             //WebCam
             if (WebCam == null || resetAll)
             {
-                WebCam = new WebCam(
+                WebCam = new EDVideoCapture(
                 "WebCam"
                 , Performance.Sub("WebCam", chkVideoCaptureLogger.Checked, FLogger.Current.DefaultLoggerColor.ToKnownColor())
                 , this
@@ -277,7 +294,7 @@ namespace MED.EDWebCam
 
             ProcessState = ThreadState.Unstarted;
 
-            Initialize_Objects();
+            Initialize_Objects(true);
 
             FLogger.Current.Start();
 
@@ -354,6 +371,7 @@ namespace MED.EDWebCam
         {
             if (!sender.IsRunning)
                 return;
+            //Render.Performance.Step("RefreshImage call stack :\n" + Environment.StackTrace);
             Render.Performance.Resume("RefreshImage", true);
             if (sender.Image != null)
             {

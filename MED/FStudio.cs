@@ -1,6 +1,7 @@
 ﻿using DynamicData;
 using MED.EDJoystick;
 using MED.EDWebCam;
+using MotionDetectionWinFormsApp;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -30,6 +31,9 @@ namespace MED
         {
             LoadSettings();
             LoadChilds();
+
+            //MotionDetectionForm f = new();
+            //f.Show();
         }
 
         private void FStudio_FormClosing(object sender, FormClosingEventArgs e)

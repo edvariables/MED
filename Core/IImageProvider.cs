@@ -9,12 +9,14 @@ namespace MED
 {
     public interface IImageProvider
     {
+        bool IsAsynchrone { get; set; }
+
         [Browsable(false)]
-        public Size ImageSizeMax { get; set; }
+        Size ImageSizeMax { get; set; }
 
-        public bool HasImageChanged { get; set; }
-        public Bitmap Image { get; set; }
+        bool HasImageChanged { get; set; }
+        Bitmap Image { get; set; }
 
-        public void InvokeImageChanged(IImageProvider sender = null);
+        void InvokeImageChanged(IImageProvider sender = null);
     }
 }

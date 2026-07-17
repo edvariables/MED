@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Authors>Stavros Vagionitis &lt;stavros.vagionitis@gmail.com&gt;</Authors>
+    <Description>A C# library for motion detection using Emgu CV framework.</Description>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/svagionitis/libMotionDetection.NET</RepositoryUrl>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <SourceRevisionId>build$([System.DateTime]::UtcNow.ToString("yyyyMMddHHmmss"))</SourceRevisionId>
+    <Platforms>AnyCPU;x86;x64</Platforms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Emgu.CV" Version="4.13.0.5924" />
+    <PackageReference Include="Emgu.CV.runtime.windows" Version="4.13.0.5924" />
+    <PackageReference Include="Serilog" Version="4.0.0" />
+  </ItemGroup>
+
+</Project>

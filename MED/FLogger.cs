@@ -39,7 +39,8 @@ namespace MED
 
         public Color DefaultLoggerColor { get { return rtbLog.ForeColor; } }
 
-        public string ProgressMessage { 
+        public string ProgressMessage
+        {
             get => lblProgressMessage.Text;
             set => lblProgressMessage.Text = value;
         }
@@ -193,5 +194,22 @@ namespace MED
         }
         #endregion
 
+
+        private void RtbLog_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.C && e.Control)
+                Clipboard.SetText(rtbLog.SelectedText);
+            else if (e.KeyCode == Keys.X && e.Control)
+            {
+                Clipboard.SetText(rtbLog.SelectedText);
+                rtbLog.SelectedText = "";
+            }
+            else if (e.KeyCode == Keys.V && e.Control)
+            {
+                rtbLog.SelectedText = Clipboard.GetText();
+            }
+            else if (e.KeyCode == Keys.A && e.Control)
+                rtbLog.Select(0, rtbLog.TextLength);
+        }
     }
 }

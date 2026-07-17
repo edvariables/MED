@@ -129,9 +129,9 @@ namespace MED.EDWebCam
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "FWebCam";
             Text = "WebCam";
+            Activated += FWebCam_Activated;
             FormClosed += Form1_FormClosed;
             Load += Form1_Load;
-            Activated += FWebCam_Activated;
             ((System.ComponentModel.ISupportInitialize)picRender).EndInit();
             panTopTools.ResumeLayout(false);
             panTopTools.PerformLayout();

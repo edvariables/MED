@@ -51,6 +51,7 @@
             rtbLog.Size = new Size(1137, 110);
             rtbLog.TabIndex = 8;
             rtbLog.Text = "";
+            rtbLog.KeyUp += RtbLog_KeyUp; ;
             // 
             // panBottom
             // 

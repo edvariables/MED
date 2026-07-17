@@ -1,22 +1,45 @@
 ﻿using DirectShowLib;
 using Emgu.CV;
 using MED.EDWebCam;
+using MED.Imaging;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace MED
 {
+    //isAynchrone = true
     public class WebCam(string paramSection = "WebCam", Performance performance = null, Form formHandler = null, IImageConsumer imageConsumer = null, bool isAynchrone = true)
         : ImageProcess(paramSection, performance, formHandler, imageConsumer, isAynchrone), IImageProvider
     {
 
+        public override void Dispose()
+        {
+            base.Dispose();
+
+            Capture?.Stop();
+            Capture?.Dispose();
+            Capture = null;
+        }
         public static List<string> AvailableCameras()
         {
+            //GetAvailableVideoInputDevicesWithResolutions
+            /*
+             *DsDevice[] videoInputDevices = DsDevice.GetDevicesOfCat (FilterCategory.VideoInputDevice);
+
+            VideoInputDevices = new DsVideoInputDevice[videoInputDevices.Length];
+
+            int i = 0;
+            foreach (DsDevice videoInputDevice in videoInputDevices) {
+                VideoInputDevices[i].VideoInputDevice = videoInputDevice;
+                VideoInputDevices[i].AvailableResolutions = GetVideoCapabilities (videoInputDevice);
+                i++;
+            }*/ 
             List<string> cams = [];
             foreach (var cam in DsDevice.GetDevicesOfCat(FilterCategory.VideoInputDevice))
                 if (cam.Name != null)
@@ -26,16 +49,21 @@ namespace MED
 
 
         private Mat _LastFrame = null;
-        private Mat LastFrame
+        public Mat LastFrame
         {
             get { return _LastFrame; }
             set
-            {
+            {   
+                _LastFrame?.Dispose();
                 _LastFrame = value;
                 _LastImage = null;
 
                 if (value != null)
+                {
+                    Image = (ImageConsumer as EmguMoving).MoveDetectorAction(this, value);
+                    HasImageChanged = false;
                     InvokeImageChanged();
+                }
             }
         }
         private Bitmap _LastImage = null;
@@ -81,13 +109,15 @@ namespace MED
         [ReadOnly(true)]
         public int CameraIndex{get;set;}
 
+        [Browsable(true)]
+        public VideoCapture Capture { get; set; }
         /**
          * Run
          * 
          */
         public override void Start()
         {
-            if (!isAynchrone)
+            if (!isAynchrone && ! (ImageConsumer != null && ImageConsumer is ImageProcess && (ImageConsumer as ImageProcess).IsAsynchrone))
                 throw new ArgumentException("WebCam may be isAynchrone = true (constructor)");
 
             base.Start();
@@ -101,7 +131,7 @@ namespace MED
                 //string fileName = "C:\\Users\\Manu\\Desktop\\TheEndOfSuburbia.avi";
                 //string fileName = "https://www.youtube.com/watch?v=Q62SJ--JNiY";
                 using (Mat frame = new Mat())
-                using (VideoCapture capture = new VideoCapture(CameraIndex))
+                using (VideoCapture capture = Capture = new VideoCapture(CameraIndex))
                 {
                     if (!ImageSizeMax.IsEmpty)
                     {
@@ -110,6 +140,7 @@ namespace MED
                         capture.Set(Emgu.CV.CvEnum.CapProp.FrameHeight, ImageSizeMax.Height);
                         Performance.Step($"To {capture.Get(Emgu.CV.CvEnum.CapProp.FrameWidth)} x {capture.Get(Emgu.CV.CvEnum.CapProp.FrameHeight)}");
                     }
+                    //capture.Start();
 
                     Performance.Step($"Connected {capture.Get(Emgu.CV.CvEnum.CapProp.Fps)}");
                     int counter_max = -500;
@@ -136,7 +167,7 @@ namespace MED
                         //CvInvoke.Imshow(win1, frame);
                         //PerfVideoCapture.Step("CvInvoke.Imshow(win1, frame) done");
 
-                        LastFrame = frame;
+                        LastFrame = frame.Clone();
 
                         if (Performance.Average_msec < 40)
                             sleep += 5;
@@ -150,6 +181,9 @@ namespace MED
                 }
             });
             t.Start();
+
+            Capture?.Dispose();
+            Capture = null;
 
             ProcessState = System.Threading.ThreadState.Running;
             IsRunning = true;

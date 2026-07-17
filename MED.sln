@@ -19,6 +19,10 @@ Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "EDVideoStreamImpl", "EDVide
 EndProject
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "EDSoundStream", "EDSoundStream\EDSoundStream.vbproj", "{B3898390-D23F-43DE-B15F-FDA312DD9806}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "libMotionDetection.NET", "libMotionDetection.NET\libMotionDetection.NET.csproj", "{07E8FBF2-6856-6399-2685-C1B669E2089A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "libVideoCapture.NET", "libVideoCapture.NET\libVideoCapture.NET.csproj", "{243444BC-7531-A965-5C03-E93CC4611C7E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -91,6 +95,22 @@ Global
 		{B3898390-D23F-43DE-B15F-FDA312DD9806}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B3898390-D23F-43DE-B15F-FDA312DD9806}.Release|x86.ActiveCfg = Release|Any CPU
 		{B3898390-D23F-43DE-B15F-FDA312DD9806}.Release|x86.Build.0 = Release|Any CPU
+		{07E8FBF2-6856-6399-2685-C1B669E2089A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{07E8FBF2-6856-6399-2685-C1B669E2089A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{07E8FBF2-6856-6399-2685-C1B669E2089A}.Debug|x86.ActiveCfg = Debug|x86
+		{07E8FBF2-6856-6399-2685-C1B669E2089A}.Debug|x86.Build.0 = Debug|x86
+		{07E8FBF2-6856-6399-2685-C1B669E2089A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{07E8FBF2-6856-6399-2685-C1B669E2089A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{07E8FBF2-6856-6399-2685-C1B669E2089A}.Release|x86.ActiveCfg = Release|x86
+		{07E8FBF2-6856-6399-2685-C1B669E2089A}.Release|x86.Build.0 = Release|x86
+		{243444BC-7531-A965-5C03-E93CC4611C7E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{243444BC-7531-A965-5C03-E93CC4611C7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{243444BC-7531-A965-5C03-E93CC4611C7E}.Debug|x86.ActiveCfg = Debug|x86
+		{243444BC-7531-A965-5C03-E93CC4611C7E}.Debug|x86.Build.0 = Debug|x86
+		{243444BC-7531-A965-5C03-E93CC4611C7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{243444BC-7531-A965-5C03-E93CC4611C7E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{243444BC-7531-A965-5C03-E93CC4611C7E}.Release|x86.ActiveCfg = Release|x86
+		{243444BC-7531-A965-5C03-E93CC4611C7E}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
