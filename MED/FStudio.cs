@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -22,7 +23,9 @@ namespace MED
         public FStudio()
         {
             InitializeComponent();
-
+            
+            ActiveProcessChanged(null);
+            
             Current = this;
         }
 
@@ -218,7 +221,7 @@ namespace MED
             form.MdiParent = this;
             form.Dock = DockStyle.Fill;
             form.Show();
-
+            form.ProcessStateChanged += ProcessStateChanged;
         }
 
         private void btnJoystick_Click(object sender, EventArgs e)
@@ -227,6 +230,7 @@ namespace MED
             form.MdiParent = this;
             form.Dock = DockStyle.Fill;
             form.Show();
+            form.ProcessStateChanged += ProcessStateChanged;
         }
 
         private void saveToolStripButton_Click(object sender, EventArgs e)
@@ -255,8 +259,41 @@ namespace MED
                 if (_active_Process != null)
                     if (_active_Process is Form)
                         (_active_Process as Form).Activate();
+                ActiveProcessChanged(_active_Process);
             }
         }
+        private void FStudio_MdiChildActivate(object sender, EventArgs e)
+        {
+            if(this.ActiveMdiChild is IProcess)
+                ActiveProcess = (IProcess)this.ActiveMdiChild;
+        }
+        private void ActiveProcessChanged(IProcess sender, System.Threading.ThreadState state=System.Threading.ThreadState.Unstarted)
+        {
+            if (sender == null){
+                btnProcessStart.Enabled = false;
+                btnProcessPause.Enabled = false;
+                btnProcessPause.Checked = false;
+                btnProcessStop.Enabled = false;
+                return;
+            }
+
+            if (state == System.Threading.ThreadState.Unstarted)
+                state = sender.ProcessState;
+            bool isRunning = state == System.Threading.ThreadState.Running;
+            bool isPaused = state == System.Threading.ThreadState.Suspended;
+
+            btnProcessStart.Enabled = !isRunning && !isPaused;
+            btnProcessPause.Enabled = isRunning || isPaused;
+            btnProcessPause.Checked = isPaused;
+            btnProcessPause.Font = new Font(btnProcessPause.Font, isPaused ? FontStyle.Bold : FontStyle.Regular);
+            btnProcessStop.Enabled = isRunning || isPaused;
+        }
+        void ProcessStateChanged(IProcess sender, System.Threading.ThreadState state)
+        {
+            if (sender == ActiveProcess)
+                ActiveProcessChanged(sender, state);
+        }
+
         private void btnProcessStart_Click(object sender, EventArgs e)
         {
             var p = ActiveProcess;
@@ -264,16 +301,22 @@ namespace MED
                 p.Start();
             else
                 MessageBox.Show("Aucun process actif. Sélectionnez une fenêtre.");
+            ActiveProcessChanged(p);
         }
 
         private void btnProcessPause_Click(object sender, EventArgs e)
         {
             var p = ActiveProcess;
             if (p != null)
-                p.Pause();
+            {
+                if (p.ProcessState == System.Threading.ThreadState.Running)
+                    p.Pause();
+                else if (p.ProcessState == System.Threading.ThreadState.Suspended)
+                    p.Resume();
+            }
             else
                 MessageBox.Show("Aucun process actif. Sélectionnez une fenêtre.");
-
+            ActiveProcessChanged(p);
         }
 
         private void btnProcessStop_Click(object sender, EventArgs e)
@@ -283,7 +326,7 @@ namespace MED
                 p.Stop();
             else
                 MessageBox.Show("Aucun process actif. Sélectionnez une fenêtre.");
-
+            ActiveProcessChanged(p);
         }
     }
 }

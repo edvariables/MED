@@ -111,7 +111,7 @@ namespace MED.Imaging
                     return ImageProvider.Image;
                 }
 
-                Performance.Resume("Process MoveDetectorAction", true);
+                Performance.Resume($"Process MoveDetectorAction Algorithm #{Algorithm}", true);
 
                 Bitmap image = MoveDetectorAction(ImageProvider, frame);
 
@@ -186,10 +186,8 @@ namespace MED.Imaging
             {
                 // Dense Optical Flow
                 VideoCapture _capture = (ImageProvider as EDVideoCapture).Capture;
-                if (currentFrame != null /*_capture.Retrieve(currentFrame)*/)
+                if (currentFrame != null)
                 {
-                    Performance.Resume("MoveDetectorAction", true);
-
                     Mat frameDiff = null;
                     if (PreviousFrame != null
                         && !currentFrame.Size.IsEmpty && !PreviousFrame.Size.IsEmpty &&
@@ -228,8 +226,6 @@ namespace MED.Imaging
                     var oldPrev = PreviousFrame;
                     PreviousFrame = currentFrame.Clone();
                     oldPrev?.Dispose();
-
-                    Performance.Pause();
 
                     if (frameDiff != null)
                         return frameDiff.ToBitmap();

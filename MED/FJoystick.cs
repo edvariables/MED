@@ -38,6 +38,8 @@ namespace MED
                 chkRun.Checked = true;
         }
 
+        public ImageProcess.ProcessStateChangedDelegate ProcessStateChanged;
+
         /**
          * RTBLogger
          */

@@ -136,6 +136,8 @@ namespace MED
 
             Capture.Start();
 
+            Performance.Step($"Connected {Capture.Get(Emgu.CV.CvEnum.CapProp.Fps)}");
+
             ProcessState = System.Threading.ThreadState.Running;
             IsRunning = true;
         }
@@ -166,17 +168,25 @@ namespace MED
          */
         private void Capture_ImageGrabbed(object? sender, EventArgs e)
         {
-            Performance.Resume("ImageGrabbed", true);
+            Performance.Resume($"Capture_ImageGrabbed. Sleep : {sleep}", true);
             Mat frame = new();
             if (Capture.Retrieve(frame))
             {
-                Performance.Step("Retrieve");
+                //Performance.Step("Retrieved");
                 LastFrame = frame;
-                Performance.Pause("Invoked");
+                //Performance.Pause("Invoked");
             }
-            else
-                Performance.Pause("None");
+            //else
+            //    Performance.Pause("None");
+
+            if (Performance.Average_msec < 40)
+                sleep += 5;
+            else if (sleep > 0)
+                sleep -= 5;
+            if (sleep > 0)
+                Thread.Sleep(sleep);
         }
+        int sleep = 0;
 
         /**
          * AvailableCameras

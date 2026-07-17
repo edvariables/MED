@@ -491,7 +491,7 @@
             btnProcessPause.Image = (Image)resources.GetObject("btnProcessPause.Image");
             btnProcessPause.ImageTransparentColor = Color.Magenta;
             btnProcessPause.Name = "btnProcessPause";
-            btnProcessPause.Size = new Size(58, 22);
+            btnProcessPause.Size = new Size(59, 22);
             btnProcessPause.Text = "Pause";
             btnProcessPause.Click += btnProcessPause_Click;
             // 
@@ -559,6 +559,7 @@
             Text = "MED Studio";
             FormClosing += FStudio_FormClosing;
             Load += FStudio_Load;
+            MdiChildActivate += FStudio_MdiChildActivate;
             menuStrip.ResumeLayout(false);
             menuStrip.PerformLayout();
             toolStrip.ResumeLayout(false);
@@ -569,6 +570,7 @@
             PerformLayout();
 
         }
+
         #endregion
 
 

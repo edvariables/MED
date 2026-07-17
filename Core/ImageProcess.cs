@@ -11,8 +11,6 @@ namespace MED
     {
         public ImageProcess(string paramSection, Performance performance = null, Form formHandler = null, IImageConsumer imageConsumer = null, bool isAynchrone = false)
         {
-            ProcessState = ThreadState.Unstarted;
-
             FormHandler = formHandler;
             IsAsynchrone = isAynchrone;
             ImageConsumer = imageConsumer;
@@ -32,10 +30,16 @@ namespace MED
                 if (value == null)
                 {
                     if (FormHandler is IImageConsumer)
-                        OnImageChanged = ((IImageConsumer)FormHandler).ImageChanged;//TODO +=
+                    {
+                        OnImageChanged -= ((IImageConsumer)FormHandler).ImageChanged;
+                        OnImageChanged += ((IImageConsumer)FormHandler).ImageChanged;
+                    }
                 }
                 else
-                    OnImageChanged = value.ImageChanged;
+                {
+                    OnImageChanged -= value.ImageChanged;
+                    OnImageChanged += value.ImageChanged;
+                } 
                 _ImageConsumer = value;
             }
         }
@@ -71,10 +75,20 @@ namespace MED
         public delegate void IsRunningChangedDelegate(ImageProcess sender, bool isRunning);
         public IsRunningChangedDelegate IsRunningChanged;
 
+        public delegate void ProcessStateChangedDelegate(IProcess sender, System.Threading.ThreadState state);
+        public ProcessStateChangedDelegate ProcessStateChanged;
+
         protected IImageProvider ImageProvider;
 
         [Browsable(false)]
         public virtual Size ImageSizeMax { get; set; }
+
+
+        [Browsable(false)]
+        public virtual bool HasImageChanged { get; set; }
+
+        [Browsable(false)]
+        public virtual Bitmap Image { get; set; }
 
         /***
          * ImageChanged
@@ -185,11 +199,11 @@ namespace MED
 
             ProcessState = ThreadState.StopRequested;
 
-            //Kills delegate links to object
-            OnImageChanged = null;
-            //if (OnImageChanged != null)
-            //    foreach (var del in OnImageChanged.GetInvocationList())
-            //        OnImageChanged -= (ImageChangedDelegate)del;
+            ////Kills delegate links to object
+            //OnImageChanged = null;
+            ////if (OnImageChanged != null)
+            ////    foreach (var del in OnImageChanged.GetInvocationList())
+            ////        OnImageChanged -= (ImageChangedDelegate)del;
 
             IsRunning = false;
 
@@ -232,13 +246,19 @@ namespace MED
         [Browsable(false)]
         public bool IsDisposed { get; private set; }
 
-        [Browsable(false)]
-        public virtual Bitmap Image { get; set; }
-
-        [Browsable(false)]
-        public virtual bool HasImageChanged { get; set; }
-
-        public virtual ThreadState ProcessState { get; set; }
+        private ThreadState _ProcessState = ThreadState.Unstarted;
+        [ReadOnly(true)]
+        public virtual ThreadState ProcessState
+        {
+            get => _ProcessState;
+            set
+            {
+                if (_ProcessState != value && ProcessStateChanged != null)
+                    ProcessStateChanged(this, _ProcessState = value);
+                else
+                    _ProcessState = value;
+            }
+        }
 
         public virtual void Pause()
         {

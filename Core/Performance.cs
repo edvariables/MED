@@ -203,6 +203,10 @@ namespace MED
         {
             if (IsEmpty)
                 return "";
+            if (IsPaused){
+                Ticks_Start += Now - Ticks_Pause;
+                Ticks_Pause = 0L;
+            }
             Ticks_Stop = Now;
 
             if (stop_subs && Subs != null)
@@ -240,22 +244,24 @@ namespace MED
             if (IsEmpty)
                 return "";
 
-            if (Ticks_Pause == 0L)
-                return "";
             if (increment)
                 Increment();
 
-            Ticks_Start += Now - Ticks_Pause;
-            Ticks_Pause = 0L;
+            if (Ticks_Pause > 0L)
+            {
+                Ticks_Start += Now - Ticks_Pause;
+                Ticks_Pause = 0L;
 
-            if (resume_subs && Subs != null)
-                foreach (var kvp in Subs)
-                    kvp.Value.Resume(step, false, resume_subs);
-
+                if (resume_subs && Subs != null)
+                    foreach (var kvp in Subs)
+                        kvp.Value.Resume(step, false, resume_subs);
+            }
             if (step == "")
                 return "";
             if (!step.Contains("Resume"))
                 step += " (Resume)";
+            if (increment)
+                step += "+1";
             return Step(step);
         }
         #endregion
@@ -288,11 +294,12 @@ namespace MED
             if (IsEmpty || !Enabled)
                 return String.Empty;
 
-            if (increment)
-                Increment();
-            var now = Now;
 
             if (IsRunning)
+            {
+                if (increment)
+                    Increment();
+                var now = Now;
                 if (!IsPaused)
                 {
                     if (Steps.Count > short.MaxValue)
@@ -309,6 +316,9 @@ namespace MED
                 }
                 else
                     step = $"{"".PadLeft(5, ' ')}      {Name} .{step}";
+                if (increment)
+                    step += "+1";
+            }
             return Log(step);
         }
 

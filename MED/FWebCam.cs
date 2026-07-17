@@ -16,13 +16,22 @@ namespace MED.EDWebCam
         {
             InitializeComponent();
         }
-        private void Form1_Load(object sender, EventArgs e)
+
+        protected override void WndProc(ref Message m)
+        {
+            FormWindowState org = this.WindowState;
+            base.WndProc(ref m);
+            if (this.WindowState != org)
+                this.FWebCam_WindowStateChanged(null, EventArgs.Empty);
+        }
+
+        private void FWebCam_Load(object sender, EventArgs e)
         {
             Init_AvailableCameras();
 
             Initialize_Logger();
 
-            Initialize_Objects();
+            InitializeProcesses();
 
             LoadSettings();
 
@@ -37,14 +46,6 @@ namespace MED.EDWebCam
             if (ImageProcesses.Count > 0)
                 objects.Add(Performance);
             FProperties.CurrentProperties = objects.ToArray();
-        }
-
-        protected override void WndProc(ref Message m)
-        {
-            FormWindowState org = this.WindowState;
-            base.WndProc(ref m);
-            if (this.WindowState != org)
-                this.FWebCam_WindowStateChanged(null, EventArgs.Empty);
         }
 
         private void FWebCam_WindowStateChanged(object sender, EventArgs e)
@@ -78,10 +79,6 @@ namespace MED.EDWebCam
             Stop();
         }
 
-        [Browsable(true)]
-        List<ImageProcess> ImageProcesses { get; set; }
-        EDVideoCapture WebCam;
-        Render Render;
 
         #region Settings
 
@@ -119,6 +116,9 @@ namespace MED.EDWebCam
 
         public bool IsRunning { get => ProcessState == ThreadState.Running || ProcessState == ThreadState.Suspended; }
 
+
+        public ImageProcess.ProcessStateChangedDelegate ProcessStateChanged;
+
         private ThreadState _ProcessState = ThreadState.Unstarted;
         public System.Threading.ThreadState ProcessState
         {
@@ -126,13 +126,16 @@ namespace MED.EDWebCam
             {
                 if (WebCam == null)
                     return ProcessState;
-                return WebCam.ProcessState;
+                return _ProcessState = WebCam.ProcessState;
             }
             set
             {
+                var changed = value != _ProcessState;
                 if (WebCam == null)
                     _ProcessState = value;
-                WebCam.ProcessState = value;
+                _ProcessState = WebCam.ProcessState = value;
+                if (changed && ProcessStateChanged != null)
+                    ProcessStateChanged(this, value);
             }
         }
 
@@ -155,33 +158,45 @@ namespace MED.EDWebCam
          * 
          * 
          */
-        #region Initialize_Objects
-        private void Initialize_Objects(bool resetAll = false)
+        #region Processes
+
+        [Browsable(true)]
+        List<ImageProcess> ImageProcesses { get; set; }
+        EDVideoCapture WebCam;
+        Render Render;
+
+        private void DisposeProcesses()
         {
 
             if (ImageProcesses != null)
+            {
                 foreach (var handler in ImageProcesses)
-                    if (resetAll)
-                        handler.Dispose();
-                    else
-                        handler.Stop();
+                    handler.Dispose();
+                ImageProcesses = null;
+            }
+        }
+
+        private void InitializeProcesses(bool resetAll = false)
+        {
+            if(resetAll)
+                DisposeProcesses();
 
             if (ImageProcesses != null && !resetAll)
             {
                 foreach (var handler in ImageProcesses)
                     handler.Stop();
 
-                //Restaure delegates
-                ImageProcess prevHandler = null;
-                foreach (var handler in ImageProcesses)
-                {
-                    if (prevHandler != null)
-                        handler.OnImageChanged += prevHandler.ImageChanged;
-                    else
-                        handler.OnImageChanged += this.ImageChanged;
+                ////Restaure delegates
+                //ImageProcess prevHandler = null;
+                //foreach (var handler in ImageProcesses)
+                //{
+                //    if (prevHandler != null)
+                //        handler.OnImageChanged += prevHandler.ImageChanged;
+                //    else
+                //        handler.OnImageChanged += this.ImageChanged;
 
-                    prevHandler = handler;
-                }
+                //    prevHandler = handler;
+                //}
 
                 return;
             }
@@ -286,15 +301,13 @@ namespace MED.EDWebCam
             if (IsRunning)
             {
                 if (ProcessState == System.Threading.ThreadState.Suspended)
-                {
                     ProcessState = ThreadState.Running;
-                }
                 return;
             }
 
             ProcessState = ThreadState.Unstarted;
 
-            Initialize_Objects(true);
+            InitializeProcesses();
 
             FLogger.Current.Start();
 

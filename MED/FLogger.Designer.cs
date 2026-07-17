@@ -46,7 +46,6 @@
             rtbLog.Font = new Font("Consolas", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
             rtbLog.ForeColor = SystemColors.Window;
             rtbLog.Location = new Point(0, 0);
-            rtbLog.MaximumSize = new Size(0, 200);
             rtbLog.Name = "rtbLog";
             rtbLog.Size = new Size(1137, 110);
             rtbLog.TabIndex = 8;
