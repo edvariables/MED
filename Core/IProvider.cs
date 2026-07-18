@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace MED
 {
-    public interface IImageConsumer: IConsumer
+    public interface IProvider
     {
-        void ImageChanged(IImageProvider sender);
+        IConsumer AddConsumer(IConsumer consumer);
     }
 }

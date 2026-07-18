@@ -7,15 +7,16 @@ using System.Threading.Tasks;
 
 namespace MED
 {
-    public interface IImageProvider
+    public interface IImageProvider: IProvider
     {
-        bool IsAsynchrone { get; set; }
 
         [Browsable(false)]
         Size ImageSizeMax { get; set; }
 
         bool HasImageChanged { get; set; }
         Bitmap Image { get; set; }
+
+        delegate void ImageChangedDelegate(IImageProvider sender);
 
         void InvokeImageChanged(IImageProvider sender = null);
     }

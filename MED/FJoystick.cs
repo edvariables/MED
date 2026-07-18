@@ -14,7 +14,7 @@ using MED.EDJoystick;
 
 namespace MED
 {
-    public partial class FJoystick : Form
+    public partial class FJoystick : ProcessForm
     {
         int _refresh_delay;
 
@@ -38,7 +38,7 @@ namespace MED
                 chkRun.Checked = true;
         }
 
-        public ImageProcess.ProcessStateChangedDelegate ProcessStateChanged;
+        public IProcess.ProcessStateChangedDelegate ProcessStateChanged;
 
         /**
          * RTBLogger
@@ -53,6 +53,10 @@ namespace MED
                 return _RTBLogger;
             }
         }
+
+        public bool IsRunning => throw new NotImplementedException();
+
+        public ThreadState ProcessState => throw new NotImplementedException();
 
         /***
          * Init_Joystick_Config
@@ -323,6 +327,26 @@ namespace MED
             //var view = new EDWebCam.WebcamCaptureForm();
             //var presenter = new WebcamCapturer.Core.WebcamCapturePresenter(view);
             //view.Show();
+        }
+
+        public void Start()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Pause()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Resume()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Stop()
+        {
+            throw new NotImplementedException();
         }
     }
 }

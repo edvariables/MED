@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace MED
 {
-    public interface IImageConsumer: IConsumer
+    public interface IConsumer
     {
-        void ImageChanged(IImageProvider sender);
+        bool IsAsynchrone { get; set; }
     }
 }

@@ -139,7 +139,6 @@ namespace MED
             Performance.Step($"Connected {Capture.Get(Emgu.CV.CvEnum.CapProp.Fps)}");
 
             ProcessState = System.Threading.ThreadState.Running;
-            IsRunning = true;
         }
 
         public override void Stop()

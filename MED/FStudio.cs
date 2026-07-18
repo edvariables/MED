@@ -23,9 +23,9 @@ namespace MED
         public FStudio()
         {
             InitializeComponent();
-            
+
             ActiveProcessChanged(null);
-            
+
             Current = this;
         }
 
@@ -33,6 +33,9 @@ namespace MED
         private void FStudio_Load(object sender, EventArgs e)
         {
             LoadSettings();
+
+            Init_ProcessorTypes();
+
             LoadChilds();
 
             //MotionDetectionForm f = new();
@@ -217,31 +220,58 @@ namespace MED
 
         private void btnWebCam_Click(object sender, EventArgs e)
         {
-            FWebCam form = new();
-            form.MdiParent = this;
-            form.Dock = DockStyle.Fill;
-            form.Show();
-            form.ProcessStateChanged += ProcessStateChanged;
+            ProcessForm form = GetProcessorForm(typeof(FWebCam));
+            form.Activate();
         }
 
         private void btnJoystick_Click(object sender, EventArgs e)
         {
-            FJoystick form = new();
-            form.MdiParent = this;
-            form.Dock = DockStyle.Fill;
-            form.Show();
-            form.ProcessStateChanged += ProcessStateChanged;
+            ProcessForm form = GetProcessorForm(typeof(FJoystick));
+            form.Activate();
         }
 
-        private void saveToolStripButton_Click(object sender, EventArgs e)
+
+        #region Processes
+        public List<Type> ProcessorTypes;
+        void Init_ProcessorTypes()
         {
-            if (ActiveMdiChild is FWebCam)
+            ProcessorTypes = new();
+            ProcessorTypes.Add(typeof(FWebCam));
+            ProcessorTypes.Add(typeof(FJoystick));
+        }
+        public List<IProcess> Processors=new();
+        public ProcessForm GetProcessorForm(Type type)
+        {
+            foreach (var proc in Processors)
             {
-                ((FWebCam)ActiveMdiChild).SaveSettings();
-                toolStripStatusLabel.Text = "WebCam enregistrée";
+                if (proc.GetType().Equals(type))
+                    if (proc is ProcessForm)
+                        return (ProcessForm)proc;
+                else
+                        throw new Exception($"{type.Name} is not a ProcessForm type");
             }
-            else
-                toolStripStatusLabel.Text = "Rien à sauvegarder !";
+            try
+            {
+                IProcess proc = (IProcess)Activator.CreateInstance(type);
+                if (proc is ProcessForm)
+                {
+                    Processors.Add(proc);
+                
+                    ProcessForm form = (ProcessForm)proc;
+                    form.MdiParent = this;
+                    form.Dock = DockStyle.Fill;
+                    form.Show();
+                    form.ProcessStateChanged += ProcessStateChanged;
+                    return form;
+                }
+
+                throw new Exception($"{type.Name} is not a ProcessForm type");
+            }
+            catch
+            {
+                throw new Exception($"{type.Name} is not a Form type");
+            }
+            //return null;
         }
 
         private IProcess _active_Process;
@@ -264,12 +294,13 @@ namespace MED
         }
         private void FStudio_MdiChildActivate(object sender, EventArgs e)
         {
-            if(this.ActiveMdiChild is IProcess)
+            if (this.ActiveMdiChild is IProcess)
                 ActiveProcess = (IProcess)this.ActiveMdiChild;
         }
-        private void ActiveProcessChanged(IProcess sender, System.Threading.ThreadState state=System.Threading.ThreadState.Unstarted)
+        private void ActiveProcessChanged(IProcess sender, System.Threading.ThreadState state = System.Threading.ThreadState.Unstarted)
         {
-            if (sender == null){
+            if (sender == null)
+            {
                 btnProcessStart.Enabled = false;
                 btnProcessPause.Enabled = false;
                 btnProcessPause.Checked = false;
@@ -288,12 +319,15 @@ namespace MED
             btnProcessPause.Font = new Font(btnProcessPause.Font, isPaused ? FontStyle.Bold : FontStyle.Regular);
             btnProcessStop.Enabled = isRunning || isPaused;
         }
+
         void ProcessStateChanged(IProcess sender, System.Threading.ThreadState state)
         {
             if (sender == ActiveProcess)
                 ActiveProcessChanged(sender, state);
         }
+        #endregion
 
+        #region Process
         private void btnProcessStart_Click(object sender, EventArgs e)
         {
             var p = ActiveProcess;
@@ -328,5 +362,18 @@ namespace MED
                 MessageBox.Show("Aucun process actif. Sélectionnez une fenêtre.");
             ActiveProcessChanged(p);
         }
+        #endregion
+
+        private void saveToolStripButton_Click(object sender, EventArgs e)
+        {
+            if (ActiveMdiChild is FWebCam)
+            {
+                ((FWebCam)ActiveMdiChild).SaveSettings();
+                toolStripStatusLabel.Text = "WebCam enregistrée";
+            }
+            else
+                toolStripStatusLabel.Text = "Rien à sauvegarder !";
+        }
+
     }
 }

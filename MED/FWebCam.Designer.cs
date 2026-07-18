@@ -21,8 +21,8 @@ namespace MED.EDWebCam
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FWebCam));
             cboCameras = new ComboBox();
             picRender = new PictureBox();
-            chkRun = new CheckBox();
             panTopTools = new Panel();
+            processControl1 = new ProcessControl();
             cboCaptureSize = new ComboBox();
             tableLayoutPan = new TableLayoutPanel();
             toolTip1 = new ToolTip(components);
@@ -34,7 +34,7 @@ namespace MED.EDWebCam
             // cboCameras
             // 
             cboCameras.FormattingEnabled = true;
-            cboCameras.Location = new Point(108, 6);
+            cboCameras.Location = new Point(113, 9);
             cboCameras.Name = "cboCameras";
             cboCameras.Size = new Size(121, 23);
             cboCameras.TabIndex = 2;
@@ -52,37 +52,32 @@ namespace MED.EDWebCam
             picRender.TabIndex = 1;
             picRender.TabStop = false;
             // 
-            // chkRun
-            // 
-            chkRun.Appearance = Appearance.Button;
-            chkRun.AutoSize = true;
-            chkRun.FlatStyle = FlatStyle.Popup;
-            chkRun.Location = new Point(12, 7);
-            chkRun.Name = "chkRun";
-            chkRun.Size = new Size(66, 25);
-            chkRun.TabIndex = 4;
-            chkRun.Text = "Démarrer";
-            chkRun.UseVisualStyleBackColor = true;
-            chkRun.CheckedChanged += chkRun_CheckedChanged;
-            // 
             // panTopTools
             // 
             panTopTools.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             panTopTools.BackColor = SystemColors.ControlLight;
             tableLayoutPan.SetColumnSpan(panTopTools, 2);
+            panTopTools.Controls.Add(processControl1);
             panTopTools.Controls.Add(cboCaptureSize);
             panTopTools.Controls.Add(cboCameras);
-            panTopTools.Controls.Add(chkRun);
             panTopTools.Location = new Point(3, 3);
             panTopTools.Name = "panTopTools";
             panTopTools.Size = new Size(919, 41);
             panTopTools.TabIndex = 10;
             // 
+            // processControl1
+            // 
+            processControl1.ActiveProcess = this;
+            processControl1.Location = new Point(5, 6);
+            processControl1.Name = "processControl1";
+            processControl1.Size = new Size(97, 29);
+            processControl1.TabIndex = 11;
+            // 
             // cboCaptureSize
             // 
             cboCaptureSize.FormattingEnabled = true;
             cboCaptureSize.Items.AddRange(new object[] { "800x600", "640x480", "320x240", "160x120", "80x60" });
-            cboCaptureSize.Location = new Point(235, 6);
+            cboCaptureSize.Location = new Point(240, 9);
             cboCaptureSize.Name = "cboCaptureSize";
             cboCaptureSize.Size = new Size(71, 23);
             cboCaptureSize.TabIndex = 10;
@@ -117,11 +112,9 @@ namespace MED.EDWebCam
             Name = "FWebCam";
             Text = "WebCam";
             Activated += FWebCam_Activated;
-            FormClosed += Form1_FormClosed;
             Load += FWebCam_Load;
             ((System.ComponentModel.ISupportInitialize)picRender).EndInit();
             panTopTools.ResumeLayout(false);
-            panTopTools.PerformLayout();
             tableLayoutPan.ResumeLayout(false);
             ResumeLayout(false);
         }
@@ -131,10 +124,10 @@ namespace MED.EDWebCam
         #endregion
         private ComboBox cboCameras;
         private PictureBox picRender;
-        private CheckBox chkRun;
         private Panel panTopTools;
         private TableLayoutPanel tableLayoutPan;
         private ComboBox cboCaptureSize;
         private ToolTip toolTip1;
+        private ProcessControl processControl1;
     }
 }

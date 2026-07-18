@@ -58,7 +58,6 @@ namespace MED.Imaging
             base.Start();
 
             ProcessState = System.Threading.ThreadState.Running;
-            IsRunning = true;
         }
 
         public bool MoveDetectInit = false;

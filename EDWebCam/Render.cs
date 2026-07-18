@@ -18,7 +18,6 @@ namespace MED.EDWebCam
             base.Start();
 
             ProcessState = System.Threading.ThreadState.Running;
-            IsRunning = true;
         }
 
         public override Bitmap Image

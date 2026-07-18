@@ -21,9 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="FJoystick.cs">
-      <SubType>Form</SubType>
-    </Compile>
+    <Compile Update="FJoystick.cs" />
     <Compile Update="FWebCam.cs">
       <SubType>Form</SubType>
     </Compile>

@@ -10,7 +10,7 @@ using System.Text.RegularExpressions;
 
 namespace MED.EDWebCam
 {
-    public partial class FWebCam : Form, IImageConsumer, IProcess
+    public partial class FWebCam : ImageProcessForm
     {
         public FWebCam()
         {
@@ -41,10 +41,10 @@ namespace MED.EDWebCam
         private void FWebCam_Activated(object sender, EventArgs e)
         {
             List<object> objects = new();
-            foreach (var process in ImageProcesses)
+            foreach (var process in Processes)
                 objects.AddRange(process.ObjectsProperties.Values);
-            if (ImageProcesses.Count > 0)
-                objects.Add(Performance);
+            if (Processes.Count > 0)
+                objects.Add(this.Performance);
             FProperties.CurrentProperties = objects.ToArray();
         }
 
@@ -74,17 +74,12 @@ namespace MED.EDWebCam
             chkLogColored.CheckedChanged += chkLogColoredNot_CheckedChanged;
         }
 
-        private void Form1_FormClosed(object sender, FormClosedEventArgs e)
-        {
-            Stop();
-        }
-
 
         #region Settings
 
-        private void LoadSettings()
+        protected override void LoadSettings()
         {
-            Core.Settings.ClearCache(true, true, this.Name);
+            base.LoadSettings();
 
             chkRenderLogger.Checked = Render.Performance.Enabled;
             chkVideoCaptureLogger.Checked = WebCam.Performance.Enabled;
@@ -95,10 +90,9 @@ namespace MED.EDWebCam
             else
                 cboCaptureSize.Text = Core.Parser.SizeToPretty(WebCam.ImageSizeMax);
         }
-        public void SaveSettings()
+        public override void SaveSettings()
         {
-            Render.SaveSettings();
-            WebCam.SaveSettings();
+            base.SaveSettings();
         }
         #endregion
 
@@ -111,105 +105,26 @@ namespace MED.EDWebCam
                 cboCameras.SelectedIndex = 0;
         }
 
-        Performance Performance;
-
-
-        public bool IsRunning { get => ProcessState == ThreadState.Running || ProcessState == ThreadState.Suspended; }
-
-
-        public ImageProcess.ProcessStateChangedDelegate ProcessStateChanged;
-
-        private ThreadState _ProcessState = ThreadState.Unstarted;
-        public System.Threading.ThreadState ProcessState
-        {
-            get
-            {
-                if (WebCam == null)
-                    return ProcessState;
-                return _ProcessState = WebCam.ProcessState;
-            }
-            set
-            {
-                var changed = value != _ProcessState;
-                if (WebCam == null)
-                    _ProcessState = value;
-                _ProcessState = WebCam.ProcessState = value;
-                if (changed && ProcessStateChanged != null)
-                    ProcessStateChanged(this, value);
-            }
-        }
-
-        private void chkRun_CheckedChanged(object sender, EventArgs e)
-        {
-            if (chkRun.Checked)
-            {
-                if (!IsRunning)
-                    Start();
-                chkRun.Text = "En cours...";
-            }
-            else
-            {
-                Stop();
-                chkRun.Text = "Démarrer";
-            }
-        }
-
         /**
          * 
          * 
          */
         #region Processes
 
-        [Browsable(true)]
-        List<ImageProcess> ImageProcesses { get; set; }
         EDVideoCapture WebCam;
         Render Render;
 
-        private void DisposeProcesses()
+        protected override void InitializeProcesses(bool resetAll = false)
         {
+            base.InitializeProcesses(resetAll);
 
-            if (ImageProcesses != null)
-            {
-                foreach (var handler in ImageProcesses)
-                    handler.Dispose();
-                ImageProcesses = null;
-            }
-        }
-
-        private void InitializeProcesses(bool resetAll = false)
-        {
-            if(resetAll)
-                DisposeProcesses();
-
-            if (ImageProcesses != null && !resetAll)
-            {
-                foreach (var handler in ImageProcesses)
-                    handler.Stop();
-
-                ////Restaure delegates
-                //ImageProcess prevHandler = null;
-                //foreach (var handler in ImageProcesses)
-                //{
-                //    if (prevHandler != null)
-                //        handler.OnImageChanged += prevHandler.ImageChanged;
-                //    else
-                //        handler.OnImageChanged += this.ImageChanged;
-
-                //    prevHandler = handler;
-                //}
-
+            if (Processes != null && Processes.Count>0 && !resetAll)
                 return;
-            }
 
             if (Performance == null || resetAll)
             {
-                Performance = new("FWebCam", FLogger.Current.Logger);
+                Performance = new(this.Name, FLogger.Current.Logger);
             }
-
-            if (ImageProcesses == null)
-                ImageProcesses = new();
-            else
-                ImageProcesses.Clear();
 
             //Render
             if (Render == null || resetAll)
@@ -227,7 +142,7 @@ namespace MED.EDWebCam
                 Render.OnImageChanged += this.ImageChanged;
             }
             //Add process
-            ImageProcesses.Add(Render);
+            Processes.Add(Render);
 
             ImageProcess imgProc;
 
@@ -237,7 +152,7 @@ namespace MED.EDWebCam
 
                 , Performance.Sub("EmguMoving", chkRenderLogger.Checked, KnownColor.AliceBlue)
                         , this
-                        , ImageProcesses.Last()
+                        , (ImageProcess)Processes.Last()
                     );
 
             ////MovingRegions
@@ -249,7 +164,7 @@ namespace MED.EDWebCam
             //            , ImageProcesses.Last()
             //        );
             //Add process
-            ImageProcesses.Add(imgProc);
+            Processes.Add(imgProc);
 
             //WebCam
             if (WebCam == null || resetAll)
@@ -258,15 +173,15 @@ namespace MED.EDWebCam
                 "WebCam"
                 , Performance.Sub("WebCam", chkVideoCaptureLogger.Checked, FLogger.Current.DefaultLoggerColor.ToKnownColor())
                 , this
-                , ImageProcesses.Last()
+                , (IImageConsumer)Processes.Last()
                 );
                 WebCam.Performance.IsColored = chkLogColored.Checked;
-                WebCam.IsRunningChanged += WebCam_IsRunningChanged;
+                WebCam.ProcessStateChanged += WebCam_ProcessStateChanged;
             }
             else
             {
                 //ImageProcess.Stop() kills OnImageChanged register
-                WebCam.OnImageChanged += ImageProcesses.Last().ImageChanged;
+                WebCam.OnImageChanged += (Processes.Last() as IImageConsumer).ImageChanged;
             }
             //WebCam.ImageSizeMax
             if (cboCaptureSize.Text == "")
@@ -277,16 +192,21 @@ namespace MED.EDWebCam
             else
                 WebCam.ImageSizeMax = Core.Parser.SizeFromPretty(cboCaptureSize.Text);
             //Add process
-            ImageProcesses.Add(WebCam);
+            Processes.Add(WebCam);
         }
         #endregion
 
         #region Process
-        private void WebCam_IsRunningChanged(ImageProcess sender, bool isRunning)
+        private void WebCam_ProcessStateChanged(IProcess sender, System.Threading.ThreadState state)
         {
-            if (isRunning)
+            if (sender.IsRunning)
             {
-                chkRun.Checked = true;
+                //chkRun.Checked = true;
+                //if (state == ThreadState.Running)
+                //    chkRun.Text = "En cours...";
+                //else if (state == ThreadState.Suspended)
+                //    chkRun.Text = "Pause";
+
             }
             else
                 Stop();
@@ -296,22 +216,13 @@ namespace MED.EDWebCam
          * 
          * 
          */
-        public void Start()
+        public override void Start()
         {
-            if (IsRunning)
-            {
-                if (ProcessState == System.Threading.ThreadState.Suspended)
-                    ProcessState = ThreadState.Running;
-                return;
-            }
-
-            ProcessState = ThreadState.Unstarted;
-
-            InitializeProcesses();
+            base.Start();
 
             FLogger.Current.Start();
 
-            foreach (var item in ImageProcesses)
+            foreach (var item in Processes)
             {
                 if (item == WebCam)
                 {
@@ -320,56 +231,30 @@ namespace MED.EDWebCam
                 item.Start();
             }
 
-            chkRun.Checked = true;
+            ProcessState = ThreadState.Running;
         }
 
         /**
          * 
          * 
          */
-        public void Stop()
+        public override void Stop()
         {
-            if (chkRun.Checked)
-                chkRun.Text = "Arrêt en cours...";
 
             if (!IsRunning)
                 return;
 
-            ProcessState = ThreadState.StopRequested;
-
-            if (WebCam == null)
-                return;
-
-            foreach (var item in ImageProcesses.Reverse<ImageProcess>())
-            {
-                item.Stop();
-            }
+            base.Stop();
 
             FLogger.Current.Stop();
 
-            chkRun.Checked = false;
-
             ProcessState = ThreadState.Stopped;
-        }
-
-        public void Resume()
-        {
-            if (IsRunning)
-                foreach (var item in ImageProcesses)
-                    item.Resume();
-        }
-
-        public void Pause()
-        {
-            if (IsRunning)
-                foreach (var item in ImageProcesses)
-                    item.Pause();
         }
         #endregion
         /**
          * Image
          * */
-        public void ImageChanged(IImageProvider sender)
+        public override void ImageChanged(IImageProvider sender)
         {
             if (this.Disposing || this.IsDisposed)
                 return;

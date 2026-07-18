@@ -49,6 +49,7 @@ namespace MED
 
 
         private Mat _LastFrame = null;
+        [Browsable(false)]
         public Mat LastFrame
         {
             get { return _LastFrame; }
@@ -186,7 +187,6 @@ namespace MED
             Capture = null;
 
             ProcessState = System.Threading.ThreadState.Running;
-            IsRunning = true;
         }
 
     }
