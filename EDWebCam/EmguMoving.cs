@@ -18,7 +18,7 @@ using static Emgu.CV.ML.KNearest;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
-namespace MED.Imaging
+namespace MED
 {
     public class EmguMoving : ImageProcess
     {

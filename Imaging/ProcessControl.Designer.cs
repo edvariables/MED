@@ -77,7 +77,7 @@
             Controls.Add(cmdStart);
             Name = "ProcessControl";
             Size = new Size(97, 29);
-            ControlAdded += ProcessControl_ControlAdded;
+            VisibleChanged += ProcessControl_VisibleChanged;
             ResumeLayout(false);
         }
 

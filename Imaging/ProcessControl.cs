@@ -15,26 +15,29 @@ namespace MED
         public ProcessControl()
         {
             InitializeComponent();
-
-
         }
 
-        private void ProcessControl_ControlAdded(object sender, ControlEventArgs e)
+
+        /**
+         * Init process statuses
+         * */
+        private void ProcessControl_VisibleChanged(object sender, EventArgs e)
         {
-            ProcessStateChanged(ActiveProcess);
+            ProcessStateChanged(null);
         }
 
         private IProcess _ActiveProcess;
         public IProcess ActiveProcess
         {
-            get {
+            get
+            {
                 if (_ActiveProcess == null && ParentForm is ProcessForm)
                     return (IProcess)ParentForm;
                 return _ActiveProcess;
-                    }
+            }
             set
             {
-                if(_ActiveProcess != null)
+                if (_ActiveProcess != null)
                 {
                     if (_ActiveProcess is ProcessForm)
                         (_ActiveProcess as ProcessForm).ProcessStateChanged -= ProcessStateChanged;

@@ -1,7 +1,6 @@
 ﻿using DirectShowLib;
 using Emgu.CV;
 using MED.EDWebCam;
-using MED.Imaging;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;

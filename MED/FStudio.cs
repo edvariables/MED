@@ -239,24 +239,39 @@ namespace MED
             ProcessorTypes.Add(typeof(FWebCam));
             ProcessorTypes.Add(typeof(FJoystick));
         }
-        public List<IProcess> Processors=new();
+        public List<IProcess> Processors = new();
+        public void CleanProcessors()
+        {
+            foreach (var proc in Processors.ToArray())
+            {
+                if (proc is ProcessForm && (proc as ProcessForm).IsDisposed)
+                    Processors.Remove(proc);
+                else if (proc is Process && (proc as Process).IsDisposed)
+                    Processors.Remove(proc);
+            }
+        }
         public ProcessForm GetProcessorForm(Type type)
         {
+            CleanProcessors();
+
+            //Existing
             foreach (var proc in Processors)
             {
                 if (proc.GetType().Equals(type))
                     if (proc is ProcessForm)
                         return (ProcessForm)proc;
-                else
+                    else 
                         throw new Exception($"{type.Name} is not a ProcessForm type");
             }
+
+            //CreateInstance
             try
             {
                 IProcess proc = (IProcess)Activator.CreateInstance(type);
                 if (proc is ProcessForm)
                 {
                     Processors.Add(proc);
-                
+
                     ProcessForm form = (ProcessForm)proc;
                     form.MdiParent = this;
                     form.Dock = DockStyle.Fill;
@@ -366,10 +381,10 @@ namespace MED
 
         private void saveToolStripButton_Click(object sender, EventArgs e)
         {
-            if (ActiveMdiChild is FWebCam)
+            if (ActiveMdiChild is ProcessForm)
             {
-                ((FWebCam)ActiveMdiChild).SaveSettings();
-                toolStripStatusLabel.Text = "WebCam enregistrée";
+                ((ProcessForm)ActiveMdiChild).SaveSettings();
+                toolStripStatusLabel.Text = ActiveMdiChild.Name + " enregistrée";
             }
             else
                 toolStripStatusLabel.Text = "Rien à sauvegarder !";

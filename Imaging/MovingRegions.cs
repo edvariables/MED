@@ -150,7 +150,7 @@ namespace MED.Imaging
                 SolidBrush brush = new SolidBrush(Color.Blue);
                 foreach (ZoneMove zoneMove in MoveDetector.GetZonesMove)
                 {
-                    gr.FillRectangles(brush, zoneMove.Frame);
+                    gr.FillRectangle(brush, zoneMove.Frame);
                 }
             }
             if (!MoveDetector.RegionDetect.IsEmpty(gr))
