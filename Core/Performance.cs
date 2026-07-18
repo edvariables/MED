@@ -322,6 +322,10 @@ namespace MED
             return Log(step);
         }
 
+        public string Alert(string step)
+        {
+            return Step("Alert ! : " + step);
+        }
 
         public string Log(string s)
         {

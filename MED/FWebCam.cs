@@ -270,6 +270,8 @@ namespace MED.EDWebCam
             if (!sender.IsRunning)
                 return;
             //Render.Performance.Step("RefreshImage call stack :\n" + Environment.StackTrace);
+            if( ! Render.Performance.IsPaused )
+                Console.Write("");
             Render.Performance.Resume("RefreshImage", true);
             if (sender.Image != null)
             {

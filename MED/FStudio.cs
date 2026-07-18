@@ -295,7 +295,14 @@ namespace MED
             get
             {
                 if (this.ActiveMdiChild is IProcess)
+                {
+                    if (this.ActiveMdiChild is ProcessForm && (this.ActiveMdiChild as ProcessForm).IsDisposed)
+                        return _active_Process = null;
                     return _active_Process = (this.ActiveMdiChild as IProcess);
+                }
+
+                if (_active_Process is ProcessForm && (_active_Process as ProcessForm).IsDisposed)
+                    return _active_Process = null;
                 return _active_Process;
             }
             set

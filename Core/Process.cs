@@ -47,6 +47,81 @@ namespace MED
         [Browsable(false)]
         public virtual IConsumer Consumer { get; set; }
 
+        private List<Delegate> _IsInvokingPropertyChanged = new();
+
+        protected bool IsInvokingPropertyChanged(Delegate delegateMethod)
+        {
+            return _IsInvokingPropertyChanged.Contains(delegateMethod);
+        }
+
+        public virtual void InvokePropertyChanged(IProvider sender, Delegate delegateMethod)
+        {
+            if (FormHandler == null || FormHandler.Disposing || FormHandler.IsDisposed)
+                return;
+            if (delegateMethod != null && IsRunning)
+            {
+                //IsAsynchrone but if next Consumer is also asynchrone
+                bool invoke = IsAsynchrone && !(Consumer != null && Consumer.IsAsynchrone);
+                string invoke_str = invoke ? "Invoke" : "Call";
+                try
+                {
+                    if (IsInvokingPropertyChanged(delegateMethod))
+                    {
+                        Performance.Alert($"IsInvokingPropertyChanged {delegateMethod.Method.Name}");
+                        return;
+                    }
+
+                    _IsInvokingPropertyChanged.Add(delegateMethod);
+                    var invocationList = delegateMethod.GetInvocationList();
+                    if (invocationList.Count() > 1)
+                    {
+                        Performance.Step($"{this.Name} : {invoke_str} {delegateMethod.Method.Name} for {invocationList.Count()}");
+                        foreach (var del in invocationList)
+                        {
+                            Performance.Step($"-> {del.Target.ToString()}.{del.Method.Name}");
+                        }
+
+                    }
+
+                    if (invoke)
+                        FormHandler.Invoke(delegateMethod, this is IProvider ? (IProvider)this : sender);
+                    else
+                    {
+                        //delegateMethod.Method.Invoke(delegateMethod.Target, [this is IProvider ? (IProvider)this : sender]);
+                        delegateMethod.DynamicInvoke(/*delegateMethod.Target,*/ [this is IProvider ? (IProvider)this : sender]);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Performance.Step("ERROR : " + ex.Message);
+                }
+                finally
+                {
+                    _IsInvokingPropertyChanged.Remove(delegateMethod);
+                }
+            }
+        }
+
+        public void AddHandler(string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
+        {
+            IProvider handler_obj = this;
+            var memberInfo = handler_obj.GetType().GetMember(handler_field);
+            if (memberInfo == null)
+                throw new Exception($"Le type {handler_obj.GetType().FullName} n'a pas de delegate {handler_field}");
+            var eventInfo = (System.Reflection.FieldInfo)memberInfo.GetValue(0);
+
+
+            var miHandler = consumer_type.GetMethod(consumer_method);
+            if (miHandler == null)
+                throw new Exception($"Le type '{consumer_type.FullName}' n'a pas de méthode {consumer_method}");
+            Delegate handler =
+                 Delegate.CreateDelegate(eventInfo.FieldType,
+                                         consumer,
+                                         miHandler);
+            //eventInfo.RemoveEventHandler(this, handler);
+            eventInfo.SetValue(handler_obj, handler);
+        }
+
         public virtual Dictionary<string, object> ObjectsProperties
         {
             get
@@ -183,5 +258,7 @@ namespace MED
                 Performance.Resume("Process.Resume");
             }
         }
+
+
     }
 }

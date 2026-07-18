@@ -10,18 +10,22 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="DirectShowLib.Net" Version="3.0.0" />
+    <PackageReference Include="Emgu.CV" Version="4.13.0.5924" />
+    <PackageReference Include="Emgu.CV.Bitmap" Version="4.13.0.5924" />
+    <PackageReference Include="Emgu.CV.runtime.windows" Version="4.13.0.5924" />
+    <PackageReference Include="Emgu.CV.UI" Version="4.13.0.5924" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Core\Core.csproj" />
     <ProjectReference Include="..\EDTraitImagesImpl\EDTraitImagesImpl.vbproj" />
+    <ProjectReference Include="..\libMotionDetection.NET\libMotionDetection.NET.csproj" />
+    <ProjectReference Include="..\libVideoCapture.NET\libVideoCapture.NET.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Update="ImageProcessForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Update="ProcessControl.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Update="ProcessForm.cs">
       <SubType>Form</SubType>
     </Compile>
   </ItemGroup>

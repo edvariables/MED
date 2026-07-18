@@ -1,6 +1,5 @@
 ﻿using DirectShowLib;
 using Emgu.CV;
-using MED.EDWebCam;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -14,7 +13,7 @@ namespace MED
 {
     //isAynchrone = true
     public class EDVideoCapture(string paramSection = "VideoCapture", Performance performance = null, Form formHandler = null, IImageConsumer imageConsumer = null, bool isAynchrone = true)
-        : ImageProcess(paramSection, performance, formHandler, imageConsumer, isAynchrone), IImageProvider
+        : ImageProcess(paramSection, performance, formHandler, imageConsumer, isAynchrone), IImageProvider, IMatFrameProvider
     {
         public override void Dispose()
         {
@@ -24,38 +23,94 @@ namespace MED
         }
 
 
-        private Mat _LastFrame = null;
-        public Mat LastFrame
+        #region Properties
+
+        [Browsable(true)]
+        [ReadOnly(true)]
+        public override Size ImageSizeMax { get; set; }
+
+        [ReadOnly(true)]
+        public int CameraIndex { get; set; }
+
+        #endregion
+
+        #region Frame
+
+        public bool HasFrameChanged { get; set; }
+
+        private Mat _Frame = null;
+        public Mat Frame
         {
-            get { return _LastFrame; }
+            get
+            {
+                if (_Frame == null || HasFrameChanged)
+                {
+                    if (ImageProvider != null && ImageProvider is IMatFrameProvider && ImageProvider != this)
+                    {
+                        _Frame = (ImageProvider as IMatFrameProvider).Frame;
+
+                    }
+                    HasFrameChanged = false;
+                }
+                return _Frame;
+            }
             set
             {
-                _LastFrame = value;
-                _LastImage = null;
+                bool changed = _Frame != value;
 
-                if (value != null)
+                _Frame = value;
+                _Image = null;
+                if (changed)
                 {
-                    //Image = (ImageConsumer as EmguMoving).MoveDetectorAction(this, value);
-                    HasImageChanged = true;
-                    InvokeImageChanged();
+                    FrameChanged(this);
                 }
             }
         }
-        private Bitmap _LastImage = null;
+        public void FrameChanged(IMatFrameProvider sender)
+        {
+            ImageProvider = (IImageProvider)sender;
+
+            HasFrameChanged = true;
+            HasImageChanged = true;
+
+            InvokeFrameChanged(sender);
+            InvokeImageChanged((IImageProvider)sender);
+        }
+
+        public void InvokeFrameChanged(IMatFrameProvider sender = null)
+        {
+            InvokePropertyChanged(sender, OnFrameChanged);
+        }
+        public IMatFrameProvider.FrameChangedDelegate OnFrameChanged;
+        #endregion
+
+        #region Image
+        private Bitmap _Image = null;
 
         public override Bitmap Image
         {
             get
             {
-                if (_LastImage == null)
+                if (_Image == null || HasImageChanged)
                 {
-                    if (LastFrame == null)
+                    if (Frame == null)
                         return null;
+
+                    if (IsInvokingPropertyChanged(OnFrameChanged))
+                    {
+                        Performance.Alert($"IsInvokingPropertyChanged {OnFrameChanged.Method.Name}");
+                        return _Image;
+                    }
+                    if (IsInvokingPropertyChanged(OnImageChanged))
+                    {
+                        Performance.Alert($"IsInvokingPropertyChanged {OnImageChanged.Method.Name}");
+                        return _Image;
+                    }
                     //Generated at first query
                     Performance.Step("LastFrame.ToBitmap()");
                     try
                     {
-                        _LastImage = LastFrame.ToBitmap();
+                        _Image = Frame.ToBitmap();
                     }
                     catch (System.AccessViolationException ex)
                     {
@@ -67,22 +122,14 @@ namespace MED
                     }
                     HasImageChanged = false;
                 }
-                return _LastImage;
+                return _Image;
             }
             set
             {
-                _LastImage = value;
+                _Image = value;
             }
         }
-
-
-
-        [Browsable(true)]
-        [ReadOnly(true)]
-        public override Size ImageSizeMax { get; set; }
-
-        [ReadOnly(true)]
-        public int CameraIndex { get; set; }
+        #endregion
 
         /**
          * Capture
@@ -90,6 +137,7 @@ namespace MED
          */
         [Browsable(true)]
         public VideoCapture Capture { get; set; }
+
         public bool Initialize_Capture()
         {
             Dispose_Capture();
@@ -171,7 +219,7 @@ namespace MED
             if (Capture.Retrieve(frame))
             {
                 //Performance.Step("Retrieved");
-                LastFrame = frame;
+                Frame = frame;
                 //Performance.Pause("Invoked");
             }
             //else

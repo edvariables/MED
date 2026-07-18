@@ -5,8 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static MED.EDWebCam.Render;
-using static MED.WebCam;
 
 namespace MED.EDWebCam
 {
@@ -20,20 +18,5 @@ namespace MED.EDWebCam
             ProcessState = System.Threading.ThreadState.Running;
         }
 
-        public override Bitmap Image
-        {
-            get
-            {
-                if (ImageProvider == null)
-                    return null;
-
-                return ImageProvider.Image;
-            }
-            set
-            {
-                if (ImageProvider != null)
-                    ImageProvider.Image = value;
-            }
-        }
     }
 }
