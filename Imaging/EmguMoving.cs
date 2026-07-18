@@ -66,49 +66,11 @@ namespace MED
         public override void ImageChanged(IImageProvider sender)
         {
             ImageProvider = sender;
-            var image = Image;//Init in same thread
             base.ImageChanged(sender);
         }
+
         [Browsable(false)]
-
-        public override Bitmap Image
-        {
-            get
-            {
-                if (ImageProvider == null)
-                    return null;
-
-                if (!HasImageChanged || IsInvokingImageChanged)
-                    return base.Image;
-
-                Mat frame = (ImageProvider as EDVideoCapture).Frame;//TODO as EDVideoCapture
-                if (frame == null)
-                    return null;
-
-                if (!MoveDetectInit)
-                {
-                    PreviousFrame = frame; //TODO
-
-                    InitMoveDetector(frame);
-
-                    HasImageChanged = false;
-                    return ImageProvider.Image;
-                }
-
-                Performance.Resume($"Process MoveDetectorAction Algorithm #{Algorithm}", true);
-
-                Performance.Step(Environment.StackTrace.ReplaceLineEndings("\n\t\t\t"));
-
-                Bitmap image = MoveDetectorAction(ImageProvider, frame);
-
-                Performance.Pause("done Process MoveDetectorAction");
-
-                HasImageChanged = false;
-                return base.Image = image;
-
-            }
-            set { base.Image = value; }
-        }
+        public override Bitmap Image { get; set; }
 
         #endregion
 
@@ -122,6 +84,8 @@ namespace MED
             //    DISOpticalFlow = new DISOpticalFlow(DISOpticalFlow.Preset.Fast);
             InitializeCapture();
 
+            PreviousFrame = currentFrame.Clone();
+
             MoveDetectInit = true;
         }
 
@@ -129,47 +93,23 @@ namespace MED
         #region Frame
 
         private Mat PreviousFrame;
-        public bool HasFrameChanged { get; set; }
 
-        private Mat _Frame = null;
-        public Mat Frame
-        {
-            get
-            {
-                if (_Frame == null || HasFrameChanged)
-                    if (ImageProvider != null && ImageProvider is IMatFrameProvider)
-                    {
-                        _Frame = (ImageProvider as IMatFrameProvider).Frame;
-
-                        HasFrameChanged = false;
-                    }
-                return _Frame;
-            }
-            set
-            {
-                bool changed = _Frame == value;
-                _Frame = value;
-                Image = null;
-                if (changed)
-                {
-                    FrameChanged(this);
-                }
-            }
-        }
+        public Mat Frame { get; protected set; }
         public void FrameChanged(IMatFrameProvider sender)
         {
             ImageProvider = (IImageProvider)sender;
 
-            HasFrameChanged = true;
-            HasImageChanged = true;
+            Frame = (ImageProvider as IMatFrameProvider).Frame;
+
+            //Do the job in same thread
+            Performance.Resume($"Process MoveDetectorAction Algorithm #{Algorithm}", true);
+            Image = MoveDetectorAction((IImageProvider)sender, Frame);
+            Performance.Pause($"done Process MoveDetectorAction");
+            //Performance.Step(Performance.ToString());
 
             InvokeFrameChanged(sender);
 
-            //Do the job in same thread
-            Image = MoveDetectorAction((IImageProvider)sender, Frame);
-            HasImageChanged = false;
-
-            InvokeImageChanged((IImageProvider)sender);
+            //InvokeImageChanged((IImageProvider)sender);
         }
 
         public void InvokeFrameChanged(IMatFrameProvider sender = null)
@@ -203,24 +143,18 @@ namespace MED
             motionDetectionWithBackgroundSubtraction?.Dispose();
             motionDetectionWithBackgroundSubtraction = new MotionDetectionWithBackgroundSubtraction();
 
-            //VideoCapture _capture = (ImageProvider as WebCam).Capture;
-            //_capture.ImageGrabbed += ProcessFrame;
-
         }
-        //private void ProcessFrame(object sender, EventArgs e)
-        //{
-        //    VideoCapture _capture = (ImageProvider as WebCam).Capture;
-        //    Mat currentFrame = new();
-        //    if (_capture.Retrieve(currentFrame))
-        //        Image = MoveDetectorAction(ImageProvider, currentFrame);
-        //}
 
         public Bitmap MoveDetectorAction(IImageProvider sender, Mat currentFrame)
         {
             if (this.Disposing || this.IsDisposed || ImageProvider == null)
                 return null;
 
-            ImageProvider = sender;
+            if (PreviousFrame == null)
+            {
+                InitMoveDetector(Frame);
+                return new Bitmap(ImageSizeMax.Width, ImageSizeMax.Height);
+            }
 
             if (Algorithm <= 0)
             {
@@ -233,12 +167,10 @@ namespace MED
                         && !currentFrame.Size.IsEmpty && !PreviousFrame.Size.IsEmpty &&
                         currentFrame.Size == PreviousFrame.Size)
                     {
-                        if (motionDetectionWithDenseOpticalFlow == null)
-                            motionDetectionWithDenseOpticalFlow = new();
 
-                        //Mat flow = motionDetectionWithDenseOpticalFlow.CalculateDenseOpticalFlow( PreviousFrame, currentFrame);
+                        //Mat flow = motionDetectionWithDenseOpticalFlow.CalculateDenseOpticalFlow(PreviousFrame, currentFrame);
 
-                        //frameDiff = MotionDetection.OpticalFlowVisualizationWithHSV(flow);
+                        //frameDiff = motionDetectionWithDenseOpticalFlow.OpticalFlowVisualizationWithHSV(flow);
                         //////SafeSetImageBoxImage(motionImageBox, motionDetectionWithDenseOpticalFlow.OpticalFlowVisualizationWithHSV(flow));
                         //flow.Dispose();
 
@@ -258,7 +190,7 @@ namespace MED
 
                         //SafeSetImageBoxImage(motionImageBox, currentFrame.Clone());
 
-                        frameDiff = currentFrame.Clone();
+                        frameDiff = new();
                         CvInvoke.AbsDiff(PreviousFrame, currentFrame, frameDiff);
                         //SafeSetImageBoxImage(motionImageBox, frameDiff);
                     }
@@ -271,61 +203,52 @@ namespace MED
                         return frameDiff.ToBitmap();
                 }
             }
-            //else if (Algorithm == 1)
-            //{
-            //    // Motion History
-            //    Mat image = new Mat();
+            else if (Algorithm == 1)
+            {
+                // Motion History
+                Mat frameDiff = currentFrame.Clone();
 
-            //    if (_capture.Retrieve(image))
-            //    {
-            //        motionDetectionWithMotionHistory.GetFrameMotionComponents(image);
+                if (currentFrame != null)
+                {
+                    motionDetectionWithMotionHistory.GetFrameMotionComponents(frameDiff);
 
-            //        // If the check box for motion info is checked, then calculate the motion image
-            //        if (checkBoxCalculateMotionInfo.Checked)
-            //        {
-            //            Mat motionImage = motionDetectionWithMotionHistory.GetMotionImage();
-            //            SafeSetImageBoxImage(motionImageBox, motionImage);
-            //        }
-            //        else
-            //        {
-            //            SafeSetImageBoxImage(motionImageBox, null);
-            //        }
+                    // If the check box for motion info is checked, then calculate the motion image
+                    bool checkBoxCalculateMotionInfo = false;
+                    if (checkBoxCalculateMotionInfo)
+                    {
+                        Mat motionImage = motionDetectionWithMotionHistory.GetMotionImage();
+                        //SafeSetImageBoxImage(motionImageBox, motionImage);
+                    }
+                    else
+                    {
+                        //SafeSetImageBoxImage(motionImageBox, null);
+                    }
 
-            //        motionDetectionWithMotionHistory.MotionDetectionDrawGraphics(image);
+                    motionDetectionWithMotionHistory.MotionDetectionDrawGraphics(frameDiff);
 
-            //        if (this.Disposing || this.IsDisposed)
-            //        {
-            //            image.Dispose();
-            //            return;
-            //        }
+                    //Foreground
+                    frameDiff = motionDetectionWithMotionHistory.MotionForgroundMask.Clone();
 
-            //        SafeSetImageBoxImage(capturedImageBox, image);
-            //        SafeSetImageBoxImage(forgroundImageBox, motionDetectionWithMotionHistory.MotionForgroundMask.Clone());
+                    // Display the amount of motions found on the current image
+                    var components = motionDetectionWithMotionHistory.MotionComponents;
+                    Performance.Log($"Total Motions found: {components.Length}");
 
-            //        // Display the amount of motions found on the current image
-            //        var components = motionDetectionWithMotionHistory.MotionComponents;
-            //        UpdateText($"Total Motions found: {components.Length}");
-            //        logger.Information($"Total Motions found: {components.Length}");
-
-            //        int idx = 0;
-            //        foreach (MotionDetectionWithMotionHistory.MotionComponent comp in components)
-            //        {
-            //            UpdateText($"Motion Component {idx}: {comp}");
-            //            logger.Information($"Motion Component {idx}: {comp}");
-            //            idx++;
-            //        }
-            //    }
-            //    else
-            //    {
-            //        image.Dispose();
-            //    }
-            //}
+                    int idx = 0;
+                    foreach (MotionDetectionWithMotionHistory.MotionComponent comp in components)
+                    {
+                        Performance.Log($"Motion Component {idx}: {comp}");
+                        idx++;
+                    }
+                    if (frameDiff != null)
+                        return frameDiff.ToBitmap();
+                }
+            }
             //else if (Algorithm == 2)
             //{
             //    // Sparse Optical Flow (Lucas-Kanade)
             //    Mat image = new Mat();
 
-            //    if (_capture.Retrieve(image))
+            //    if currentFrame != null)
             //    {
             //        motionDetectionWithSparseOpticalFlow.ProcessFrame(image);
 
@@ -379,7 +302,7 @@ namespace MED
             //    // Temporal Frame Differencing (AbsDiff)
             //    Mat image = new Mat();
 
-            //    if (_capture.Retrieve(image))
+            //    if currentFrame != null)
             //    {
             //        motionDetectionWithFrameDifferencing.ProcessFrame(image);
 
@@ -433,7 +356,7 @@ namespace MED
 
             //    Mat image = new Mat();
 
-            //    if (_capture.Retrieve(image))
+            //    if currentFrame != null)
             //    {
             //        motionDetectionWithBackgroundSubtraction.ProcessFrame(image);
 

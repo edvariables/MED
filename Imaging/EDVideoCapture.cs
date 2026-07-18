@@ -36,21 +36,20 @@ namespace MED
 
         #region Frame
 
-        public bool HasFrameChanged { get; set; }
+        //public bool HasFrameChanged { get; set; }
 
         private Mat _Frame = null;
         public Mat Frame
         {
             get
             {
-                if (_Frame == null || HasFrameChanged)
+                if (_Frame == null)
                 {
                     if (ImageProvider != null && ImageProvider is IMatFrameProvider && ImageProvider != this)
                     {
                         _Frame = (ImageProvider as IMatFrameProvider).Frame;
 
                     }
-                    HasFrameChanged = false;
                 }
                 return _Frame;
             }
@@ -70,9 +69,6 @@ namespace MED
         {
             ImageProvider = (IImageProvider)sender;
 
-            HasFrameChanged = true;
-            HasImageChanged = true;
-
             InvokeFrameChanged(sender);
             InvokeImageChanged((IImageProvider)sender);
         }
@@ -85,13 +81,13 @@ namespace MED
         #endregion
 
         #region Image
-        private Bitmap _Image = null;
 
+        private Bitmap _Image;
         public override Bitmap Image
         {
             get
             {
-                if (_Image == null || HasImageChanged)
+                if (_Image == null)
                 {
                     if (Frame == null)
                         return null;
@@ -99,11 +95,13 @@ namespace MED
                     if (IsInvokingPropertyChanged(OnFrameChanged))
                     {
                         Performance.Alert($"IsInvokingPropertyChanged {OnFrameChanged.Method.Name}");
+                        Performance.Step(Environment.StackTrace.ReplaceLineEndings("\n\t\t"));
                         return _Image;
                     }
                     if (IsInvokingPropertyChanged(OnImageChanged))
                     {
                         Performance.Alert($"IsInvokingPropertyChanged {OnImageChanged.Method.Name}");
+                        Performance.Step(Environment.StackTrace.ReplaceLineEndings("\n\t\t"));
                         return _Image;
                     }
                     //Generated at first query
@@ -120,7 +118,6 @@ namespace MED
                     {
                         Performance.Step("ERROR in LastFrame.ToBitmap() : " + ex.ToString());
                     }
-                    HasImageChanged = false;
                 }
                 return _Image;
             }

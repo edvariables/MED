@@ -164,7 +164,7 @@ namespace MED
                         AverageSample_Start = Ticks_Start;
                     AverageSample_Counter += Counter - AverageSample_Smooth;
                     Ticks_Start = Now - Average * AverageSample_Smooth;
-                    _Counter = value - AverageSample + AverageSample_Smooth;
+                    _Counter = value - (AverageSample - AverageSample_Smooth);
 
                 }
                 else
@@ -180,7 +180,7 @@ namespace MED
 
         public string Start(string step = "Start", bool start_subs = true)
         {
-            if (IsEmpty)
+            if (IsEmpty)    
                 return "";
             Counter = 0L;
             Ticks_Pause = 0L;
@@ -188,9 +188,10 @@ namespace MED
             Steps.Clear();
             Ticks_Start = Now;
             AverageSample_Counter = 0L;
+            IgnoreFirsts_done = IgnoreFirsts == 0;
+
             if (step == "" || step == "Start")
                 return $"{Name}.Start";
-            IgnoreFirsts_done = IgnoreFirsts == 0;
 
             if (start_subs && Subs != null)
                 foreach (var sub in Subs)
@@ -205,6 +206,7 @@ namespace MED
                 return "";
             if (IsPaused){
                 Ticks_Start += Now - Ticks_Pause;
+                AverageSample_Start += Now - Ticks_Pause;
                 Ticks_Pause = 0L;
             }
             Ticks_Stop = Now;
@@ -250,6 +252,7 @@ namespace MED
             if (Ticks_Pause > 0L)
             {
                 Ticks_Start += Now - Ticks_Pause;
+                AverageSample_Start += Now - Ticks_Pause;
                 Ticks_Pause = 0L;
 
                 if (resume_subs && Subs != null)
@@ -325,6 +328,11 @@ namespace MED
         public string Alert(string step)
         {
             return Step("Alert ! : " + step);
+        }
+
+        public string Debug(string step)
+        {
+            return Sub("Debug").Step(step);
         }
 
         public string Log(string s)

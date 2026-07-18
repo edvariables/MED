@@ -77,9 +77,9 @@ namespace MED.EDWebCam
 
         #region Settings
 
-        protected override void LoadSettings()
+        public override void LoadSettings(bool loadChildren = false)
         {
-            base.LoadSettings();
+            base.LoadSettings(loadChildren);
 
             chkRenderLogger.Checked = Render.Performance.Enabled;
             chkVideoCaptureLogger.Checked = WebCam.Performance.Enabled;
@@ -89,10 +89,6 @@ namespace MED.EDWebCam
                 cboCaptureSize.Text = "";
             else
                 cboCaptureSize.Text = Core.Parser.SizeToPretty(WebCam.ImageSizeMax);
-        }
-        public override void SaveSettings()
-        {
-            base.SaveSettings();
         }
         #endregion
 
@@ -141,6 +137,9 @@ namespace MED.EDWebCam
                 //ImageProcess.Stop() kills OnImageChanged register
                 Render.OnImageChanged += this.ImageChanged;
             }
+
+            Render.RenderPictureBox = picRender;
+
             //Add process
             Processes.Add(Render);
 
@@ -193,6 +192,9 @@ namespace MED.EDWebCam
                 WebCam.ImageSizeMax = Core.Parser.SizeFromPretty(cboCaptureSize.Text);
             //Add process
             Processes.Add(WebCam);
+
+            foreach (var proc in Processes)
+                (proc as Process).LoadSettings();
         }
         #endregion
 
@@ -258,33 +260,11 @@ namespace MED.EDWebCam
         {
             if (this.Disposing || this.IsDisposed)
                 return;
+            base.ImageChanged(sender);
 
-            if (sender is Render)
-                RefreshImage((Render)sender);
             FLogger.Current.RefreshProgress((ImageProcess)sender);
 
             FLogger.Current.ProgressMessage = $"Webcam [{WebCam.Performance.Counter}]";
-        }
-        private void RefreshImage(Render sender)
-        {
-            if (!sender.IsRunning)
-                return;
-            //Render.Performance.Step("RefreshImage call stack :\n" + Environment.StackTrace);
-            if( ! Render.Performance.IsPaused )
-                Console.Write("");
-            Render.Performance.Resume("RefreshImage", true);
-            if (sender.Image != null)
-            {
-                try
-                {
-                    picRender.Image = (sender as Render).Image;
-                }
-                catch (Exception ex)
-                {
-                    Render.Performance.Step(ex.ToString());
-                }
-            }
-            Render.Performance.Pause();
         }
 
 

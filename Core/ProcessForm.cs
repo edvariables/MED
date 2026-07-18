@@ -24,15 +24,17 @@ namespace MED
         [ReadOnly(true)]
         public bool IsAsynchrone { get; set; }
 
-        protected virtual void LoadSettings()
+        public virtual void LoadSettings(bool loadChildren = true)
         {
             Core.Settings.ClearCache(true, true, this.Name);
+            Performance.LoadSettings(Name + ".Perf");
         }
-        public virtual void SaveSettings()
+        public virtual void SaveSettings(bool saveChildren = true)
         {
-            //if (Processes != null)
-            //    foreach (var proc in Processes)
-            //        proc.SaveSettings();
+            if (saveChildren && Processes != null)
+                foreach (var proc in Processes)
+                    proc.SaveSettings();
+            Performance.SaveSettings(Name + ".Perf", saveChildren);
         }
         #endregion
 

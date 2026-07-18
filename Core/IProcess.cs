@@ -8,10 +8,19 @@ using System.Threading.Tasks;
 
 namespace MED
 {
-    public interface IProcess: IDisposable
+    public interface IProcess : IDisposable
     {
         string Name { get; }
 
+        #region Settings
+        void LoadSettings(bool loadChildren = false);
+        void SaveSettings(bool saveChildren = true);
+
+        [Browsable(false)]
+        Dictionary<string, object> ObjectsProperties { get; }
+        #endregion
+
+        #region Process
         bool IsRunning { get; }
 
         delegate void ProcessStateChangedDelegate(IProcess sender, System.Threading.ThreadState state);
@@ -22,8 +31,6 @@ namespace MED
         void Pause();
         void Resume();
         void Stop();
-
-        [Browsable(false)]
-        Dictionary<string, object> ObjectsProperties { get; }
+        #endregion
     }
 }

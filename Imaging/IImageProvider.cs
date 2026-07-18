@@ -13,7 +13,6 @@ namespace MED
         [Browsable(false)]
         Size ImageSizeMax { get; set; }
 
-        bool HasImageChanged { get; set; }
         Bitmap Image { get; set; }
 
         delegate void ImageChangedDelegate(IImageProvider sender);

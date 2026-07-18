@@ -15,11 +15,10 @@ namespace MED
         [Browsable(false)]
         Size ImageSizeMax { get; set; }
 
-        bool HasFrameChanged { get; set; }
-        Mat Frame { get; set; }
+        Mat Frame { get; }
 
         delegate void FrameChangedDelegate(IMatFrameProvider sender);
 
-        void InvokeFrameChanged(IMatFrameProvider sender = null);
+        void InvokeFrameChanged(IMatFrameProvider sender);
     }
 }

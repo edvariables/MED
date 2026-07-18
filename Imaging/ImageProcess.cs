@@ -10,8 +10,8 @@ namespace MED
 {
     public abstract class ImageProcess : Process, IImageConsumer, IImageProvider
     {
-        public ImageProcess(string paramSection, Performance performance = null, Form formHandler = null, IImageConsumer imageConsumer = null, bool isAynchrone = false)
-            : base(paramSection, performance, formHandler, imageConsumer, isAynchrone)
+        public ImageProcess(string name, Performance performance = null, Form formHandler = null, IImageConsumer imageConsumer = null, bool isAynchrone = false)
+            : base(name, performance, formHandler, imageConsumer, isAynchrone)
         {
             ImageConsumer = imageConsumer;
         }
@@ -48,8 +48,7 @@ namespace MED
                     if (this is IMatFrameProvider
                         && _ImageConsumer is IMatFrameConsumer)
                     {
-                        var changedDelegate = this.GetType().GetEvent("OnFrameChanged");
-                        changedDelegate.RemoveEventHandler(this, (_ImageConsumer as IMatFrameConsumer).FrameChanged);
+                        RemoveHandler("OnFrameChanged", consumer, typeof(IMatFrameConsumer), "FrameChanged");
                     }
                 }
                 //New Consumer
@@ -63,6 +62,7 @@ namespace MED
                         && _ImageConsumer is IMatFrameConsumer)
                     {
                         AddHandler("OnFrameChanged", consumer, typeof(IMatFrameConsumer), "FrameChanged");
+                        RemoveHandler("OnFrameChanged", consumer, typeof(IMatFrameConsumer), "FrameChanged");
                     }
                 }
             }
@@ -76,19 +76,6 @@ namespace MED
         #region Image
         public IImageProvider.ImageChangedDelegate OnImageChanged;
 
-        [Browsable(false)]
-        private bool _HasImageChanged;
-        public virtual bool HasImageChanged { get => false;//_HasImageChanged;
-            set {
-                if (_HasImageChanged != value)
-                {
-                    Performance.Step($"HasImageChanged : {_HasImageChanged} => {value}");
-                    if (this.Name == "EmguMoving" && value)
-                        Performance.Step(Environment.StackTrace);
-                }
-                _HasImageChanged = value;
-            } }
-
         private Bitmap _Image;
         [Browsable(false)]
         public virtual Bitmap Image
@@ -98,13 +85,10 @@ namespace MED
                 if (ImageProvider == null)
                     return _Image;
 
-                return ImageProvider.Image;
+                return _Image = ImageProvider.Image;
             }
             set
             {
-                if (ImageProvider != null)
-                    ImageProvider.Image = value;
-
                 _Image = value;
             }
         }
@@ -115,7 +99,6 @@ namespace MED
         [Browsable(false)]
         public virtual void ImageChanged(IImageProvider sender)
         {
-            HasImageChanged = true;
             ImageProvider = sender;
             InvokeImageChanged(sender);
         }
@@ -127,60 +110,25 @@ namespace MED
         protected bool IsInvokingImageChanged;
         public virtual void InvokeImageChanged(IImageProvider sender = null)
         {
-            bool invoke = IsAsynchrone && !(ImageConsumer != null && ImageConsumer.IsAsynchrone);
-            string invoke_str = invoke ? "Invoke" : "Call";
-            var invocationList = OnImageChanged.GetInvocationList();
-            if (invocationList.Count() > 1)
-            {
-                Performance.Step($"{this.Name} : {invoke_str} for {invocationList.Count()}");
-                foreach (var del in invocationList)
-                {
-                    Performance.Step($"-> {del.Target.ToString()}.{del.Method.Name}");
-                }
-
-            }
-            InvokePropertyChanged(sender, OnImageChanged);
-            //if (FormHandler == null || FormHandler.Disposing || FormHandler.IsDisposed)
-            //    return;
-            //if (OnImageChanged != null && IsRunning)
+            //bool invoke = IsAsynchrone && !(ImageConsumer != null && ImageConsumer.IsAsynchrone);
+            //string invoke_str = invoke ? "Invoke" : "Call";
+            //var invocationList = OnImageChanged.GetInvocationList();
+            //if (invocationList.Count() > 1)
             //{
-            //    //IsAsynchrone but if next Consumer is also asynchrone
-            //    bool invoke = IsAsynchrone && !(ImageConsumer != null && ImageConsumer.IsAsynchrone);
-            //    string invoke_str = invoke ? "Invoke" : "Call";
-            //    try
+            //    Performance.Step($"{this.Name} : {invoke_str} for {invocationList.Count()}");
+            //    foreach (var del in invocationList)
             //    {
-            //        IsInvokingImageChanged = true;
-            //        var invocationList = OnImageChanged.GetInvocationList();
-            //        if (invocationList.Count() > 1)
-            //        {
-            //            Performance.Step($"{this.Name} : {invoke_str} for {invocationList.Count()}");
-            //            foreach (var del in invocationList)
-            //            {
-            //                Performance.Step($"-> {del.Target.ToString()}.{del.Method.Name}");
-            //            }
-
-            //        }
-
-            //        if (invoke)
-            //            FormHandler.Invoke(OnImageChanged, this is IImageProvider ? (IImageProvider)this : sender);
-            //        else
-            //            OnImageChanged(this is IImageProvider ? (IImageProvider)this : sender);
-            //    }
-            //    catch (Exception ex)
-            //    {
-            //        Performance.Step("ERROR : " + ex.Message);
-            //    }
-            //    finally
-            //    {
-            //        IsInvokingImageChanged = false;
+            //        Performance.Step($"-> {del.Target.ToString()}.{del.Method.Name}");
             //    }
             //}
+            InvokePropertyChanged(sender, OnImageChanged);
         }
         #endregion
 
-        protected virtual void LoadSettings()
+        #region Settings
+        public override void LoadSettings(bool loadChildren = true)
         {
-            base.LoadSettings();
+            base.LoadSettings(loadChildren);
 
             var value = Core.Settings.GetValue("ImageSizeMax", Name, ImageSizeMax);
             if (value is Size)
@@ -188,13 +136,14 @@ namespace MED
             else
                 ImageSizeMax = Size.Empty;
         }
-        public virtual void SaveSettings()
+        public virtual void SaveSettings(bool saveChildren = false)
         {
 
             Core.Settings.SetValue("ImageSizeMax", Name, ImageSizeMax.IsEmpty ? "" : ImageSizeMax);
 
-            base.SaveSettings();
+            base.SaveSettings(saveChildren);
         }
+        #endregion
 
     }
 }

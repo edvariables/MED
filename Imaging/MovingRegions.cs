@@ -33,24 +33,6 @@ namespace MED.Imaging
             }
         }
 
-        public override bool HasImageChanged
-        {
-            get
-            {
-                if (ImageProvider == null)
-                    return base.HasImageChanged;
-                else
-                    return ImageProvider.HasImageChanged;
-            }
-            set
-            {
-                if (ImageProvider == null)
-                    base.HasImageChanged = value;
-                else
-                    ImageProvider.HasImageChanged = base.HasImageChanged = value;
-            }
-        }
-
         public override void Start()
         {
             MoveDetectInit = false;
@@ -71,8 +53,8 @@ namespace MED.Imaging
                 if (ImageProvider == null)
                     return null;
 
-                if (!HasImageChanged)
-                    return ImageProvider.Image;
+                if (base.Image != null)
+                    return base.Image;
 
                 Bitmap image = ImageProvider.Image;
                 if (image == null)
@@ -102,7 +84,7 @@ namespace MED.Imaging
 
                 Performance.Pause("done Process MoveDetectorAction");
 
-                return image;
+                return base.Image = image;
 
             }
             set { base.Image = value; }

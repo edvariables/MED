@@ -9,13 +9,14 @@ namespace MED
 {
     public abstract class Process : IProcess, IConsumer, IProvider
     {
-        public Process(string paramSection, Performance performance = null, Form formHandler = null, IConsumer consumer = null, bool isAynchrone = false)
+        public Process(string name, Performance performance = null, Form formHandler = null, IConsumer consumer = null, bool isAynchrone = false)
         {
             FormHandler = formHandler;
             IsAsynchrone = isAynchrone;
             Consumer = consumer;
 
-            Name = paramSection.Trim();
+            Name = name.Trim();
+
             Performance = performance == null ? MED.Performance.Empty() : performance;
 
             LoadSettings();
@@ -84,7 +85,11 @@ namespace MED
                     }
 
                     if (invoke)
+                    {
+                        Performance.Debug($"FormHandler.Invoke({this.Name} : {invoke_str} {delegateMethod.Method.Name}, {this is IProvider});");
                         FormHandler.Invoke(delegateMethod, this is IProvider ? (IProvider)this : sender);
+                        Performance.Debug($"done");
+                    }
                     else
                     {
                         //delegateMethod.Method.Invoke(delegateMethod.Target, [this is IProvider ? (IProvider)this : sender]);
@@ -122,6 +127,27 @@ namespace MED
             eventInfo.SetValue(handler_obj, handler);
         }
 
+        public void RemoveHandler(string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
+        {
+            IProvider handler_obj = this;
+            var memberInfo = handler_obj.GetType().GetMember(handler_field);
+            if (memberInfo == null)
+                throw new Exception($"Le type {handler_obj.GetType().FullName} n'a pas de delegate {handler_field}");
+            var eventInfo = (System.Reflection.FieldInfo)memberInfo.GetValue(0);
+
+
+            var miHandler = consumer_type.GetMethod(consumer_method);
+            if (miHandler == null)
+                throw new Exception($"Le type '{consumer_type.FullName}' n'a pas de méthode {consumer_method}");
+            Delegate handler =
+                 Delegate.CreateDelegate(eventInfo.FieldType,
+                                         consumer,
+                                         miHandler);
+            //eventInfo.RemoveEventHandler(this, handler);
+            //TODO eventInfo.SetValue(handler_obj, handler);
+
+        }
+
         public virtual Dictionary<string, object> ObjectsProperties
         {
             get
@@ -146,16 +172,19 @@ namespace MED
         [Browsable(true)]//SIC unvisible
         public Performance Performance;
 
-        protected virtual void LoadSettings()
+        #region Settings
+        public virtual void LoadSettings(bool loadChildren = true)
         {
             Core.Settings.ClearCache(true, true, Name);
 
             Performance.LoadSettings(Name);
         }
-        public virtual void SaveSettings()
+        public virtual void SaveSettings(bool saveChildren = true)
         {
-            Performance.SaveSettings(Name);
+            Performance.SaveSettings(Name, saveChildren);
         }
+        #endregion
+
 
         private bool _IsRunning;
         public bool IsRunning

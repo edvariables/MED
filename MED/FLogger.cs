@@ -160,9 +160,15 @@ namespace MED
             Core.Settings.ClearCache(true, true, this.Name);
 
             chkClearLogOnRun.Checked = (bool)Core.Settings.GetValue("ClearLogOnRun", this.Name, chkClearLogOnRun.Checked);
+
+            Height = (int)Core.Settings.GetValue("FLogger.Height", this.Name, Height);
+            if (Height < 20)
+                Height = 20;
         }
         public void SaveSettings()
         {
+
+            Core.Settings.SetValue("FLogger.Height", this.Name, Height);
             Core.Settings.SetValue("ClearLogOnRun", this.Name, chkClearLogOnRun.Checked);
             Core.Settings.Save();
         }
