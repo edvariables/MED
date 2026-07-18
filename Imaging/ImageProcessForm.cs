@@ -21,13 +21,13 @@ namespace MED
         /**
          * Image
          * */
-        public virtual void ImageChanged(IImageProvider sender)
+        public virtual void ImageChanged(IImageProvider sender, EventArgs e)
         {
             if (this.Disposing || this.IsDisposed)
                 return;
 
             if (RenderPictureBox != null)
-                Render.RefreshImage(sender, RenderPictureBox, Performance);
+                Render.RefreshImage(sender, RenderPictureBox, Performance, e);
         }
         #endregion
     }

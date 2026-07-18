@@ -63,10 +63,10 @@ namespace MED
         //public DISOpticalFlow DISOpticalFlow { get; private set; }
 
         #region Image
-        public override void ImageChanged(IImageProvider sender)
+        public override void ImageChanged(IImageProvider sender, EventArgs e)
         {
             ImageProvider = sender;
-            base.ImageChanged(sender);
+            base.ImageChanged(sender, e);
         }
 
         [Browsable(false)]
@@ -95,7 +95,7 @@ namespace MED
         private Mat PreviousFrame;
 
         public Mat Frame { get; protected set; }
-        public void FrameChanged(IMatFrameProvider sender)
+        public void FrameChanged(IMatFrameProvider sender, EventArgs e)
         {
             ImageProvider = (IImageProvider)sender;
 
@@ -107,15 +107,16 @@ namespace MED
             Performance.Pause($"done Process MoveDetectorAction");
             //Performance.Step(Performance.ToString());
 
-            InvokeFrameChanged(sender);
+            InvokeFrameChanged(sender, e);
 
             //InvokeImageChanged((IImageProvider)sender);
         }
 
-        public void InvokeFrameChanged(IMatFrameProvider sender = null)
+        public void InvokeFrameChanged(IMatFrameProvider sender, EventArgs e)
         {
-            InvokePropertyChanged(sender, OnFrameChanged);
+            InvokePropertyChanged(sender, OnFrameChanged, e);
         }
+
         public IMatFrameProvider.FrameChangedDelegate OnFrameChanged;
         #endregion
 

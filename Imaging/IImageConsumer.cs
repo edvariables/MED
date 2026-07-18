@@ -8,6 +8,6 @@ namespace MED
 {
     public interface IImageConsumer: IConsumer
     {
-        void ImageChanged(IImageProvider sender);
+        void ImageChanged(IImageProvider sender, EventArgs e);
     }
 }

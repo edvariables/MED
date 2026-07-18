@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace MED
 {
-    public interface IImageProvider: IProvider
+    public interface IImageProvider : IProvider
     {
 
         [Browsable(false)]
@@ -15,8 +15,8 @@ namespace MED
 
         Bitmap Image { get; set; }
 
-        delegate void ImageChangedDelegate(IImageProvider sender);
+        delegate void ImageChangedDelegate(IImageProvider sender, EventArgs e);
 
-        void InvokeImageChanged(IImageProvider sender = null);
+        void InvokeImageChanged(IImageProvider sender = null, EventArgs e = null);
     }
 }

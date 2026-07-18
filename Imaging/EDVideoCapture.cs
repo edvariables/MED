@@ -61,21 +61,21 @@ namespace MED
                 _Image = null;
                 if (changed)
                 {
-                    FrameChanged(this);
+                    FrameChanged(this, EventArgs.Empty);
                 }
             }
         }
-        public void FrameChanged(IMatFrameProvider sender)
+        public void FrameChanged(IMatFrameProvider sender, EventArgs e)
         {
             ImageProvider = (IImageProvider)sender;
 
-            InvokeFrameChanged(sender);
-            InvokeImageChanged((IImageProvider)sender);
+            InvokeFrameChanged(sender, e);
+            InvokeImageChanged((IImageProvider)sender, e);
         }
 
-        public void InvokeFrameChanged(IMatFrameProvider sender = null)
+        public void InvokeFrameChanged(IMatFrameProvider sender, EventArgs e)
         {
-            InvokePropertyChanged(sender, OnFrameChanged);
+            InvokePropertyChanged(sender, OnFrameChanged, e);
         }
         public IMatFrameProvider.FrameChangedDelegate OnFrameChanged;
         #endregion

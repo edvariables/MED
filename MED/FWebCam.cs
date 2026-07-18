@@ -256,11 +256,11 @@ namespace MED.EDWebCam
         /**
          * Image
          * */
-        public override void ImageChanged(IImageProvider sender)
+        public override void ImageChanged(IImageProvider sender, EventArgs e)
         {
             if (this.Disposing || this.IsDisposed)
                 return;
-            base.ImageChanged(sender);
+            base.ImageChanged(sender, e);
 
             FLogger.Current.RefreshProgress((ImageProcess)sender);
 

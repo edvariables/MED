@@ -35,17 +35,17 @@ namespace MED
         /**
          * Image
          * */
-        public override void ImageChanged(IImageProvider sender)
+        public override void ImageChanged(IImageProvider sender, EventArgs e)
         {
             if (this.Disposing || this.IsDisposed)
                 return;
-            base.ImageChanged(sender);
+            base.ImageChanged(sender, e);
 
             if (RenderPictureBox != null)
-                Render.RefreshImage(this, RenderPictureBox, Performance);
+                Render.RefreshImage(this, RenderPictureBox, Performance, e);
         }
 
-        public static void RefreshImage(IImageProvider sender, PictureBox renderPictureBox, Performance performance)
+        public static void RefreshImage(IImageProvider sender, PictureBox renderPictureBox, Performance performance, EventArgs e)
         {
             if (sender is IProcess && !(sender as IProcess).IsRunning)
                 return;

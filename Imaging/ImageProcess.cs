@@ -97,10 +97,10 @@ namespace MED
          * ImageChanged
          */
         [Browsable(false)]
-        public virtual void ImageChanged(IImageProvider sender)
+        public virtual void ImageChanged(IImageProvider sender, EventArgs e)
         {
             ImageProvider = sender;
-            InvokeImageChanged(sender);
+            InvokeImageChanged(sender, e);
         }
 
         /**
@@ -108,7 +108,7 @@ namespace MED
          * 
          */
         protected bool IsInvokingImageChanged;
-        public virtual void InvokeImageChanged(IImageProvider sender = null)
+        public virtual void InvokeImageChanged(IImageProvider sender, EventArgs e)
         {
             //bool invoke = IsAsynchrone && !(ImageConsumer != null && ImageConsumer.IsAsynchrone);
             //string invoke_str = invoke ? "Invoke" : "Call";
@@ -121,7 +121,7 @@ namespace MED
             //        Performance.Step($"-> {del.Target.ToString()}.{del.Method.Name}");
             //    }
             //}
-            InvokePropertyChanged(sender, OnImageChanged);
+            InvokePropertyChanged(sender, OnImageChanged, e);
         }
         #endregion
 

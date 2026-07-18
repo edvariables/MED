@@ -8,6 +8,6 @@ namespace MED
 {
     public interface IMatFrameConsumer: IConsumer
     {
-        void FrameChanged(IMatFrameProvider sender);
+        void FrameChanged(IMatFrameProvider sender, EventArgs e);
     }
 }

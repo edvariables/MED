@@ -17,8 +17,8 @@ namespace MED
 
         Mat Frame { get; }
 
-        delegate void FrameChangedDelegate(IMatFrameProvider sender);
+        delegate void FrameChangedDelegate(IMatFrameProvider sender, EventArgs e);
 
-        void InvokeFrameChanged(IMatFrameProvider sender);
+        void InvokeFrameChanged(IMatFrameProvider sender, EventArgs e);
     }
 }

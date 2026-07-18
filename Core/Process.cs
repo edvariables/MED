@@ -55,7 +55,7 @@ namespace MED
             return _IsInvokingPropertyChanged.Contains(delegateMethod);
         }
 
-        public virtual void InvokePropertyChanged(IProvider sender, Delegate delegateMethod)
+        public virtual void InvokePropertyChanged(IProvider sender, Delegate delegateMethod, EventArgs e)
         {
             if (FormHandler == null || FormHandler.Disposing || FormHandler.IsDisposed)
                 return;
@@ -87,13 +87,13 @@ namespace MED
                     if (invoke)
                     {
                         Performance.Debug($"FormHandler.Invoke({this.Name} : {invoke_str} {delegateMethod.Method.Name}, {this is IProvider});");
-                        FormHandler.Invoke(delegateMethod, this is IProvider ? (IProvider)this : sender);
+                        FormHandler.Invoke(delegateMethod, this is IProvider ? (IProvider)this : sender, e);
                         Performance.Debug($"done");
                     }
                     else
                     {
                         //delegateMethod.Method.Invoke(delegateMethod.Target, [this is IProvider ? (IProvider)this : sender]);
-                        delegateMethod.DynamicInvoke(/*delegateMethod.Target,*/ [this is IProvider ? (IProvider)this : sender]);
+                        delegateMethod.DynamicInvoke(/*delegateMethod.Target,*/ this is IProvider ? (IProvider)this : sender, e);
                     }
                 }
                 catch (Exception ex)
@@ -129,6 +129,7 @@ namespace MED
 
         public void RemoveHandler(string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
         {
+            //TODO
             IProvider handler_obj = this;
             var memberInfo = handler_obj.GetType().GetMember(handler_field);
             if (memberInfo == null)
