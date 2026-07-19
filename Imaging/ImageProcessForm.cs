@@ -23,7 +23,7 @@ namespace MED
          * */
         public virtual void ImageChanged(IImageProvider sender, EventArgs e)
         {
-            if (this.Disposing || this.IsDisposed)
+            if (this.Disposing || this.IsDisposed || ! IsRunning)
                 return;
             
             Performance.Step($"ImageChanged from {sender.ToString()}");

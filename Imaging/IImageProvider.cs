@@ -15,6 +15,8 @@ namespace MED
 
         Bitmap Image { get; set; }
 
+        List<IImageProvider> ImageProviders { get; set; }
+
         delegate void ImageChangedDelegate(IImageProvider sender, EventArgs e);
 
         void InvokeImageChanged(IImageProvider sender = null, EventArgs e = null);

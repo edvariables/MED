@@ -10,7 +10,10 @@ namespace MED
     public class Logger
     {
         private StringBuilder Buffer = new();
-    
+
+
+        public void Clear(bool clear = true) => Buffer.Clear();
+
         public void AppendLine(string msg, params object[] args)
         {
             for (int i = 0; i < args.Length; i++)

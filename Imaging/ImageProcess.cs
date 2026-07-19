@@ -13,6 +13,7 @@ namespace MED
         public ImageProcess(string name, Performance performance = null, Form formHandler = null, IImageConsumer imageConsumer = null, bool isAynchrone = false)
             : base(name, performance, formHandler, imageConsumer, isAynchrone)
         {
+            ImageProviders = new();
             ImageConsumer = imageConsumer;
         }
 
@@ -86,31 +87,38 @@ namespace MED
             return false;
         }
 
+        /**
+         * Process
+         * 
+         * */
+        public override void Start()
+        {
 
-        protected IImageProvider ImageProvider;
+            base.Start();
+            Performance.Log($"IsAynchrone = {IsAsynchrone}");
+            Performance.Log($"ResetOnImageChanged = {ResetOnImageChanged}");
+            Performance.Log($"ImageIsProvided = {ImageIsProvided}");
+
+        }
+
+        /**
+         * Image
+         * 
+         */
+        #region Image
 
         [Browsable(false)]
         public virtual Size ImageSizeMax { get; set; }
 
-        #region Image
         public IImageProvider.ImageChangedDelegate OnImageChanged;
 
-        private Bitmap _Image;
-        [Browsable(false)]
-        public virtual Bitmap Image
-        {
-            get
-            {
-                if (ImageProvider == null)
-                    return _Image;
+        [Browsable(true)]
+        [ReadOnly(true)]
+        public bool ResetOnImageChanged { get; protected set; }
 
-                return _Image = ImageProvider.Image;
-            }
-            set
-            {
-                _Image = value;
-            }
-        }
+        [Browsable(true)]
+        [ReadOnly(true)]
+        public bool ImageIsProvided { get; protected set; }
 
         /***
          * ImageChanged
@@ -119,8 +127,60 @@ namespace MED
         public virtual void ImageChanged(IImageProvider sender, EventArgs e)
         {
             Performance.Step($"ImageChanged from {sender.ToString()}");
-            ImageProvider = sender;
-            InvokeImageChanged(sender, e);
+            ImageProvider = sender; //Add
+
+            if (ImageProviders.Count <= 1 || ImageProviders.Last() == sender)
+            {
+                if (ResetOnImageChanged)
+                {
+                    Performance.Debug($"ResetOnImageChanged");
+                    Image = null;
+                }
+                if (IsAsynchrone)
+                {
+                    //Generate in same thread
+                    var image = Image;
+                }
+                InvokeImageChanged(sender, e);
+            }
+            else
+                Performance.Debug($"Waiting for last provider {sender} => {ImageProviders.Last()}");
+        }
+
+        private Bitmap _Image;
+        [Browsable(false)]
+        public virtual Bitmap Image
+        {
+            get
+            {
+                if (_Image != null || !ImageIsProvided)
+                    return _Image;
+                var firstProvider = ImageProvider;
+                if (firstProvider == null)
+                    return _Image;
+                return _Image = firstProvider.Image;
+            }
+            set
+            {
+                //Performance.Debug($"Set_Image " + (_Image == null ? "<null>" : "Bitmap") + " => " + (value == null ? "<null>" : "Bitmap"));
+                _Image = value;
+            }
+        }
+
+        [Browsable(true)]
+        public List<IImageProvider> ImageProviders { get; set; }
+
+        [Browsable(true)]
+        public IImageProvider ImageProvider
+        {
+            get => ImageProviders.Count == 0 ? null : ImageProviders.First();
+            set
+            {
+                if (value == this)
+                    return;
+                if (!ImageProviders.Contains(value))
+                    ImageProviders.Add(value);
+            }
         }
 
         /**
@@ -145,6 +205,10 @@ namespace MED
         }
         #endregion
 
+        /**
+         * Settings
+         * 
+         * */
         #region Settings
         public override void LoadSettings(bool loadChildren = true)
         {
@@ -165,5 +229,44 @@ namespace MED
         }
         #endregion
 
+
+        Bitmap _EmptyImage;
+        public Bitmap EmptyImage
+        {
+            get
+            {
+                if (_EmptyImage != null)
+                    return _EmptyImage;
+
+                _EmptyImage = ImageProvider?.Image;
+
+                Size size = ImageSizeMax;
+                if (size.IsEmpty)
+                {
+                    if (_EmptyImage != null)
+                        size = _EmptyImage.Size;
+                    if (size.IsEmpty)
+                        size = new Size(256, 128);
+                }
+
+                string msg = "En attente";
+
+                _EmptyImage = new Bitmap(size.Width, size.Height);
+                Graphics graphics = Graphics.FromImage(_EmptyImage);
+
+                SolidBrush brush = new(Color.LightSlateGray);
+                graphics.FillRectangle(brush, 0F, 0F, size.Width, size.Height);
+
+                Font font = new(FontFamily.GenericMonospace, 14F);
+                brush = new(Color.DarkOliveGreen);
+                var msgSize = graphics.MeasureString(msg, font, int.MaxValue, StringFormat.GenericDefault);
+
+                graphics.DrawString(msg, font, brush, (size.Width - msgSize.Width) / 2, (size.Height - msgSize.Height) / 2);
+
+                graphics.Dispose();
+                return _EmptyImage;
+            }
+            set => _EmptyImage = value;
+        }
     }
 }

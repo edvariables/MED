@@ -10,9 +10,15 @@ using System.Threading.Tasks;
 
 namespace MED
 {
-    public class Render(string name = "Render", Performance performance = null, Form formHandler = null, IImageConsumer imageConsumer = null)
-        : ImageProcess(name, performance, formHandler, imageConsumer)
+    public class Render : ImageProcess
     {
+        public Render(string name = "Render", Performance performance = null, Form formHandler = null, IImageConsumer imageConsumer = null, bool isAynchrone = false)
+            : base(name, performance, formHandler, imageConsumer, isAynchrone)
+        {
+            ImageIsProvided = true;
+            ResetOnImageChanged = true;
+            Centered = true;
+        }
 
         #region Settings
 
@@ -20,7 +26,25 @@ namespace MED
         public bool KeepRenderRatio { get; set; }
         [Browsable(true)]
         public bool ResizeToRenderSize { get; set; }
+        [Browsable(true)]
+        public bool Centered { get; set; }
 
+        public override void LoadSettings(bool loadChildren = true)
+        {
+            base.LoadSettings(loadChildren);
+
+            Centered = (bool)Core.Settings.GetValue("Centered", Name, Centered);
+            KeepRenderRatio = (bool)Core.Settings.GetValue("KeepRenderRatio", Name, KeepRenderRatio);
+            ResizeToRenderSize = (bool)Core.Settings.GetValue("ResizeToRenderSize", Name, ResizeToRenderSize);
+        }
+        public override void SaveSettings(bool saveChildren = true)
+        {
+            Core.Settings.SetValue("Centered", Name, Centered);
+            Core.Settings.SetValue("KeepRenderRatio", Name, KeepRenderRatio);
+            Core.Settings.SetValue("ResizeToRenderSize", Name, ResizeToRenderSize);
+
+            base.SaveSettings(saveChildren);
+        }
         #endregion
 
         public override void Start()
@@ -43,6 +67,12 @@ namespace MED
 
             if (RenderPictureBox != null)
                 Render.RefreshImage(this, RenderPictureBox, Performance, e);
+        }
+
+        public override Bitmap Image
+        {
+            get => base.Image == null ? EmptyImage : base.Image;
+            set => base.Image = value;
         }
 
         public static void RefreshImage(IImageProvider sender, PictureBox renderPictureBox, Performance performance, EventArgs e)
@@ -84,6 +114,16 @@ namespace MED
                     var size = new Size(image.Width * ratio, image.Height * ratio);
                     image = new Bitmap(image, size);
                 }
+            else if (render.Centered)
+            {
+                var source = image;
+                image = new Bitmap(render.RenderPictureBox.Size.Width, render.RenderPictureBox.Size.Height, image.PixelFormat);
+                Graphics graphics = Graphics.FromImage(image);
+
+                graphics.DrawImageUnscaled(source,(image.Width-source.Width)/2,(image.Height-source.Height)/2);
+
+                graphics.Dispose();
+            }
             return image;
         }
     }

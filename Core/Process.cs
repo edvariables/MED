@@ -277,7 +277,7 @@ namespace MED
 
             ProcessState = ThreadState.Unstarted;
 
-            Performance.Start("Start", true);
+            Performance.Start($"Start {this.ToString()}", true);
 
             //Override next :
             /*

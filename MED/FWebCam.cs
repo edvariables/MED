@@ -37,7 +37,7 @@ namespace MED.EDWebCam
 
         }
 
-
+        #region Form
         private void FWebCam_Activated(object sender, EventArgs e)
         {
             List<object> objects = new();
@@ -59,6 +59,17 @@ namespace MED.EDWebCam
                     Dock = DockStyle.Fill;
             }
         }
+
+        Size DockedSize;
+        private void FWebCam_DockChanged(object sender, EventArgs e)
+        {
+            if (this.Dock == DockStyle.Fill)
+                DockedSize = this.Size;
+            else if (!DockedSize.IsEmpty)
+                this.Size = DockedSize;
+
+        }
+        #endregion
 
         private CheckBox chkLogColored;
         private CheckBox chkVideoCaptureLogger;
@@ -113,6 +124,8 @@ namespace MED.EDWebCam
         protected override void InitializeProcesses(bool resetAll = false)
         {
             base.InitializeProcesses(resetAll);
+
+            FLogger.Current.Logger.Clear();
 
             if (Processes != null && Processes.Count > 0 && !resetAll)
                 return;
@@ -245,7 +258,7 @@ namespace MED.EDWebCam
 
             FLogger.Current.Start();
 
-            foreach (var item in Processes)
+            foreach (var item in Processes.ToArray().Reverse())
             {
                 if (item == WebCam)
                 {

@@ -193,7 +193,7 @@ namespace MED
             if (start_subs && Subs != null)
                 foreach (var sub in Subs)
                     if (!sub.Value.IsRunning && !sub.Value.IsPaused)
-                        sub.Value.Start(step, start_subs);
+                        sub.Value.Start("", start_subs);
 
             if (step == "" || step == "Start")
                 return $"{Name}.Start";
@@ -317,6 +317,8 @@ namespace MED
                         if (!Steps_KeepAll)
                             Steps.Remove(prev);
                     }
+                    else
+                        step = $"{"".PadLeft(10, ' ')} [{Thread.CurrentThread.GetHashCode().ToString().PadLeft(2)}] {Name} .{step}";
                 }
                 else
                     step = $"{"".PadLeft(10, ' ')} [{Thread.CurrentThread.GetHashCode().ToString().PadLeft(2)}] {Name} .{step}";

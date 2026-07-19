@@ -27,6 +27,7 @@ namespace MED
         public EmguMoving(string paramSection = "EmguMoving", Performance performance = null, Form formHandler = null, IImageConsumer imageConsumer = null, bool isAynchrone = true)
             : base(paramSection, performance, formHandler, imageConsumer, isAynchrone)
         {
+            ResetOnImageChanged = false;//self managed
         }
 
 
@@ -63,24 +64,24 @@ namespace MED
         //public DISOpticalFlow DISOpticalFlow { get; private set; }
 
         #region Image
-        public override void ImageChanged(IImageProvider sender, EventArgs e)
-        {
-            ImageProvider = sender;
-            base.ImageChanged(sender, e);
-        }
+        //public override void ImageChanged(IImageProvider sender, EventArgs e)
+        //{
+        //    ImageProvider = sender;
+        //    base.ImageChanged(sender, e);
+        //}
 
 
-        private Bitmap _Image;
-        [Browsable(false)]
-        public override Bitmap Image
-        {
-            get => _Image;
-            set
-            {
-                Performance.Debug("Set Image : " + (_Image == null ? "<null>" : "Bitmap") + " => " + (value == null ? "<null>" : "Bitmap"));
-                _Image = value;
-            }
-        }
+        //private Bitmap _Image;
+        //[Browsable(false)]
+        //public override Bitmap Image
+        //{
+        //    get => _Image;
+        //    set
+        //    {
+        //        //Performance.Debug("Set_Image (override) : " + (_Image == null ? "<null>" : "Bitmap") + " => " + (value == null ? "<null>" : "Bitmap"));
+        //        _Image = value;
+        //    }
+        //}
 
         #endregion
 
@@ -113,7 +114,9 @@ namespace MED
 
             //Do the job in same thread
             Performance.Resume($"Process MoveDetectorAction Algorithm #{Algorithm}", true);
+
             Image = MoveDetectorAction((IImageProvider)sender, Frame);
+
             Performance.Pause($"done Process MoveDetectorAction");
             //Performance.Step(Performance.ToString());
 

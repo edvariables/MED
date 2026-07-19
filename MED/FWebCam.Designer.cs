@@ -113,11 +113,13 @@ namespace MED.EDWebCam
             Text = "WebCam";
             Activated += FWebCam_Activated;
             Load += FWebCam_Load;
+            DockChanged += FWebCam_DockChanged;
             ((System.ComponentModel.ISupportInitialize)picRender).EndInit();
             panTopTools.ResumeLayout(false);
             tableLayoutPan.ResumeLayout(false);
             ResumeLayout(false);
         }
+
 
 
 

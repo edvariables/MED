@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Configuration.Provider;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,32 +14,39 @@ namespace MED.Imaging
         public ScreenSplitter(string name = "ScreenSplitter", Performance performance = null, Form formHandler = null, IImageConsumer imageConsumer = null, bool isAynchrone = false)
             : base(name, performance, formHandler, imageConsumer, isAynchrone)
         {
+            ImageIsProvided = false;
+            ResetOnImageChanged = true;
         }
+
+
+        #region Settings
 
         [Browsable(true)]
         public bool Horizontal { get; set; }
+        [Browsable(true)]
+        public Size Grid { get; set; }
 
-        #region Settings
         public override void LoadSettings(bool loadChildren = true)
         {
             base.LoadSettings(loadChildren);
 
             Horizontal = (bool)Core.Settings.GetValue("Horizontal", Name, Horizontal);
+            Grid = (Size)Core.Settings.GetValue("Grid", Name, Grid);
         }
         public override void SaveSettings(bool saveChildren = true)
         {
             Core.Settings.SetValue("Horizontal", Name, Horizontal);
+            Core.Settings.SetValue("Grid", Name, Grid);
 
             base.SaveSettings(saveChildren);
         }
         #endregion
 
-        public List<IImageProvider> Providers = new();
-
         public override void Start()
         {
-            Providers.Clear();
             base.Start();
+
+            Image = null;
 
             ProcessState = ThreadState.Running;
         }
@@ -48,70 +56,62 @@ namespace MED.Imaging
          * */
         public override void ImageChanged(IImageProvider sender, EventArgs e)
         {
-            if (this.Disposing || this.IsDisposed)
-                return;
-            if (!Providers.Contains(sender))
-                Providers.Add(sender);
-            if (Providers.Count == 1 || Providers.Last() == sender)
-            {
-                Image = null;
-                if (IsAsynchrone)
-                {
-                    var image = Image;//Generate in same thread
-                }
-                base.ImageChanged(sender, e);
-            }
-            else
-                Performance.Debug($"Waiting for last provider {sender} => {Providers.Last()}");
+            base.ImageChanged(sender, e);
         }
 
-        private Bitmap _Image;
+        //private Bitmap _Image;
         public override Bitmap Image
         {
             get
             {
-                if (_Image != null)
-                    return _Image;
-                if (Providers.Count == 0)
-                    return _Image;
-                if (Providers.Count == 1)
-                    return _Image = Providers.First().Image;
-                Performance.Resume($"Get Image from {Providers.Count}", true);
+                if (base.Image != null)
+                    return base.Image;
+                var firstProvider = ImageProvider;
+                if (firstProvider == null)
+                    return null;
+                Performance.Resume($"Make Image from {ImageProviders.Count}", true);
                 Bitmap image;
                 Size size = ImageSizeMax;
                 if (size.IsEmpty)
                 {
-                    image = Providers.First().Image;
-                    if (image == null)
-                        return null;
-                    size = image.Size;
+                    foreach (var provider in ImageProviders)
+                    {
+                        image = provider.Image;
+                        if (image == null)
+                            continue;
+                        size = image.Size;
+                        if (size.IsEmpty)
+                            continue;
+                        break;
+                    }
                     if (size.IsEmpty)
                         return null;
                 }
                 Size itemSize;
                 if (Horizontal)
-                    itemSize = new Size(size.Width / Providers.Count, size.Height);
+                    itemSize = new Size(size.Width / ImageProviders.Count, size.Height);
                 else
-                    itemSize = new Size(size.Width, size.Height / Providers.Count);
-                _Image = image = new Bitmap(size.Width, size.Height);
+                    itemSize = new Size(size.Width, size.Height / ImageProviders.Count);
+                image = new Bitmap(size.Width, size.Height);
                 Point Position = new Point(0, 0);
                 Graphics graphics = Graphics.FromImage(image);
-                foreach (var provider in Providers)
+                foreach (var provider in ImageProviders)
                 {
-                    graphics.DrawImage(provider.Image, Position.X, Position.Y, itemSize.Width, itemSize.Height);
+                    if (provider.Image != null)
+                        graphics.DrawImage(provider.Image, Position.X, Position.Y, itemSize.Width, itemSize.Height);
                     if (Horizontal)
                         Position.X += itemSize.Width;
                     else
                         Position.Y += itemSize.Height;
                 }
                 graphics.Dispose();
-                Performance.Pause($"Get Image done => " + (_Image == null ? "<null>" : "Bitmap"));
-                return _Image;
+                Performance.Pause($"Get Image done => " + (base.Image == null ? "<null>" : "Bitmap"));
+                return base.Image = image;
             }
             set
             {
-                //Performance.Debug("Set Image : " + (_Image == null ? "<null>" : "Bitmap") + " => " + (value == null ? "<null>" : "Bitmap"));
-                _Image = value;
+                //Performance.Debug($"Set_Image {Name} : " + (base.Image == null ? "<null>" : "Bitmap") + " => " + (value == null ? "<null>" : "Bitmap"));
+                base.Image = value;
             }
         }
     }
