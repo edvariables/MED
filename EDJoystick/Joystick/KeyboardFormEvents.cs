@@ -30,8 +30,8 @@ namespace MED.EDJoystick
          * */
         private void SetHook()
         {
-            FormHandler.KeyDown += FormHandler_KeyDown;
-            FormHandler.KeyUp += FormHandler_KeyUp;
+            FormHandler.KeyDown += formHandler_KeyDown;
+            FormHandler.KeyUp += formHandler_KeyUp;
         }
 
         /**
@@ -44,15 +44,15 @@ namespace MED.EDJoystick
             {
                 FormHandler.KeyPreview = _saved_formHandler_KeyPreview;
 
-                FormHandler.KeyDown -= FormHandler_KeyDown;
-                FormHandler.KeyUp -= FormHandler_KeyUp;
+                FormHandler.KeyDown -= formHandler_KeyDown;
+                FormHandler.KeyUp -= formHandler_KeyUp;
 
                 FormHandler = null;
             }
         }
 
-        private void FormHandler_KeyDown(object? sender, System.Windows.Forms.KeyEventArgs e) => HookCallback(e.KeyCode, true);
-        private void FormHandler_KeyUp(object? sender, System.Windows.Forms.KeyEventArgs e) => HookCallback(e.KeyCode, false);
+        private void formHandler_KeyDown(object? sender, System.Windows.Forms.KeyEventArgs e) => HookCallback(e.KeyCode, true);
+        private void formHandler_KeyUp(object? sender, System.Windows.Forms.KeyEventArgs e) => HookCallback(e.KeyCode, false);
 
         /**
          * 

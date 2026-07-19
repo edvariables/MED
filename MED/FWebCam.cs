@@ -93,13 +93,13 @@ namespace MED.EDWebCam
             base.LoadSettings(loadChildren);
 
             chkRenderLogger.Checked = Render.Performance.Enabled;
-            chkVideoCaptureLogger.Checked = WebCam.Performance.Enabled;
+            chkVideoCaptureLogger.Checked = ImageSource.Performance.Enabled;
 
-            var value = WebCam.ImageSizeMax;
-            if (WebCam.ImageSizeMax.IsEmpty)
+            var value = ImageSource.ImageSizeMax;
+            if (ImageSource.ImageSizeMax.IsEmpty)
                 cboCaptureSize.Text = "";
             else
-                cboCaptureSize.Text = Core.Parser.SizeToPretty(WebCam.ImageSizeMax);
+                cboCaptureSize.Text = Core.Parser.SizeToPretty(ImageSource.ImageSizeMax);
         }
         #endregion
 
@@ -118,9 +118,12 @@ namespace MED.EDWebCam
          */
         #region Processes
 
-        EDVideoCapture WebCam;
+        EDVideoCapture ImageSource;
         Render Render;
-
+        /**
+         * InitializeProcesses
+         * 
+         * */
         protected override void InitializeProcesses(bool resetAll = false)
         {
             base.InitializeProcesses(resetAll);
@@ -141,8 +144,8 @@ namespace MED.EDWebCam
                 Render = new Render(
                     "Render"
                     , Performance.Sub("Render", chkRenderLogger.Checked, KnownColor.Yellow)
-                    , this
-                    );
+                    , picRender
+                );
                 Render.Performance.IsColored = chkLogColored.Checked;
             }
             else
@@ -151,8 +154,6 @@ namespace MED.EDWebCam
                 Render.OnImageChanged += this.ImageChanged;
             }
 
-            Render.RenderPictureBox = picRender;
-
             //Add process
             Processes.Add(Render);
 
@@ -160,52 +161,50 @@ namespace MED.EDWebCam
 
             //MovingRegions
             var EmguMoving = new EmguMoving(
-                        "EmguMoving"
-
+                "EmguMoving"
                 , Performance.Sub("EmguMoving", chkRenderLogger.Checked, KnownColor.AliceBlue)
-                        , this
-                        , (ImageProcess)Processes.Last()
-                    );
+                , picRender
+                , (ImageProcess)Processes.Last()
+            );
 
             //Add process
             Processes.Add(EmguMoving);
 
             //ScreenSplitter
             var ScreenSplitter = new ScreenSplitter(
-                        "ScreenSplitter"
-
+                "ScreenSplitter"
                 , Performance.Sub("ScreenSplitter", chkRenderLogger.Checked, KnownColor.GreenYellow)
-                        , this
-                        , (ImageProcess)Processes.Last()
-                    );
+                , picRender
+                , (ImageProcess)Processes.Last()
+            );
 
             //Add process
             Processes.Add(ScreenSplitter);
 
             //WebCam
-            if (WebCam == null || resetAll)
+            if (ImageSource == null || resetAll)
             {
-                WebCam = new EDVideoCapture(
-                "WebCam"
-                , Performance.Sub("WebCam", chkVideoCaptureLogger.Checked, FLogger.Current.DefaultLoggerColor.ToKnownColor())
-                , this
-                , (IImageConsumer)Processes.Last()
+                ImageSource = new EDVideoCapture(
+                    "WebCam"
+                    , Performance.Sub("WebCam", chkVideoCaptureLogger.Checked, FLogger.Current.DefaultLoggerColor.ToKnownColor())
+                    , picRender
+                    , (IImageConsumer)Processes.Last()
                 );
-                WebCam.Performance.IsColored = chkLogColored.Checked;
-                WebCam.ProcessStateChanged += WebCam_ProcessStateChanged;
+                ImageSource.Performance.IsColored = chkLogColored.Checked;
+                ImageSource.ProcessStateChanged += WebCam_ProcessStateChanged;
             }
             else
             {
                 //ImageProcess.Stop() kills OnImageChanged register
-                WebCam.OnImageChanged += (Processes.Last() as IImageConsumer).ImageChanged;
+                ImageSource.OnImageChanged += (Processes.Last() as IImageConsumer).ImageChanged;
             }
 
 
-            WebCam.OnFrameChanged = null;
-            WebCam.OnFrameChanged += EmguMoving.FrameChanged;
+            ImageSource.OnFrameChanged = null;
+            ImageSource.OnFrameChanged += EmguMoving.FrameChanged;
 
-            WebCam.OnImageChanged = null;
-            WebCam.OnImageChanged += ScreenSplitter.ImageChanged;
+            ImageSource.OnImageChanged = null;
+            ImageSource.OnImageChanged += ScreenSplitter.ImageChanged;
 
             EmguMoving.OnImageChanged = null;
             EmguMoving.OnImageChanged += ScreenSplitter.ImageChanged;
@@ -219,13 +218,13 @@ namespace MED.EDWebCam
             //WebCam.ImageSizeMax
             if (cboCaptureSize.Text == "")
             {
-                if (!WebCam.ImageSizeMax.IsEmpty)
-                    cboCaptureSize.Text = Core.Parser.SizeToPretty(WebCam.ImageSizeMax);
+                if (!ImageSource.ImageSizeMax.IsEmpty)
+                    cboCaptureSize.Text = Core.Parser.SizeToPretty(ImageSource.ImageSizeMax);
             }
             else
-                WebCam.ImageSizeMax = Core.Parser.SizeFromPretty(cboCaptureSize.Text);
+                ImageSource.ImageSizeMax = Core.Parser.SizeFromPretty(cboCaptureSize.Text);
             //Add process
-            Processes.Add(WebCam);
+            Processes.Add(ImageSource);
 
             foreach (var proc in Processes)
                 (proc as Process).LoadSettings();
@@ -260,9 +259,9 @@ namespace MED.EDWebCam
 
             foreach (var item in Processes.ToArray().Reverse())
             {
-                if (item == WebCam)
+                if (item == ImageSource)
                 {
-                    WebCam.CameraIndex = cboCameras.SelectedIndex;
+                    ImageSource.CameraIndex = cboCameras.SelectedIndex;
                 }
                 item.Start();
             }
@@ -298,7 +297,7 @@ namespace MED.EDWebCam
 
             FLogger.Current.RefreshProgress((ImageProcess)sender);
 
-            FLogger.Current.ProgressMessage = $"Webcam [{WebCam.Performance.Counter}]";
+            FLogger.Current.ProgressMessage = $"Webcam [{ImageSource.Performance.Counter}]";
         }
 
 
@@ -309,8 +308,8 @@ namespace MED.EDWebCam
         }
         private void chkVideoCaptureLogger_CheckedChanged(object sender, EventArgs e)
         {
-            if (WebCam != null)
-                WebCam.Performance.Enabled = chkVideoCaptureLogger.Checked;
+            if (ImageSource != null)
+                ImageSource.Performance.Enabled = chkVideoCaptureLogger.Checked;
         }
         private void chkLogColoredNot_CheckedChanged(object sender, EventArgs e)
         {
@@ -322,9 +321,9 @@ namespace MED.EDWebCam
         private void cboCaptureSize_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (cboCaptureSize.Text == "")
-                WebCam.ImageSizeMax = Size.Empty;
+                ImageSource.ImageSizeMax = Size.Empty;
             else
-                WebCam.ImageSizeMax = Core.Parser.SizeFromPretty(cboCaptureSize.Text);
+                ImageSource.ImageSizeMax = Core.Parser.SizeFromPretty(cboCaptureSize.Text);
         }
     }
 }

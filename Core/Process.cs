@@ -9,10 +9,10 @@ namespace MED
 {
     public abstract class Process : IProcess, IConsumer, IProvider
     {
-        public Process(string name, Performance performance = null, Form formHandler = null, IConsumer consumer = null, bool isAynchrone = false)
+        public Process(string name, Performance performance = null, Control invokeHandler = null, IConsumer consumer = null, bool isAsynchrone = false)
         {
-            FormHandler = formHandler;
-            IsAsynchrone = isAynchrone;
+            InvokeHandler = invokeHandler;
+            IsAsynchrone = isAsynchrone;
             //Consumer = consumer;
 
             Name = name.Trim();
@@ -33,7 +33,7 @@ namespace MED
 
             Performance = null;
             //_Consumer = null;
-            FormHandler = null;
+            InvokeHandler = null;
 
             if (Disposing)
                 IsDisposed = true;
@@ -78,7 +78,7 @@ namespace MED
 
         public virtual void InvokePropertyChanged(IProvider sender, Delegate delegateMethod, EventArgs e)
         {
-            if (FormHandler == null || FormHandler.Disposing || FormHandler.IsDisposed)
+            if (InvokeHandler == null || InvokeHandler.Disposing || InvokeHandler.IsDisposed)
                 return;
             if (delegateMethod != null && IsRunning)
             {
@@ -110,8 +110,10 @@ namespace MED
 
                         if (invoke)
                         {
-                            Performance.Debug($"-> Form.Invoke({consumer.GetType().Name}.{consumerDelegate.Method.Name}, {this is IProvider})");
-                            FormHandler.Invoke(consumerDelegate, this is IProvider ? (IProvider)this : sender, e);
+                            Performance.Debug($"-> PInvoke({consumer.GetType().Name}.{consumerDelegate.Method.Name}, {this is IProvider})");
+
+                            InvokeHandler.Invoke(consumerDelegate, this is IProvider ? (IProvider)this : sender, e);
+
                             Performance.Debug($"{invoke_str} done");
                         }
                         else
@@ -125,8 +127,8 @@ namespace MED
 
                     //if (invoke)
                     //{
-                    //    Performance.Debug($"FormHandler.Invoke({delegateMethod.Method.Name}, {this is IProvider});");
-                    //    FormHandler.Invoke(delegateMethod, this is IProvider ? (IProvider)this : sender, e);
+                    //    Performance.Debug($"invokeHandler.Invoke({delegateMethod.Method.Name}, {this is IProvider});");
+                    //    invokeHandler.Invoke(delegateMethod, this is IProvider ? (IProvider)this : sender, e);
                     //    Performance.Debug($"done");
                     //}
                     //else
@@ -207,7 +209,7 @@ namespace MED
         public string Name { get; set; }
 
         [Browsable(false)]
-        public Form FormHandler;
+        public Control InvokeHandler;
 
         [Browsable(true)]//SIC unvisible
         public Performance Performance;

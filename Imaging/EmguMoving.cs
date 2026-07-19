@@ -4,28 +4,15 @@ using Emgu.CV.Structure;
 using libMotionDetection;
 using libVideoCapture;
 
-
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading;
-using static Emgu.CV.ML.KNearest;
-using static System.Net.Mime.MediaTypeNames;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace MED
 {
     public class EmguMoving : ImageProcess, IMatFrameConsumer, IMatFrameProvider
     {
-        //isAynchrone = true
-        public EmguMoving(string paramSection = "EmguMoving", Performance performance = null, Form formHandler = null, IImageConsumer imageConsumer = null, bool isAynchrone = true)
-            : base(paramSection, performance, formHandler, imageConsumer, isAynchrone)
+        //isAsynchrone = true
+        public EmguMoving(string name = "EmguMoving", Performance performance = null, Control invokeHandler = null, IImageConsumer imageConsumer = null, bool isAsynchrone = true)
+            : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
         {
             ResetOnImageChanged = false;//self managed
         }
@@ -50,7 +37,7 @@ namespace MED
 
         public override void Start()
         {
-            MoveDetectInit = false;
+            MotionDetectionInitialized = false;
 
             PreviousFrame?.Dispose();
             PreviousFrame = null;
@@ -60,8 +47,7 @@ namespace MED
             ProcessState = System.Threading.ThreadState.Running;
         }
 
-        public bool MoveDetectInit = false;
-        //public DISOpticalFlow DISOpticalFlow { get; private set; }
+        private bool MotionDetectionInitialized = false;
 
         #region Image
         //public override void ImageChanged(IImageProvider sender, EventArgs e)
@@ -83,28 +69,19 @@ namespace MED
         //    }
         //}
 
+        public override Bitmap GetImage(IImageProvider provider = null)
+        {
+            return FrameToImage((IMatFrameProvider)provider, Frame);
+        }
         #endregion
 
-
-        /**
-         * 
-         */
-        private void InitMoveDetector(Mat currentFrame)
-        {
-            //if (DISOpticalFlow == null)
-            //    DISOpticalFlow = new DISOpticalFlow(DISOpticalFlow.Preset.Fast);
-            InitializeCapture();
-
-            PreviousFrame = currentFrame.Clone();
-
-            MoveDetectInit = true;
-        }
 
 
         #region Frame
 
         private Mat PreviousFrame;
 
+        [Browsable(false)]
         public Mat Frame { get; protected set; }
         public void FrameChanged(IMatFrameProvider sender, EventArgs e)
         {
@@ -115,7 +92,7 @@ namespace MED
             //Do the job in same thread
             Performance.Resume($"Process MoveDetectorAction Algorithm #{Algorithm}", true);
 
-            Image = MoveDetectorAction((IImageProvider)sender, Frame);
+            Image = GetImage((IImageProvider)sender);
 
             Performance.Pause($"done Process MoveDetectorAction");
             //Performance.Step(Performance.ToString());
@@ -133,100 +110,112 @@ namespace MED
         public IMatFrameProvider.FrameChangedDelegate OnFrameChanged;
         #endregion
 
-        public int Algorithm { get; set; }
-
-        private MotionDetectionWithDenseOpticalFlow motionDetectionWithDenseOpticalFlow;
-        private MotionDetectionWithMotionHistory motionDetectionWithMotionHistory;
-        private MotionDetectionWithSparseOpticalFlow motionDetectionWithSparseOpticalFlow;
-        private MotionDetectionWithFrameDifferencing motionDetectionWithFrameDifferencing;
-        private MotionDetectionWithBackgroundSubtraction motionDetectionWithBackgroundSubtraction;
-        private void InitializeCapture()
+        #region Settings
+        public enum CvInvokeAlgorithms
         {
-            motionDetectionWithDenseOpticalFlow?.Dispose();
-            motionDetectionWithDenseOpticalFlow = new MotionDetectionWithDenseOpticalFlow();
-
-            motionDetectionWithMotionHistory?.Dispose();
-            motionDetectionWithMotionHistory = new MotionDetectionWithMotionHistory();
-
-            motionDetectionWithSparseOpticalFlow?.Dispose();
-            motionDetectionWithSparseOpticalFlow = new MotionDetectionWithSparseOpticalFlow();
-
-            motionDetectionWithFrameDifferencing?.Dispose();
-            motionDetectionWithFrameDifferencing = new MotionDetectionWithFrameDifferencing();
-
-            motionDetectionWithBackgroundSubtraction?.Dispose();
-            motionDetectionWithBackgroundSubtraction = new MotionDetectionWithBackgroundSubtraction();
-
+            CvInvoke_AbsDiff,
+            Test,
+            DenseOpticalFlow_WithHSV,
+            Motion_History,
+            SparseOpticalFlow,
+            TemporalFrameDifferencing,
+            BackgroundSubtraction_MOG2,
+            BackgroundSubtraction_KNN,
+            BackgroundSubtraction_CNT,
+            BackgroundSubtraction_GMG,
         }
+        [Browsable(true)]
+        public CvInvokeAlgorithms Algorithm { get; set; }
 
-        public Bitmap MoveDetectorAction(IImageProvider sender, Mat currentFrame)
+        [Browsable(true)]
+        public List<CvInvokeAlgorithms> Algorithms { get; set; }
+
+        public override void LoadSettings(bool loadChildren = true)
+        {
+            base.LoadSettings(loadChildren);
+
+            CvInvokeAlgorithms a;
+            if (Enum.TryParse<CvInvokeAlgorithms>(Core.Settings.GetValue("Algorithm", Name, Algorithm).ToString(), out a))
+                Algorithm = a;
+        }
+        public override void SaveSettings(bool saveChildren = true)
+        {
+            Core.Settings.SetValue("Algorithm", Name, Algorithm);
+
+            base.SaveSettings(saveChildren);
+        }
+        #endregion
+
+        #region CreateImage
+        public Bitmap FrameToImage(IMatFrameProvider sender, Mat currentFrame)
         {
             if (this.Disposing || this.IsDisposed || ImageProvider == null)
                 return null;
 
             if (PreviousFrame == null)
             {
-                InitMoveDetector(Frame);
+                InitializeMotionDetection(Frame);
                 if (ImageSizeMax.IsEmpty)
                     return null;
                 else
                     return new Bitmap(ImageSizeMax.Width, ImageSizeMax.Height);
             }
 
-            if (Algorithm <= 0)
+            if (currentFrame == null)
+                return null;
+
+            VideoCapture _capture = (ImageProvider as IMatFrameProvider).Capture;
+            Mat frameDiff = null;
+            Mat oldPrev = null;
+
+            switch (Algorithm)
             {
-                // Dense Optical Flow
-                VideoCapture _capture = (ImageProvider as EDVideoCapture).Capture;
-                if (currentFrame != null)
-                {
-                    Mat frameDiff = null;
+                case CvInvokeAlgorithms.Test:
+
+                    if (PreviousFrame != null
+                        && !currentFrame.Size.IsEmpty && !PreviousFrame.Size.IsEmpty &&
+                        currentFrame.Size == PreviousFrame.Size)
+                    {
+                        frameDiff = new();
+                        CvInvoke.AbsDiff(PreviousFrame, currentFrame, frameDiff);
+
+                        Object v = CvInvoke.ContourArea(frameDiff, false);
+                        Performance.Log($"ContourArea {v}");
+
+                        v = CvInvoke.Moments(frameDiff, false);
+                        Performance.Log($"Moments {v}");
+
+                    }
+                    break;
+
+                case CvInvokeAlgorithms.CvInvoke_AbsDiff:
+                    // Dense Optical Flow
+                    if (PreviousFrame != null
+                        && !currentFrame.Size.IsEmpty && !PreviousFrame.Size.IsEmpty &&
+                        currentFrame.Size == PreviousFrame.Size)
+                    {
+                        frameDiff = new();
+                        CvInvoke.AbsDiff(PreviousFrame, currentFrame, frameDiff);
+                    }
+                    break;
+
+                case CvInvokeAlgorithms.DenseOpticalFlow_WithHSV:
+                    // Dense Optical Flow
                     if (PreviousFrame != null
                         && !currentFrame.Size.IsEmpty && !PreviousFrame.Size.IsEmpty &&
                         currentFrame.Size == PreviousFrame.Size)
                     {
 
-                        //Mat flow = motionDetectionWithDenseOpticalFlow.CalculateDenseOpticalFlow(PreviousFrame, currentFrame);
+                        Mat flow = motionDetectionWithDenseOpticalFlow.CalculateDenseOpticalFlow(PreviousFrame, currentFrame);
 
-                        //frameDiff = motionDetectionWithDenseOpticalFlow.OpticalFlowVisualizationWithHSV(flow);
-                        //////SafeSetImageBoxImage(motionImageBox, motionDetectionWithDenseOpticalFlow.OpticalFlowVisualizationWithHSV(flow));
-                        //flow.Dispose();
-
-                        ////SafeSetImageBoxImage(capturedImageBox, currentFrame.Clone());
-
-                        ////frameDiff = currentFrame.Clone();
-                        ////CvInvoke.AbsDiff(PreviousFrame, currentFrame, frameDiff);
-
-                        ////frameDiff = currentFrame;
-                        ///
-
-                        //Mat flow = motionDetectionWithDenseOpticalFlow.CalculateDenseOpticalFlow(PreviousFrame, currentFrame);
-
-                        //frameDiff = motionDetectionWithDenseOpticalFlow.OpticalFlowVisualizationWithHSV(flow);
-                        //SafeSetImageBoxImage(motionImageBox, frameDiff);
-                        //flow.Dispose();
-
-                        //SafeSetImageBoxImage(motionImageBox, currentFrame.Clone());
-
-                        frameDiff = new();
-                        CvInvoke.AbsDiff(PreviousFrame, currentFrame, frameDiff);
-                        //SafeSetImageBoxImage(motionImageBox, frameDiff);
+                        frameDiff = motionDetectionWithDenseOpticalFlow.OpticalFlowVisualizationWithHSV(flow);
+                        flow.Dispose();
                     }
+                    break;
 
-                    var oldPrev = PreviousFrame;
-                    PreviousFrame = currentFrame.Clone();
-                    oldPrev?.Dispose();
+                case CvInvokeAlgorithms.Motion_History:
+                    frameDiff = currentFrame.Clone();
 
-                    if (frameDiff != null)
-                        return frameDiff.ToBitmap();
-                }
-            }
-            else if (Algorithm == 1)
-            {
-                // Motion History
-                Mat frameDiff = currentFrame.Clone();
-
-                if (currentFrame != null)
-                {
                     motionDetectionWithMotionHistory.GetFrameMotionComponents(frameDiff);
 
                     // If the check box for motion info is checked, then calculate the motion image
@@ -258,172 +247,184 @@ namespace MED
                     }
                     if (frameDiff != null)
                         return frameDiff.ToBitmap();
-                }
+                    break;
+
+                case CvInvokeAlgorithms.SparseOpticalFlow:
+
+                    // Sparse Optical Flow (Lucas-Kanade)
+                    Mat image = new Mat();
+                    motionDetectionWithSparseOpticalFlow.ProcessFrame(image);
+
+                    // 1. Main visualizer: Frame with overlay
+                    Mat displayImage = image.Clone();
+                    motionDetectionWithSparseOpticalFlow.DrawMotionVectors(displayImage);
+                    //SafeSetImageBoxImage(capturedImageBox, displayImage);
+
+                    // 2. Motion visualizer: Isolated vectors on black background
+                    Mat motionMat = new Mat(image.Size, image.Depth, image.NumberOfChannels);
+                    motionMat.SetTo(new MCvScalar(0, 0, 0));
+                    motionDetectionWithSparseOpticalFlow.DrawMotionVectors(motionMat);
+                    //SafeSetImageBoxImage(motionImageBox, motionMat);
+
+                    // 3. Foreground visualizer: Temporal frame differencing
+                    if (!PreviousFrame.Size.IsEmpty && PreviousFrame.Size == image.Size)
+                    {
+                        frameDiff = image.Clone();
+                        CvInvoke.AbsDiff(PreviousFrame, image, frameDiff);
+                        //SafeSetImageBoxImage(forgroundImageBox, frameDiff);
+                    }
+                    else
+                    {
+                        Performance.Log($"{Algorithm} : PreviousFrame.Size.IsEmpty");
+                        frameDiff = displayImage;
+                    }
+
+                    //frameDiff = displayImage;
+
+                    image.Dispose();
+
+                    var vectors = motionDetectionWithSparseOpticalFlow.MotionVectors;
+                    Performance.Log($"Active Tracked Points: {vectors.Count}");
+                    break;
+
+                case CvInvokeAlgorithms.TemporalFrameDifferencing:
+                    // Temporal Frame Differencing (AbsDiff)
+                    image = new Mat();
+                    motionDetectionWithFrameDifferencing.ProcessFrame(image);
+
+                    // 1. Captured visualizer: Raw frame with bounding boxes overlaid
+                    displayImage = image.Clone();
+                    motionDetectionWithFrameDifferencing.DrawMotionGraphics(displayImage);
+
+                    // 2. Motion visualizer: Grayscale raw diff
+                    frameDiff = motionDetectionWithFrameDifferencing.MotionRawDiff.Clone();
+
+                    // 3. Foreground visualizer: Binary thresholded mask
+                    frameDiff = motionDetectionWithFrameDifferencing.MotionForgroundMask.Clone();
+
+                    //frameDiff = displayImage;
+
+                    image.Dispose();
+
+                    var componentsR = motionDetectionWithFrameDifferencing.MotionComponents;
+                    Performance.Log($"Total Motions found: {componentsR.Length}");
+
+                    idx = 0;
+                    foreach (Rectangle comp in componentsR)
+                    {
+                        Performance.Log($"Motion Box {idx}: {comp}");
+                        idx++;
+                    }
+
+                    break;
+                case CvInvokeAlgorithms.BackgroundSubtraction_MOG2:
+                case CvInvokeAlgorithms.BackgroundSubtraction_KNN:
+                case CvInvokeAlgorithms.BackgroundSubtraction_CNT:
+                case CvInvokeAlgorithms.BackgroundSubtraction_GMG:
+
+                    // Background Subtraction (MOG2 / KNN / CNT / GMG)
+                    MotionDetectionWithBackgroundSubtraction.SubtractorType subtractorType =
+                        Algorithm == CvInvokeAlgorithms.BackgroundSubtraction_MOG2 ? MotionDetectionWithBackgroundSubtraction.SubtractorType.MOG2 :
+                        Algorithm == CvInvokeAlgorithms.BackgroundSubtraction_KNN ? MotionDetectionWithBackgroundSubtraction.SubtractorType.KNN :
+                        Algorithm == CvInvokeAlgorithms.BackgroundSubtraction_CNT ? MotionDetectionWithBackgroundSubtraction.SubtractorType.CNT :
+                                     MotionDetectionWithBackgroundSubtraction.SubtractorType.GMG;
+
+                    motionDetectionWithBackgroundSubtraction.ActiveSubtractor = subtractorType;
+
+                    image = new Mat();
+
+                    motionDetectionWithBackgroundSubtraction.ProcessFrame(image);
+
+                    // 1. Captured visualizer: Raw frame with bounding boxes overlaid
+                    displayImage = image.Clone();
+                    motionDetectionWithBackgroundSubtraction.DrawMotionGraphics(displayImage);
+                    //SafeSetImageBoxImage(capturedImageBox, displayImage);
+
+                    // 2. Motion visualizer: Raw camera frame
+                    //SafeSetImageBoxImage(motionImageBox, image.Clone());
+
+                    // 3. Foreground visualizer: Binary mask
+                    frameDiff = motionDetectionWithBackgroundSubtraction.MotionForgroundMask.Clone();
+
+                    //frameDiff = displayImage;
+
+                    image.Dispose();
+
+                    componentsR = motionDetectionWithBackgroundSubtraction.MotionComponents;
+                    Performance.Log($"Total Motions found: {componentsR.Length}");
+
+                    idx = 0;
+                    foreach (Rectangle comp in componentsR)
+                    {
+                        Performance.Log($"Motion Box {idx}: {comp}");
+                        idx++;
+                    }
+                    break;
+                default:
+                    Performance.Error($"Algorithme {Algorithm} inconnu");
+                    break;
             }
-            //else if (Algorithm == 2)
-            //{
-            //    // Sparse Optical Flow (Lucas-Kanade)
-            //    Mat image = new Mat();
 
-            //    if currentFrame != null)
-            //    {
-            //        motionDetectionWithSparseOpticalFlow.ProcessFrame(image);
+            oldPrev = PreviousFrame;
+            PreviousFrame = currentFrame.Clone();
+            oldPrev?.Dispose();
 
-            //        if (this.Disposing || this.IsDisposed)
-            //        {
-            //            image.Dispose();
-            //            return;
-            //        }
-
-            //        // 1. Main visualizer: Frame with overlay
-            //        Mat displayImage = image.Clone();
-            //        motionDetectionWithSparseOpticalFlow.DrawMotionVectors(displayImage);
-            //        SafeSetImageBoxImage(capturedImageBox, displayImage);
-
-            //        // 2. Motion visualizer: Isolated vectors on black background
-            //        Mat motionMat = new Mat(image.Size, image.Depth, image.NumberOfChannels);
-            //        motionMat.SetTo(new MCvScalar(0, 0, 0));
-            //        motionDetectionWithSparseOpticalFlow.DrawMotionVectors(motionMat);
-            //        SafeSetImageBoxImage(motionImageBox, motionMat);
-
-            //        // 3. Foreground visualizer: Temporal frame differencing
-            //        if (!PreviousFrame.Size.IsEmpty && PreviousFrame.Size == image.Size)
-            //        {
-            //            Mat frameDiff = image.Clone();
-            //            CvInvoke.AbsDiff(PreviousFrame, image, frameDiff);
-            //            SafeSetImageBoxImage(forgroundImageBox, frameDiff);
-            //        }
-            //        else
-            //        {
-            //            SafeSetImageBoxImage(forgroundImageBox, null);
-            //        }
-
-            //        // Update previous frame for differencing
-            //        var oldPrev = PreviousFrame;
-            //        PreviousFrame = image.Clone();
-            //        oldPrev?.Dispose();
-
-            //        image.Dispose();
-
-            //        var vectors = motionDetectionWithSparseOpticalFlow.MotionVectors;
-            //        UpdateText($"Active Tracked Points: {vectors.Count}");
-            //        logger.Information($"Active Tracked Points: {vectors.Count}");
-            //    }
-            //    else
-            //    {
-            //        image.Dispose();
-            //    }
-            //}
-            //else if (Algorithm == 3)
-            //{
-            //    // Temporal Frame Differencing (AbsDiff)
-            //    Mat image = new Mat();
-
-            //    if currentFrame != null)
-            //    {
-            //        motionDetectionWithFrameDifferencing.ProcessFrame(image);
-
-            //        if (this.Disposing || this.IsDisposed)
-            //        {
-            //            image.Dispose();
-            //            return;
-            //        }
-
-            //        // 1. Captured visualizer: Raw frame with bounding boxes overlaid
-            //        Mat displayImage = image.Clone();
-            //        motionDetectionWithFrameDifferencing.DrawMotionGraphics(displayImage);
-            //        SafeSetImageBoxImage(capturedImageBox, displayImage);
-
-            //        // 2. Motion visualizer: Grayscale raw diff
-            //        SafeSetImageBoxImage(motionImageBox, motionDetectionWithFrameDifferencing.MotionRawDiff.Clone());
-
-            //        // 3. Foreground visualizer: Binary thresholded mask
-            //        SafeSetImageBoxImage(forgroundImageBox, motionDetectionWithFrameDifferencing.MotionForgroundMask.Clone());
-
-            //        image.Dispose();
-
-            //        var components = motionDetectionWithFrameDifferencing.MotionComponents;
-            //        UpdateText($"Total Motions found: {components.Length}");
-            //        logger.Information($"Total Motions found: {components.Length}");
-
-            //        int idx = 0;
-            //        foreach (Rectangle comp in components)
-            //        {
-            //            UpdateText($"Motion Box {idx}: {comp}");
-            //            logger.Information($"Motion Box {idx}: {comp}");
-            //            idx++;
-            //        }
-            //    }
-            //    else
-            //    {
-            //        image.Dispose();
-            //    }
-            //}
-            //else
-            //{
-            //    // Background Subtraction (MOG2 / KNN / CNT / GMG)
-            //    int index = Algorithm;
-            //    MotionDetectionWithBackgroundSubtraction.SubtractorType subtractorType =
-            //        index == 4 ? MotionDetectionWithBackgroundSubtraction.SubtractorType.MOG2 :
-            //        index == 5 ? MotionDetectionWithBackgroundSubtraction.SubtractorType.KNN :
-            //        index == 6 ? MotionDetectionWithBackgroundSubtraction.SubtractorType.CNT :
-            //                     MotionDetectionWithBackgroundSubtraction.SubtractorType.GMG;
-
-            //    motionDetectionWithBackgroundSubtraction.ActiveSubtractor = subtractorType;
-
-            //    Mat image = new Mat();
-
-            //    if currentFrame != null)
-            //    {
-            //        motionDetectionWithBackgroundSubtraction.ProcessFrame(image);
-
-            //        if (this.Disposing || this.IsDisposed)
-            //        {
-            //            image.Dispose();
-            //            return;
-            //        }
-
-            //        // 1. Captured visualizer: Raw frame with bounding boxes overlaid
-            //        Mat displayImage = image.Clone();
-            //        motionDetectionWithBackgroundSubtraction.DrawMotionGraphics(displayImage);
-            //        SafeSetImageBoxImage(capturedImageBox, displayImage);
-
-            //        // 2. Motion visualizer: Raw camera frame
-            //        SafeSetImageBoxImage(motionImageBox, image.Clone());
-
-            //        // 3. Foreground visualizer: Binary mask
-            //        SafeSetImageBoxImage(forgroundImageBox, motionDetectionWithBackgroundSubtraction.MotionForgroundMask.Clone());
-
-            //        image.Dispose();
-
-            //        var components = motionDetectionWithBackgroundSubtraction.MotionComponents;
-            //        UpdateText($"Total Motions found: {components.Length}");
-            //        logger.Information($"Total Motions found: {components.Length}");
-
-            //        int idx = 0;
-            //        foreach (Rectangle comp in components)
-            //        {
-            //            UpdateText($"Motion Box {idx}: {comp}");
-            //            logger.Information($"Motion Box {idx}: {comp}");
-            //            idx++;
-            //        }
-            //    }
-            //    else
-            //    {
-            //        image.Dispose();
-            //    }
-            // }
+            if (frameDiff != null)
+                return frameDiff.ToBitmap();
 
             return null;
         }
-        private void SafeSetImageBoxImage(Emgu.CV.UI.ImageBox imageBox, Mat newImage)
+
+        #endregion
+
+        /**
+         * InitializeMotionDetection
+         * 
+         */
+        private void InitializeMotionDetection(Mat currentFrame)
         {
-            var oldImage = imageBox.Image;
-            imageBox.Image = newImage;
-            if (oldImage != null && oldImage != newImage)
+            //if (DISOpticalFlow == null)
+            //    DISOpticalFlow = new DISOpticalFlow(DISOpticalFlow.Preset.Fast);
+            InitializeMotionDetectionExt();
+
+            PreviousFrame = currentFrame.Clone();
+
+            MotionDetectionInitialized = true;
+        }
+
+        [Browsable(true)]
+        public VideoCapture Capture
+        {
+            get
             {
-                oldImage.Dispose();
+                if (ImageProvider == null || !(ImageProvider is IMatFrameProvider))
+                    return null;
+                return (ImageProvider as IMatFrameProvider).Capture;
             }
+        }
+
+        private MotionDetectionWithDenseOpticalFlow motionDetectionWithDenseOpticalFlow;
+        private MotionDetectionWithMotionHistory motionDetectionWithMotionHistory;
+        private MotionDetectionWithSparseOpticalFlow motionDetectionWithSparseOpticalFlow;
+        private MotionDetectionWithFrameDifferencing motionDetectionWithFrameDifferencing;
+        private MotionDetectionWithBackgroundSubtraction motionDetectionWithBackgroundSubtraction;
+        private void InitializeMotionDetectionExt()
+        {
+            motionDetectionWithDenseOpticalFlow?.Dispose();
+            motionDetectionWithDenseOpticalFlow = new MotionDetectionWithDenseOpticalFlow();
+
+            motionDetectionWithMotionHistory?.Dispose();
+            motionDetectionWithMotionHistory = new MotionDetectionWithMotionHistory();
+
+            motionDetectionWithSparseOpticalFlow?.Dispose();
+            motionDetectionWithSparseOpticalFlow = new MotionDetectionWithSparseOpticalFlow();
+
+            motionDetectionWithFrameDifferencing?.Dispose();
+            motionDetectionWithFrameDifferencing = new MotionDetectionWithFrameDifferencing();
+
+            motionDetectionWithBackgroundSubtraction?.Dispose();
+            motionDetectionWithBackgroundSubtraction = new MotionDetectionWithBackgroundSubtraction();
+
         }
 
     }

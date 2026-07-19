@@ -11,9 +11,9 @@ using System.Threading.Tasks;
 
 namespace MED
 {
-    //isAynchrone = true
-    public class EDVideoCapture(string paramSection = "VideoCapture", Performance performance = null, Form formHandler = null, IImageConsumer imageConsumer = null, bool isAynchrone = true)
-        : ImageProcess(paramSection, performance, formHandler, imageConsumer, isAynchrone), IImageProvider, IMatFrameProvider
+    //isAsynchrone = true
+    public class EDVideoCapture(string name = "VideoCapture", Performance performance = null, Control invokeHandler = null, IImageConsumer imageConsumer = null, bool isAsynchrone = true)
+        : ImageProcess(name, performance, invokeHandler, imageConsumer, isAsynchrone), IImageProvider, IMatFrameProvider
     {
         public override void Dispose()
         {
@@ -29,7 +29,9 @@ namespace MED
         [ReadOnly(true)]
         public override Size ImageSizeMax { get; set; }
 
-        [ReadOnly(true)]
+
+        [Browsable(true)]
+        [ReadOnly(false)]
         public int CameraIndex { get; set; }
 
         #endregion
@@ -58,7 +60,7 @@ namespace MED
                 bool changed = _Frame != value;
 
                 _Frame = value;
-                _Image = null;
+                Image = null;
                 if (changed)
                 {
                     FrameChanged(this, EventArgs.Empty);
@@ -77,7 +79,7 @@ namespace MED
                         continue;
                     else if (del.Target is IImageConsumer)
                     {
-                        //Need Image
+                        //Need Image in the same thread
                         var image = Image;
                         break;
                     }
@@ -90,54 +92,117 @@ namespace MED
             InvokePropertyChanged(sender, OnFrameChanged, e);
         }
         public IMatFrameProvider.FrameChangedDelegate OnFrameChanged;
+
+        /**
+         * delegate Capture_ImageGrabbed
+         * 
+         */
+        private void Capture_ImageGrabbed(object? sender, EventArgs e)
+        {
+            Performance.Step("------------------");
+            Performance.Resume($"Capture_ImageGrabbed. Sleep : {sleep}", true);//increment
+            Mat frame = new();
+            if (Capture.Retrieve(frame))
+            {
+                Frame = frame;
+            }
+
+            if (Performance.Average_msec < 40)
+                sleep += 5;
+            else if (sleep > 0)
+                sleep -= 5;
+            if (sleep > 0)
+                Thread.Sleep(sleep);
+        }
+        int sleep = 0;
         #endregion
 
         #region Image
 
-        private Bitmap _Image;
-        public override Bitmap Image
+        /**
+         * GetImage
+         * 
+         * */
+        public override Bitmap GetImage(IImageProvider provider = null)
         {
-            get
+            Bitmap image;
+            if (Frame == null)
+                return null;
+            //    if (IsInvokingPropertyChanged(OnFrameChanged))
+            //    {
+            //        Performance.StackTrace($"IsInvokingPropertyChanged {OnFrameChanged.Method.Name}");
+            //        return _Image;
+            //    }
+            //    if (IsInvokingPropertyChanged(OnImageChanged))
+            //    {
+            //        Performance.StackTrace($"IsInvokingPropertyChanged {OnImageChanged.Method.Name}");
+            //        return _Image;
+            //    }
+            Performance.Step("LastFrame.ToBitmap()");
+            try
             {
-                if (_Image == null)
-                {
-                    if (Frame == null)
-                        return null;
-                    //if (false)
-                    //{
-                    //    if (IsInvokingPropertyChanged(OnFrameChanged))
-                    //    {
-                    //        Performance.StackTrace($"IsInvokingPropertyChanged {OnFrameChanged.Method.Name}");
-                    //        return _Image;
-                    //    }
-                    //    if (IsInvokingPropertyChanged(OnImageChanged))
-                    //    {
-                    //        Performance.StackTrace($"IsInvokingPropertyChanged {OnImageChanged.Method.Name}");
-                    //        return _Image;
-                    //    }
-                    //}
-                    //Generated at first query
-                    Performance.Step("LastFrame.ToBitmap()");
-                    try
-                    {
-                        _Image = Frame.ToBitmap();
-                    }
-                    catch (System.AccessViolationException ex)
-                    {
-                        Performance.Error("AccessViolationException in LastFrame.ToBitmap()");
-                    }
-                    catch (Exception ex)
-                    {
-                        Performance.Error("in LastFrame.ToBitmap() : " , ex);
-                    }
-                }
-                return _Image;
+                return FrameToImage((IMatFrameProvider)provider, Frame);
             }
-            set
+            catch (System.AccessViolationException ex)
             {
-                _Image = value;
+                Performance.Error("AccessViolationException in FrameToImage()");
             }
+            catch (Exception ex)
+            {
+                Performance.Error("in LastFrame.ToBitmap() : ", ex);
+            }
+            return null;
         }
+
+        public Bitmap FrameToImage(IMatFrameProvider sender, Mat currentFrame = null)
+        {
+            return currentFrame?.ToBitmap();
+        }
+
+        //private Bitmap _Image;
+        //public override Bitmap Image
+        //{
+        //    get
+        //    {
+        //        if (_Image == null)
+        //        {
+        //            if (Frame == null)
+        //                return null;
+        //            //if (false)
+        //            //{
+        //            //    if (IsInvokingPropertyChanged(OnFrameChanged))
+        //            //    {
+        //            //        Performance.StackTrace($"IsInvokingPropertyChanged {OnFrameChanged.Method.Name}");
+        //            //        return _Image;
+        //            //    }
+        //            //    if (IsInvokingPropertyChanged(OnImageChanged))
+        //            //    {
+        //            //        Performance.StackTrace($"IsInvokingPropertyChanged {OnImageChanged.Method.Name}");
+        //            //        return _Image;
+        //            //    }
+        //            //}
+        //            //Generated at first query
+        //            Performance.Step("LastFrame.ToBitmap()");
+        //            try
+        //            {
+        //                _Image = Frame.ToBitmap();
+        //            }
+        //            catch (System.AccessViolationException ex)
+        //            {
+        //                Performance.Error("AccessViolationException in LastFrame.ToBitmap()");
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //                Performance.Error("in LastFrame.ToBitmap() : ", ex);
+        //            }
+        //        }
+        //        return _Image;
+        //    }
+        //    set
+        //    {
+        //        _Image = value;
+        //    }
+        //}
         #endregion
 
         /**
@@ -145,7 +210,7 @@ namespace MED
          * 
          */
         [Browsable(true)]
-        public VideoCapture Capture { get; set; }
+        public VideoCapture Capture { get; protected set; }
 
         public bool Initialize_Capture()
         {
@@ -182,8 +247,8 @@ namespace MED
          */
         public override void Start()
         {
-            if (!isAynchrone)
-                throw new ArgumentException("WebCam may be isAynchrone = true (constructor)");
+            if (!IsAsynchrone)
+                throw new ArgumentException("WebCam may be IsAsynchrone = true (constructor)");
 
             if (!Initialize_Capture())
                 throw new ArgumentException($"Capture NOT initialized");
@@ -217,32 +282,6 @@ namespace MED
             base.Resume();
         }
         #endregion
-        /**
-         * delegate Capture_ImageGrabbed
-         * 
-         */
-        private void Capture_ImageGrabbed(object? sender, EventArgs e)
-        {
-            Performance.Step("------------------");
-            Performance.Resume($"Capture_ImageGrabbed. Sleep : {sleep}", true);
-            Mat frame = new();
-            if (Capture.Retrieve(frame))
-            {
-                //Performance.Step("Retrieved");
-                Frame = frame;
-                //Performance.Pause("Invoked");
-            }
-            //else
-            //    Performance.Pause("None");
-
-            if (Performance.Average_msec < 40)
-                sleep += 5;
-            else if (sleep > 0)
-                sleep -= 5;
-            if (sleep > 0)
-                Thread.Sleep(sleep);
-        }
-        int sleep = 0;
 
         /**
          * AvailableCameras
@@ -267,5 +306,6 @@ namespace MED
                     cams.Add(cam.Name);
             return cams;
         }
+
     }
 }

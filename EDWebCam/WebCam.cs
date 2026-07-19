@@ -13,9 +13,9 @@
 
 //namespace MED
 //{
-//    //isAynchrone = true
-//    public class WebCam(string paramSection = "WebCam", Performance performance = null, Form formHandler = null, IImageConsumer imageConsumer = null, bool isAynchrone = true)
-//        : ImageProcess(paramSection, performance, formHandler, imageConsumer, isAynchrone), IImageProvider
+//    //isAsynchrone = true
+//    public class WebCam(string paramSection = "WebCam", Performance performance = null, Control invokeHandler = null, IImageConsumer imageConsumer = null, bool isAsynchrone = true)
+//        : ImageProcess(paramSection, performance, invokeHandler, imageConsumer, isAsynchrone), IImageProvider
 //    {
 
 //        public override void Dispose()
@@ -118,8 +118,8 @@
 //         */
 //        public override void Start()
 //        {
-//            if (!isAynchrone && ! (ImageConsumer != null && ImageConsumer is ImageProcess && (ImageConsumer as ImageProcess).IsAsynchrone))
-//                throw new ArgumentException("WebCam may be isAynchrone = true (constructor)");
+//            if (!isAsynchrone && ! (ImageConsumer != null && ImageConsumer is ImageProcess && (ImageConsumer as ImageProcess).IsAsynchrone))
+//                throw new ArgumentException("WebCam may be isAsynchrone = true (constructor)");
 
 //            base.Start();
 

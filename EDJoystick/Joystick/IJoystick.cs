@@ -35,10 +35,10 @@ namespace MED.EDJoystick
         public Task? Refresh_delayed_task;
     }
 
-    public abstract class IJoystick(Form formHandler, ILogger<Devices> _logger)
+    public abstract class IJoystick(System.Windows.Forms.Form formHandler, ILogger<Devices> _logger)
     {
         protected ILogger<Devices> Logger = _logger;
-        public Form FormHandler { get; internal set; } = formHandler;
+        public System.Windows.Forms.Form formHandler { get; internal set; } = formHandler;
         public abstract bool Connect();
         public abstract void Disconnect();
         private bool _IsConnected = false;
@@ -234,7 +234,7 @@ namespace MED.EDJoystick
             {
                 data.Refresh_ticks = DateTime.Now.Ticks;
 
-                FormHandler.Invoke( data.ValueChangedDelegate, data);
+                formHandler.Invoke( data.ValueChangedDelegate, data);
             }
         }
 

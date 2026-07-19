@@ -12,12 +12,15 @@ namespace MED
 {
     public class Render : ImageProcess
     {
-        public Render(string name = "Render", Performance performance = null, Form formHandler = null, IImageConsumer imageConsumer = null, bool isAynchrone = false)
-            : base(name, performance, formHandler, imageConsumer, isAynchrone)
+        public Render(string name = "Render", Performance performance = null, Control invokeHandler = null, IImageConsumer imageConsumer = null, bool isAsynchrone = false)
+            : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
         {
             ImageIsProvided = true;
             ResetOnImageChanged = true;
             Centered = true;
+
+            if (invokeHandler is PictureBox)
+                RenderPictureBox = (PictureBox)invokeHandler;
         }
 
         #region Settings
@@ -66,30 +69,44 @@ namespace MED
             base.ImageChanged(sender, e);
 
             if (RenderPictureBox != null)
-                Render.RefreshImage(this, RenderPictureBox, Performance, e);
+                Render.RefreshRender(this, RenderPictureBox, Performance, e);
         }
 
         public override Bitmap Image
         {
-            get => base.Image == null ? EmptyImage : base.Image;
+            get => base.Image == null ? WaitingImage : base.Image;
             set => base.Image = value;
         }
 
-        public static void RefreshImage(IImageProvider sender, PictureBox renderPictureBox, Performance performance, EventArgs e)
+        /**
+         * GetImage returns EmptyImage
+         * 
+         */
+        //public override Bitmap GetImage(IImageProvider provider = null)
+        //{
+        //    Performance.Debug($"Render.GetImage ImageIsProvided={ImageIsProvided}, " + (provider == null ? "<null>" : "provider") + " / " + (ImageProvider == null ? "<null>" : $"ImageProvider {ImageProvider.Image}"));
+
+        //    return base.GetImage(provider)/*WaitingImage*/;
+        //}
+
+        /**
+         * RefreshRender
+         * */
+        public static void RefreshRender(IImageProvider sender, PictureBox renderPictureBox, Performance performance, EventArgs e)
         {
             if (sender is IProcess && !(sender as IProcess).IsRunning)
                 return;
-            //performance.Step("RefreshImage call stack :\n" + Environment.StackTrace);
+            //performance.Step("RefreshRender call stack :\n" + Environment.StackTrace);
             if (renderPictureBox != null && sender.Image != null)
             {
-                performance.Resume("RefreshImage", true);
+                performance.Resume("RefreshRender", true);
                 try
                 {
                     renderPictureBox.Image = ResizeImage(sender);
                 }
                 catch (Exception ex)
                 {
-                    performance.Error("RefreshImage", ex);
+                    performance.Error("RefreshRender", ex);
                 }
                 finally
                 {
@@ -120,7 +137,7 @@ namespace MED
                 image = new Bitmap(render.RenderPictureBox.Size.Width, render.RenderPictureBox.Size.Height, image.PixelFormat);
                 Graphics graphics = Graphics.FromImage(image);
 
-                graphics.DrawImageUnscaled(source,(image.Width-source.Width)/2,(image.Height-source.Height)/2);
+                graphics.DrawImageUnscaled(source, (image.Width - source.Width) / 2, (image.Height - source.Height) / 2);
 
                 graphics.Dispose();
             }

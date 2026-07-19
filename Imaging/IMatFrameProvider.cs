@@ -15,10 +15,15 @@ namespace MED
         [Browsable(false)]
         Size ImageSizeMax { get; set; }
 
+        [Browsable(true)]
+        VideoCapture Capture { get;}
+
         Mat Frame { get; }
 
         delegate void FrameChangedDelegate(IMatFrameProvider sender, EventArgs e);
 
         void InvokeFrameChanged(IMatFrameProvider sender, EventArgs e);
+
+        public Bitmap FrameToImage(IMatFrameProvider sender, Mat currentFrame = null);
     }
 }

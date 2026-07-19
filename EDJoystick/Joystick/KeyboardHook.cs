@@ -30,7 +30,7 @@ namespace MED.EDJoystick
         internal delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
         protected IntPtr _hookId = IntPtr.Zero;
 
-        protected Form FormHandler;
+        protected Form formHandler;
 
         /**
          * 

@@ -11,8 +11,8 @@ namespace MED.Imaging
 {
     public class ScreenSplitter : ImageProcess
     {
-        public ScreenSplitter(string name = "ScreenSplitter", Performance performance = null, Form formHandler = null, IImageConsumer imageConsumer = null, bool isAynchrone = false)
-            : base(name, performance, formHandler, imageConsumer, isAynchrone)
+        public ScreenSplitter(string name = "ScreenSplitter", Performance performance = null, Control invokeHandler = null, IImageConsumer imageConsumer = null, bool isAsynchrone = false)
+            : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
         {
             ImageIsProvided = false;
             ResetOnImageChanged = true;
@@ -54,65 +54,60 @@ namespace MED.Imaging
         /**
          * Image
          * */
-        public override void ImageChanged(IImageProvider sender, EventArgs e)
-        {
-            base.ImageChanged(sender, e);
-        }
+        //public override void ImageChanged(IImageProvider sender, EventArgs e)
+        //{
+        //    base.ImageChanged(sender, e);
+        //}
+        //public override Bitmap Image
+        //{
+        //    get => base.Image == null ? (base.Image = GetImage()) : base.Image;
+        //    set => base.Image = value;
+        //}
 
-        //private Bitmap _Image;
-        public override Bitmap Image
+        /**
+         * GetImage
+         * 
+         * */
+        public override Bitmap GetImage(IImageProvider provider = null)
         {
-            get
+            Performance.Resume($"Make Image from {ImageProviders.Count}", true);
+            Bitmap image;
+            Size size = ImageSizeMax;
+            if (size.IsEmpty)
             {
-                if (base.Image != null)
-                    return base.Image;
-                var firstProvider = ImageProvider;
-                if (firstProvider == null)
-                    return null;
-                Performance.Resume($"Make Image from {ImageProviders.Count}", true);
-                Bitmap image;
-                Size size = ImageSizeMax;
-                if (size.IsEmpty)
+                foreach (var prov in ImageProviders)
                 {
-                    foreach (var provider in ImageProviders)
-                    {
-                        image = provider.Image;
-                        if (image == null)
-                            continue;
-                        size = image.Size;
-                        if (size.IsEmpty)
-                            continue;
-                        break;
-                    }
+                    image = prov.Image;
+                    if (image == null)
+                        continue;
+                    size = image.Size;
                     if (size.IsEmpty)
-                        return null;
+                        continue;
+                    break;
                 }
-                Size itemSize;
-                if (Horizontal)
-                    itemSize = new Size(size.Width / ImageProviders.Count, size.Height);
-                else
-                    itemSize = new Size(size.Width, size.Height / ImageProviders.Count);
-                image = new Bitmap(size.Width, size.Height);
-                Point Position = new Point(0, 0);
-                Graphics graphics = Graphics.FromImage(image);
-                foreach (var provider in ImageProviders)
-                {
-                    if (provider.Image != null)
-                        graphics.DrawImage(provider.Image, Position.X, Position.Y, itemSize.Width, itemSize.Height);
-                    if (Horizontal)
-                        Position.X += itemSize.Width;
-                    else
-                        Position.Y += itemSize.Height;
-                }
-                graphics.Dispose();
-                Performance.Pause($"Get Image done => " + (base.Image == null ? "<null>" : "Bitmap"));
-                return base.Image = image;
+                if (size.IsEmpty)
+                    return null;
             }
-            set
+            Size itemSize;
+            if (Horizontal)
+                itemSize = new Size(size.Width / ImageProviders.Count, size.Height);
+            else
+                itemSize = new Size(size.Width, size.Height / ImageProviders.Count);
+            image = new Bitmap(size.Width, size.Height);
+            Point Position = new Point(0, 0);
+            Graphics graphics = Graphics.FromImage(image);
+            foreach (var prov in ImageProviders)
             {
-                //Performance.Debug($"Set_Image {Name} : " + (base.Image == null ? "<null>" : "Bitmap") + " => " + (value == null ? "<null>" : "Bitmap"));
-                base.Image = value;
+                if (prov.Image != null)
+                    graphics.DrawImage(prov.Image, Position.X, Position.Y, itemSize.Width, itemSize.Height);
+                if (Horizontal)
+                    Position.X += itemSize.Width;
+                else
+                    Position.Y += itemSize.Height;
             }
+            graphics.Dispose();
+            Performance.Pause($"Get Image done => " + (image == null ? "<null>" : "Bitmap"));
+            return image;
         }
     }
 }

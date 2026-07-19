@@ -17,7 +17,7 @@ using System.Xml.Linq;
 
 namespace MED.EDJoystick
 {
-    public class JoystickHID(Form formHandler, ILogger<Devices> _logger) : IJoystick(formHandler, _logger)
+    public class JoystickHID(System.Windows.Forms.Form formHandler, ILogger<Devices> _logger) : IJoystick(formHandler, _logger)
     {
         private Task _taskRun;
         private CancellationTokenSource _threadRunCancellation;

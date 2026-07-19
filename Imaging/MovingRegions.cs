@@ -10,8 +10,8 @@ namespace MED.Imaging
 {
     public class MovingRegions : ImageProcess
     {
-        public MovingRegions(string paramSection = "MovingRegions", Performance performance = null, Form formHandler = null, IImageConsumer imageConsumer = null, bool isAynchrone = false)
-            : base(paramSection, performance, formHandler, imageConsumer, isAynchrone)
+        public MovingRegions(string paramSection = "MovingRegions", Performance performance = null, Control invokeHandler = null, IImageConsumer imageConsumer = null, bool isAsynchrone = false)
+            : base(paramSection, performance, invokeHandler, imageConsumer, isAsynchrone)
         {
         }
 
@@ -25,7 +25,7 @@ namespace MED.Imaging
                 if (MoveDetector != null)
                 {
                     dict.Add(this.Name + ".MoveDetector", MoveDetector);
-                    for(int i= 0; i < MoveDetector.IdxLimites; i++)
+                    for (int i = 0; i < MoveDetector.IdxLimites; i++)
                         dict.Add($"{this.Name}.MoveDetector.Limites{i}", MoveDetector.get_Limites(i));
                 }
 
@@ -46,49 +46,89 @@ namespace MED.Imaging
         [Browsable(false)]
         public EDMovDetect MoveDetector { get; private set; }
 
-        public override Bitmap Image
+        /**
+         * GetImage
+         * 
+         * */
+        public override Bitmap GetImage(IImageProvider provider = null)
         {
-            get
+            if (provider == null)
             {
-                if (ImageProvider == null)
+                provider = ImageProvider;
+                if (null == provider)
                     return null;
-
-                if (base.Image != null)
-                    return base.Image;
-
-                Bitmap image = ImageProvider.Image;
-                if (image == null)
-                    return null;
-
-                bool shrink = false;
-                if (shrink)
-                {
-                    float newWidth = 256F;
-                    var size = new Size((int)newWidth, (int)(image.Height * newWidth / image.Width));
-                    image = new Bitmap(image, size);
-                    ImageProvider.Image = image;
-                }
-
-                if (!MoveDetectInit)
-                {
-
-                    InitMoveDetector(image);
-
-                    return image;
-                }
-                int x, y;
-
-                Performance.Resume("Process MoveDetectorAction", true);
-
-                MoveDetectorAction(image);
-
-                Performance.Pause("done Process MoveDetectorAction");
-
-                return base.Image = image;
-
             }
-            set { base.Image = value; }
+            Bitmap image = provider.Image;
+            if (image == null)
+                return null;
+
+            bool shrink = false;
+            if (shrink)
+            {
+                float newWidth = 256F;
+                var size = new Size((int)newWidth, (int)(image.Height * newWidth / image.Width));
+                image = new Bitmap(image, size);
+            }
+
+            if (!MoveDetectInit)
+            {
+
+                InitMoveDetector(image);
+
+                return image;
+            }
+            int x, y;
+
+            Performance.Resume("Process MoveDetectorAction", true);
+
+            MoveDetectorAction(image);
+
+            Performance.Pause("done Process MoveDetectorAction");
+
+            return base.Image = image;
         }
+        //public override Bitmap Image
+        //{
+        //    get
+        //    {
+        //        if (ImageProvider == null)
+        //            return null;
+
+        //        if (base.Image != null)
+        //            return base.Image;
+
+        //        Bitmap image = ImageProvider.Image;
+        //        if (image == null)
+        //            return null;
+
+        //        bool shrink = false;
+        //        if (shrink)
+        //        {
+        //            float newWidth = 256F;
+        //            var size = new Size((int)newWidth, (int)(image.Height * newWidth / image.Width));
+        //            image = new Bitmap(image, size);
+        //        }
+
+        //        if (!MoveDetectInit)
+        //        {
+
+        //            InitMoveDetector(image);
+
+        //            return image;
+        //        }
+        //        int x, y;
+
+        //        Performance.Resume("Process MoveDetectorAction", true);
+
+        //        MoveDetectorAction(image);
+
+        //        Performance.Pause("done Process MoveDetectorAction");
+
+        //        return base.Image = image;
+
+        //    }
+        //    set { base.Image = value; }
+        //}
 
 
         /**
@@ -142,7 +182,7 @@ namespace MED.Imaging
                 Pen pen = new(Color.Green);
                 gr.DrawRectangle(pen, MoveDetector.RegionDetect.GetBounds(gr));
             }
-            else if(zones == null || zones.Count == 0)
+            else if (zones == null || zones.Count == 0)
             {
                 Performance.Step($"NO move Detection");
             }

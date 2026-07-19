@@ -26,10 +26,10 @@ namespace MED
             if (this.Disposing || this.IsDisposed || ! IsRunning)
                 return;
             
-            Performance.Step($"ImageChanged from {sender.ToString()}");
+            Performance.Debug($"ImageChanged from {sender.ToString()}");
 
             if (RenderPictureBox != null)
-                Render.RefreshImage(sender, RenderPictureBox, Performance, e);
+                Render.RefreshRender(sender, RenderPictureBox, Performance, e);
         }
         #endregion
     }

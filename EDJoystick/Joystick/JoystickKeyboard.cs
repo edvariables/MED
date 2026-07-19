@@ -61,11 +61,11 @@ namespace MED.EDJoystick
         private IKeyboardHook _KeyboardHook;
         private Type _KeyboardHook_Type;
 
-        public JoystickKeyboard(Form formHandler, ILogger<Devices> _logger) : base(formHandler, _logger)
+        public JoystickKeyboard(System.Windows.Forms.Form formHandler, ILogger<Devices> _logger) : base(formHandler, _logger)
         {
             Init_Mapping();
         }
-        public JoystickKeyboard(Form formHandler, ILogger<Devices> _logger, Type keyboardHook_Type) : this(formHandler, _logger)
+        public JoystickKeyboard(System.Windows.Forms.Form formHandler, ILogger<Devices> _logger, Type keyboardHook_Type) : this(formHandler, _logger)
         {
             _KeyboardHook_Type = keyboardHook_Type;
         }
@@ -108,7 +108,7 @@ namespace MED.EDJoystick
             SetControls(_mapping);
             _KeyboardHook = (IKeyboardHook)Activator.CreateInstance(_KeyboardHook_Type);
             _KeyboardHook.KeyChanged += KeyChange_Event;
-            _KeyboardHook.StartHook(FormHandler);
+            _KeyboardHook.StartHook(formHandler);
             IsConnected = true;
             return true;
         }

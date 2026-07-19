@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Emgu.CV;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -11,9 +12,10 @@ namespace MED
     {
 
         [Browsable(false)]
-        Size ImageSizeMax { get; set; }
+        Size ImageSizeMax { get; }
 
-        Bitmap Image { get; set; }
+        Bitmap Image { get; }
+
 
         List<IImageProvider> ImageProviders { get; set; }
 
