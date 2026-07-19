@@ -302,7 +302,10 @@ namespace MED
                 }
 
                 if (_active_Process is ProcessForm && (_active_Process as ProcessForm).IsDisposed)
-                    return _active_Process = null;
+                {
+                    var type = _active_Process.GetType();
+                    return _active_Process = GetProcessorForm(type);
+                }
                 return _active_Process;
             }
             set
@@ -388,13 +391,14 @@ namespace MED
 
         private void saveToolStripButton_Click(object sender, EventArgs e)
         {
-            if (ActiveMdiChild is ProcessForm)
+            SaveSettings();
+            if (ActiveProcess is ProcessForm)
             {
-                ((ProcessForm)ActiveMdiChild).SaveSettings();
-                toolStripStatusLabel.Text = ActiveMdiChild.Name + " enregistrée";
+                ((ProcessForm)ActiveProcess).SaveSettings();
+                toolStripStatusLabel.Text = ActiveProcess.Name + " enregistrée";
             }
             else
-                toolStripStatusLabel.Text = "Rien à sauvegarder !";
+                toolStripStatusLabel.Text = "Aucun process à sauvegarder !";
         }
 
     }

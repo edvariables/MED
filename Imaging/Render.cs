@@ -59,9 +59,12 @@ namespace MED
                 }
                 catch (Exception ex)
                 {
-                    performance.Alert(ex.ToString());
+                    performance.Error("RefreshImage", ex);
                 }
-                performance.Pause();
+                finally
+                {
+                    performance.Pause();
+                }
             }
         }
         public static Bitmap ResizeImage(IImageProvider sender)

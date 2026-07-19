@@ -35,6 +35,8 @@ namespace MED
                 foreach (var proc in Processes)
                     proc.SaveSettings();
             Performance.SaveSettings(Name + ".Perf", saveChildren);
+
+            Core.Settings.Save();
         }
         #endregion
 

@@ -1,14 +1,17 @@
 ﻿using MED.EDWebCam;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Windows.Input;
 
 namespace MED
 {
@@ -161,6 +164,8 @@ namespace MED
 
             chkClearLogOnRun.Checked = (bool)Core.Settings.GetValue("ClearLogOnRun", this.Name, chkClearLogOnRun.Checked);
 
+            logFileName = (string)Core.Settings.GetValue("FLogger.FileName", this.Name, logFileName);
+
             Height = (int)Core.Settings.GetValue("FLogger.Height", this.Name, Height);
             if (Height < 20)
                 Height = 20;
@@ -169,6 +174,7 @@ namespace MED
         {
 
             Core.Settings.SetValue("FLogger.Height", this.Name, Height);
+            Core.Settings.SetValue("FLogger.FileName", this.Name, logFileName);
             Core.Settings.SetValue("ClearLogOnRun", this.Name, chkClearLogOnRun.Checked);
             Core.Settings.Save();
         }
@@ -201,21 +207,57 @@ namespace MED
         #endregion
 
 
-        private void RtbLog_KeyUp(object sender, KeyEventArgs e)
+        private void RtbLog_KeyUp(object sender, System.Windows.Forms.KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.C && e.Control)
-                Clipboard.SetText(rtbLog.SelectedText);
-            else if (e.KeyCode == Keys.X && e.Control)
+            if (e.Control)
             {
-                Clipboard.SetText(rtbLog.SelectedText);
-                rtbLog.SelectedText = "";
+                if (e.KeyCode == Keys.C)
+                    Clipboard.SetText(rtbLog.SelectedText);
+                else if (e.KeyCode == Keys.X)
+                {
+                    Clipboard.SetText(rtbLog.SelectedText);
+                    rtbLog.SelectedText = "";
+                }
+                else if (e.KeyCode == Keys.V)
+                {
+                    rtbLog.SelectedText = Clipboard.GetText();
+                }
+                else if (e.KeyCode == Keys.A)
+                    rtbLog.Select(0, rtbLog.TextLength);
+
+                else if (e.KeyCode == Keys.S)
+                    cmdSave_Click(sender, e);
             }
-            else if (e.KeyCode == Keys.V && e.Control)
+        }
+
+        private string logFileName = "";
+        private void cmdSave_Click(object sender, EventArgs e)
+        {
+            if (logFileName == ""
+            || e is System.Windows.Forms.KeyEventArgs && (e as System.Windows.Forms.KeyEventArgs).Control)
             {
-                rtbLog.SelectedText = Clipboard.GetText();
+                saveFileDialog1.DefaultExt = "log";
+                saveFileDialog1.Filter = "Log files (*.log)|*.log|(*.txt)|*.txt|All files (*.*)|*.*";
+                saveFileDialog1.FileName = logFileName;
+                if (saveFileDialog1.ShowDialog(this) == DialogResult.Cancel) return;
+                logFileName = saveFileDialog1.FileName;
             }
-            else if (e.KeyCode == Keys.A && e.Control)
-                rtbLog.Select(0, rtbLog.TextLength);
+            File.WriteAllText(logFileName, rtbLog.Text);
+            if (logFileName != ""
+                && (Keyboard.GetKeyStates(Key.LeftShift) == KeyStates.Down
+                || Keyboard.GetKeyStates(Key.RightShift) == KeyStates.Down))
+                try
+                {
+                    var start = new ProcessStartInfo(logFileName);
+                    start.UseShellExecute = true;
+                    start.WorkingDirectory = Directory.GetParent(logFileName).FullName;
+                    start.Verb = "OPEN";
+                    System.Diagnostics.Process.Start(start);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.InnerException != null ? ex.InnerException.Message : ex.Message, "Ouverture du fichier de log", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
         }
     }
 }

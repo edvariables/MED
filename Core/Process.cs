@@ -13,7 +13,7 @@ namespace MED
         {
             FormHandler = formHandler;
             IsAsynchrone = isAynchrone;
-            Consumer = consumer;
+            //Consumer = consumer;
 
             Name = name.Trim();
 
@@ -32,21 +32,42 @@ namespace MED
             ProcessState = ThreadState.Aborted;
 
             Performance = null;
-            _Consumer = null;
+            //_Consumer = null;
             FormHandler = null;
 
             if (Disposing)
                 IsDisposed = true;
         }
 
-        public IConsumer AddConsumer(IConsumer consumer)
+        public override string ToString()
         {
-            throw new NotImplementedException();
+            var typeName = GetType().Name;
+            if(typeName==Name)
+                return $"{Name}({ProcessState})";
+            return $"{typeName}[{Name}]({ProcessState})";
         }
 
-        private IConsumer _Consumer;
-        [Browsable(false)]
-        public virtual IConsumer Consumer { get; set; }
+        public virtual bool AddConsumer(IConsumer consumer, string property = "ProcessState")
+        {
+
+            //switch (property)
+            //{
+            //    case "Image":
+            //        var type = consumer.GetType();
+            //        break;
+            //    default:
+                    RemoveHandler($"On{property}Changed", consumer, consumer.GetType(), $"{property}Changed");
+                    AddHandler($"On{property}Changed", consumer, consumer.GetType(), $"{property}Changed");
+                    //throw new ArgumentOutOfRangeException($"AddConsumer( IConsumer, string Property = \"{AddConsumer}\" UNKNOWN ");
+            //        break;
+            //}
+
+            return true;
+        }
+
+        //private IConsumer _Consumer;
+        //[Browsable(false)]
+        //public virtual IConsumer Consumer { get; set; }
 
         private List<Delegate> _IsInvokingPropertyChanged = new();
 
@@ -61,44 +82,62 @@ namespace MED
                 return;
             if (delegateMethod != null && IsRunning)
             {
+                if (IsInvokingPropertyChanged(delegateMethod))
+                {
+                    Performance.Alert($"IsInvokingPropertyChanged {delegateMethod.Method.Name}");
+                    return;
+                }
+
                 //IsAsynchrone but if next Consumer is also asynchrone
-                bool invoke = IsAsynchrone && !(Consumer != null && Consumer.IsAsynchrone);
-                string invoke_str = invoke ? "Invoke" : "Call";
                 try
                 {
-                    if (IsInvokingPropertyChanged(delegateMethod))
-                    {
-                        Performance.Alert($"IsInvokingPropertyChanged {delegateMethod.Method.Name}");
-                        return;
-                    }
 
                     _IsInvokingPropertyChanged.Add(delegateMethod);
-                    var invocationList = delegateMethod.GetInvocationList();
-                    if (invocationList.Count() > 1)
+
+                    foreach(var consumerDelegate in delegateMethod.GetInvocationList())
                     {
-                        Performance.Step($"{this.Name} : {invoke_str} {delegateMethod.Method.Name} for {invocationList.Count()}");
-                        foreach (var del in invocationList)
+                        var consumer = consumerDelegate.Target as IConsumer;
+                        bool invoke = IsAsynchrone && !consumer.IsAsynchrone;
+                        string invoke_str = invoke ? "Invoke" : "Call";
+                        //Performance.Step($"-> {invoke_str}({consumer.ToString()} . {consumerDelegate.Method.Name})");
+                        //if (invocationList.Count() > 0)
+                        //{
+                        //Performance.Step($"{invoke_str} {delegateMethod.Method.Name} for {invocationList.Count()}");
+                        //foreach (var del in invocationList)
+                        //{
+                        // Performance.Step($"-> {del.Target.ToString()} . {del.Method.Name}");
+                        //}
+
+                        if (invoke)
                         {
-                            Performance.Step($"-> {del.Target.ToString()}.{del.Method.Name}");
+                            Performance.Debug($"-> Form.Invoke({consumer.GetType().Name}.{consumerDelegate.Method.Name}, {this is IProvider})");
+                            FormHandler.Invoke(consumerDelegate, this is IProvider ? (IProvider)this : sender, e);
+                            Performance.Debug($"{invoke_str} done");
+                        }
+                        else
+                        {
+                            //delegateMethod.Method.Invoke(delegateMethod.Target, [this is IProvider ? (IProvider)this : sender]);
+                            Performance.Step($"-> {invoke_str}({consumer.GetType().Name}.{consumerDelegate.Method.Name})");
+                            consumerDelegate.DynamicInvoke(/*delegateMethod.Target,*/ this is IProvider ? (IProvider)this : sender, e);
                         }
 
                     }
 
-                    if (invoke)
-                    {
-                        Performance.Debug($"FormHandler.Invoke({this.Name} : {invoke_str} {delegateMethod.Method.Name}, {this is IProvider});");
-                        FormHandler.Invoke(delegateMethod, this is IProvider ? (IProvider)this : sender, e);
-                        Performance.Debug($"done");
-                    }
-                    else
-                    {
-                        //delegateMethod.Method.Invoke(delegateMethod.Target, [this is IProvider ? (IProvider)this : sender]);
-                        delegateMethod.DynamicInvoke(/*delegateMethod.Target,*/ this is IProvider ? (IProvider)this : sender, e);
-                    }
+                    //if (invoke)
+                    //{
+                    //    Performance.Debug($"FormHandler.Invoke({delegateMethod.Method.Name}, {this is IProvider});");
+                    //    FormHandler.Invoke(delegateMethod, this is IProvider ? (IProvider)this : sender, e);
+                    //    Performance.Debug($"done");
+                    //}
+                    //else
+                    //{
+                    //    //delegateMethod.Method.Invoke(delegateMethod.Target, [this is IProvider ? (IProvider)this : sender]);
+                    //    delegateMethod.DynamicInvoke(/*delegateMethod.Target,*/ this is IProvider ? (IProvider)this : sender, e);
+                    //}
                 }
                 catch (Exception ex)
                 {
-                    Performance.Step("ERROR : " + ex.Message);
+                    Performance.Error("InvokePropertyChanged", ex);
                 }
                 finally
                 {
@@ -114,8 +153,7 @@ namespace MED
             if (memberInfo == null)
                 throw new Exception($"Le type {handler_obj.GetType().FullName} n'a pas de delegate {handler_field}");
             var eventInfo = (System.Reflection.FieldInfo)memberInfo.GetValue(0);
-
-
+            
             var miHandler = consumer_type.GetMethod(consumer_method);
             if (miHandler == null)
                 throw new Exception($"Le type '{consumer_type.FullName}' n'a pas de méthode {consumer_method}");
@@ -123,6 +161,7 @@ namespace MED
                  Delegate.CreateDelegate(eventInfo.FieldType,
                                          consumer,
                                          miHandler);
+            //TODO  
             //eventInfo.RemoveEventHandler(this, handler);
             eventInfo.SetValue(handler_obj, handler);
         }
@@ -203,7 +242,7 @@ namespace MED
         {
 
             if (Performance != null && Performance.IsRunning)
-                Performance.Stop();
+                Performance.Stop(true);
 
             if (!IsRunning)
                 return;
@@ -238,7 +277,7 @@ namespace MED
 
             ProcessState = ThreadState.Unstarted;
 
-            Performance.Start();
+            Performance.Start("Start", true);
 
             //Override next :
             /*

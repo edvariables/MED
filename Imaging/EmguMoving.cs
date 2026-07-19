@@ -69,8 +69,18 @@ namespace MED
             base.ImageChanged(sender, e);
         }
 
+
+        private Bitmap _Image;
         [Browsable(false)]
-        public override Bitmap Image { get; set; }
+        public override Bitmap Image
+        {
+            get => _Image;
+            set
+            {
+                Performance.Debug("Set Image : " + (_Image == null ? "<null>" : "Bitmap") + " => " + (value == null ? "<null>" : "Bitmap"));
+                _Image = value;
+            }
+        }
 
         #endregion
 
@@ -109,7 +119,7 @@ namespace MED
 
             InvokeFrameChanged(sender, e);
 
-            //InvokeImageChanged((IImageProvider)sender);
+            ImageChanged((IImageProvider)sender, e);
         }
 
         public void InvokeFrameChanged(IMatFrameProvider sender, EventArgs e)
@@ -154,7 +164,10 @@ namespace MED
             if (PreviousFrame == null)
             {
                 InitMoveDetector(Frame);
-                return new Bitmap(ImageSizeMax.Width, ImageSizeMax.Height);
+                if (ImageSizeMax.IsEmpty)
+                    return null;
+                else
+                    return new Bitmap(ImageSizeMax.Width, ImageSizeMax.Height);
             }
 
             if (Algorithm <= 0)

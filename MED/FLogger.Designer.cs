@@ -28,14 +28,18 @@
         /// </summary>
         private void InitializeComponent()
         {
+            components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FLogger));
             rtbLog = new RichTextBox();
             panBottom = new Panel();
+            cmdSave = new Button();
             lblProgressMessage = new Label();
             chkClearLogOnRun = new CheckBox();
             chkLogColored = new CheckBox();
             chkVideoCaptureLogger = new CheckBox();
             chkRenderLogger = new CheckBox();
+            saveFileDialog1 = new SaveFileDialog();
+            toolTip1 = new ToolTip(components);
             panBottom.SuspendLayout();
             SuspendLayout();
             // 
@@ -50,10 +54,11 @@
             rtbLog.Size = new Size(1137, 110);
             rtbLog.TabIndex = 8;
             rtbLog.Text = "";
-            rtbLog.KeyUp += RtbLog_KeyUp; ;
+            rtbLog.KeyUp += RtbLog_KeyUp;
             // 
             // panBottom
             // 
+            panBottom.Controls.Add(cmdSave);
             panBottom.Controls.Add(lblProgressMessage);
             panBottom.Controls.Add(chkClearLogOnRun);
             panBottom.Controls.Add(chkLogColored);
@@ -64,6 +69,20 @@
             panBottom.Name = "panBottom";
             panBottom.Size = new Size(1137, 26);
             panBottom.TabIndex = 9;
+            // 
+            // cmdSave
+            // 
+            cmdSave.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            cmdSave.FlatAppearance.BorderSize = 0;
+            cmdSave.FlatStyle = FlatStyle.Flat;
+            cmdSave.Image = (Image)resources.GetObject("cmdSave.Image");
+            cmdSave.Location = new Point(1054, 2);
+            cmdSave.Name = "cmdSave";
+            cmdSave.Size = new Size(27, 20);
+            cmdSave.TabIndex = 7;
+            toolTip1.SetToolTip(cmdSave, "Save to file. +Ctrl = select a file name. +Shift : Save and open log file in external editor.");
+            cmdSave.UseVisualStyleBackColor = true;
+            cmdSave.Click += cmdSave_Click;
             // 
             // lblProgressMessage
             // 
@@ -91,6 +110,7 @@
             chkClearLogOnRun.Name = "chkClearLogOnRun";
             chkClearLogOnRun.Size = new Size(22, 22);
             chkClearLogOnRun.TabIndex = 5;
+            toolTip1.SetToolTip(chkClearLogOnRun, "Check to lear log when process start. Double-click to clear now.");
             chkClearLogOnRun.UseVisualStyleBackColor = false;
             chkClearLogOnRun.CheckedChanged += chkClearLogOnRun_CheckedChanged;
             // 
@@ -121,7 +141,7 @@
             chkVideoCaptureLogger.CheckState = CheckState.Checked;
             chkVideoCaptureLogger.FlatStyle = FlatStyle.Flat;
             chkVideoCaptureLogger.ForeColor = SystemColors.ControlText;
-            chkVideoCaptureLogger.Location = new Point(983, 3);
+            chkVideoCaptureLogger.Location = new Point(953, 3);
             chkVideoCaptureLogger.Name = "chkVideoCaptureLogger";
             chkVideoCaptureLogger.Size = new Size(95, 19);
             chkVideoCaptureLogger.TabIndex = 5;
@@ -137,7 +157,7 @@
             chkRenderLogger.CheckState = CheckState.Checked;
             chkRenderLogger.FlatStyle = FlatStyle.Flat;
             chkRenderLogger.ForeColor = SystemColors.ControlText;
-            chkRenderLogger.Location = new Point(917, 3);
+            chkRenderLogger.Location = new Point(887, 3);
             chkRenderLogger.Name = "chkRenderLogger";
             chkRenderLogger.Size = new Size(60, 19);
             chkRenderLogger.TabIndex = 5;
@@ -171,5 +191,8 @@
         private CheckBox chkVideoCaptureLogger;
         private CheckBox chkRenderLogger;
         private Label lblProgressMessage;
+        private Button cmdSave;
+        private SaveFileDialog saveFileDialog1;
+        private ToolTip toolTip1;
     }
 }

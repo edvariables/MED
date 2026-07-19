@@ -180,7 +180,7 @@ namespace MED
 
         public string Start(string step = "Start", bool start_subs = true)
         {
-            if (IsEmpty)    
+            if (IsEmpty)
                 return "";
             Counter = 0L;
             Ticks_Pause = 0L;
@@ -190,21 +190,22 @@ namespace MED
             AverageSample_Counter = 0L;
             IgnoreFirsts_done = IgnoreFirsts == 0;
 
-            if (step == "" || step == "Start")
-                return $"{Name}.Start";
-
             if (start_subs && Subs != null)
                 foreach (var sub in Subs)
                     if (!sub.Value.IsRunning && !sub.Value.IsPaused)
                         sub.Value.Start(step, start_subs);
 
+            if (step == "" || step == "Start")
+                return $"{Name}.Start";
+
             return Step(step);
         }
-        public string Stop(bool stop_subs = true)
+        public string Stop(bool stop_subs = false)
         {
             if (IsEmpty)
                 return "";
-            if (IsPaused){
+            if (IsPaused)
+            {
                 Ticks_Start += Now - Ticks_Pause;
                 AverageSample_Start += Now - Ticks_Pause;
                 Ticks_Pause = 0L;
@@ -262,8 +263,8 @@ namespace MED
             if (step == "")
                 return "";
             if (!step.Contains("Resume"))
-                step += " (Resume)";
-            if (increment)
+                step += " (Resume" + (increment ? "+1)" : ")");
+            else if (increment)
                 step += "+1";
             return Step(step);
         }
@@ -312,13 +313,13 @@ namespace MED
                     if (Steps.Count > 1)
                     {
                         var prev = Steps[Steps.Count - 2];
-                        step = $"{To_msec(now - prev.Key).ToString("# ###").PadLeft(5, ' ')} msec {Name} .{step}";
+                        step = $"{To_msec(now - prev.Key).ToString("# ###").PadLeft(5, ' ')} msec [{Thread.CurrentThread.GetHashCode().ToString().PadLeft(2)}] {Name} .{step}";
                         if (!Steps_KeepAll)
                             Steps.Remove(prev);
                     }
                 }
                 else
-                    step = $"{"".PadLeft(5, ' ')}      {Name} .{step}";
+                    step = $"{"".PadLeft(10, ' ')} [{Thread.CurrentThread.GetHashCode().ToString().PadLeft(2)}] {Name} .{step}";
                 if (increment)
                     step += "+1";
             }
@@ -327,17 +328,73 @@ namespace MED
 
         public string Alert(string step)
         {
-            return Step("Alert ! : " + step);
+            return Step("[ALERT] " + step);
+        }
+
+        public string Error(string step, Exception ex = null)
+        {
+            return Step("[ERROR] " + step
+                + (ex == null ? "" : (" " + (ex.InnerException == null ? ex.Message : ex.InnerException.Message)
+                    + "\r\t\t" + ex.StackTrace.ReplaceLineEndings("\n\t\t"))
+                )
+            );
         }
 
         public string Debug(string step)
         {
-            return Sub("Debug").Step(step);
+            return Sub(".[DEBUG]").Step(step);
+        }
+
+        public string StackTrace(string step)
+        {
+            step = $"[STACK]{step}\n\t\t" + GetStackTrace().ReplaceLineEndings("\n\t\t");
+            return Debug(step);
+        }
+        string _PreviousStackTrace = "";
+
+        public string GetStackTrace()
+        {
+            string current = Environment.StackTrace;
+            for (var i = 3; i > 0; i--)
+            {
+                var pos = current.IndexOf('\n');
+                if (pos < 0) break;
+                current = current.Substring(pos + 1);
+            }
+
+
+            if (_PreviousStackTrace == current)
+            {
+                int pos = current.Length;
+                for (var i = 2; i > 0; i--)
+                {
+                    pos = current.IndexOf('\n');
+                    if (pos < 0) break;
+                }
+                return current.Substring(0, pos);
+            }
+
+            if (_PreviousStackTrace != "")
+            {
+                int posCur = current.Length - 1;
+                for (int posPrev = _PreviousStackTrace.Length - 1; posPrev > 0; posPrev--)
+                {
+                    if (posCur < 0 || _PreviousStackTrace[posPrev] != current[posCur])
+                        break;
+                    posCur--;
+                }
+                if (posCur <= 0)
+                    return "";
+                _PreviousStackTrace = current;
+                return current.Substring(0, posCur);
+            }
+            _PreviousStackTrace = current;
+            return current;
         }
 
         public string Log(string s)
         {
-            if (IsEmpty || !Enabled)
+            if (IsEmpty || !Enabled || s == "")
                 return String.Empty;
 
             if (Logger != null)
@@ -416,7 +473,11 @@ namespace MED
             var start = AverageSample_Counter > 0 ? AverageSample_Start : Ticks_Start;
             var duration = To_msec(Now - start);
             var avg = duration / (counter == 0L ? 1L : counter);
-            var s = $"{Name} : {duration.ToString("# ###")} msec / #{counter} = {avg.ToString("# ###")} msec";
+            var s = $"{Name} : {duration.ToString("# ###")} msec / #{counter}";
+            if (counter > 0)
+                s += $" ={avg.ToString("# ###")} msec";
+            else if (Name.Contains("[DEBUG]"))
+                return "";
 
             if (get_subs && Subs != null)
                 foreach (var kvp in Subs)

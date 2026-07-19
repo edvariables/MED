@@ -70,6 +70,18 @@ namespace MED
             ImageProvider = (IImageProvider)sender;
 
             InvokeFrameChanged(sender, e);
+
+            if (OnImageChanged != null)
+                foreach (var del in OnImageChanged.GetInvocationList())
+                    if (del.Target is IMatFrameConsumer)
+                        continue;
+                    else if (del.Target is IImageConsumer)
+                    {
+                        //Need Image
+                        var image = Image;
+                        break;
+                    }
+
             InvokeImageChanged((IImageProvider)sender, e);
         }
 
@@ -91,19 +103,19 @@ namespace MED
                 {
                     if (Frame == null)
                         return null;
-
-                    if (IsInvokingPropertyChanged(OnFrameChanged))
-                    {
-                        Performance.Alert($"IsInvokingPropertyChanged {OnFrameChanged.Method.Name}");
-                        Performance.Step(Environment.StackTrace.ReplaceLineEndings("\n\t\t"));
-                        return _Image;
-                    }
-                    if (IsInvokingPropertyChanged(OnImageChanged))
-                    {
-                        Performance.Alert($"IsInvokingPropertyChanged {OnImageChanged.Method.Name}");
-                        Performance.Step(Environment.StackTrace.ReplaceLineEndings("\n\t\t"));
-                        return _Image;
-                    }
+                    //if (false)
+                    //{
+                    //    if (IsInvokingPropertyChanged(OnFrameChanged))
+                    //    {
+                    //        Performance.StackTrace($"IsInvokingPropertyChanged {OnFrameChanged.Method.Name}");
+                    //        return _Image;
+                    //    }
+                    //    if (IsInvokingPropertyChanged(OnImageChanged))
+                    //    {
+                    //        Performance.StackTrace($"IsInvokingPropertyChanged {OnImageChanged.Method.Name}");
+                    //        return _Image;
+                    //    }
+                    //}
                     //Generated at first query
                     Performance.Step("LastFrame.ToBitmap()");
                     try
@@ -112,11 +124,11 @@ namespace MED
                     }
                     catch (System.AccessViolationException ex)
                     {
-                        Performance.Step("ERROR AccessViolationException in LastFrame.ToBitmap()");
+                        Performance.Error("AccessViolationException in LastFrame.ToBitmap()");
                     }
                     catch (Exception ex)
                     {
-                        Performance.Step("ERROR in LastFrame.ToBitmap() : " + ex.ToString());
+                        Performance.Error("in LastFrame.ToBitmap() : " , ex);
                     }
                 }
                 return _Image;
@@ -211,6 +223,7 @@ namespace MED
          */
         private void Capture_ImageGrabbed(object? sender, EventArgs e)
         {
+            Performance.Step("------------------");
             Performance.Resume($"Capture_ImageGrabbed. Sleep : {sleep}", true);
             Mat frame = new();
             if (Capture.Retrieve(frame))

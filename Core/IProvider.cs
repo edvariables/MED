@@ -8,6 +8,6 @@ namespace MED
 {
     public interface IProvider
     {
-        IConsumer AddConsumer(IConsumer consumer);
+        bool AddConsumer(IConsumer consumer, string property);
     }
 }

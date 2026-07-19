@@ -25,6 +25,8 @@ namespace MED
         {
             if (this.Disposing || this.IsDisposed)
                 return;
+            
+            Performance.Step($"ImageChanged from {sender.ToString()}");
 
             if (RenderPictureBox != null)
                 Render.RefreshImage(sender, RenderPictureBox, Performance, e);

@@ -114,7 +114,7 @@ namespace MED.EDWebCam
         {
             base.InitializeProcesses(resetAll);
 
-            if (Processes != null && Processes.Count>0 && !resetAll)
+            if (Processes != null && Processes.Count > 0 && !resetAll)
                 return;
 
             if (Performance == null || resetAll)
@@ -146,7 +146,7 @@ namespace MED.EDWebCam
             ImageProcess imgProc;
 
             //MovingRegions
-            imgProc = new EmguMoving(
+            var EmguMoving = new EmguMoving(
                         "EmguMoving"
 
                 , Performance.Sub("EmguMoving", chkRenderLogger.Checked, KnownColor.AliceBlue)
@@ -154,16 +154,20 @@ namespace MED.EDWebCam
                         , (ImageProcess)Processes.Last()
                     );
 
-            ////MovingRegions
-            //imgProc = new MovingRegions(
-            //            "MovingRegions"
-
-            //    , Performance.Sub("MovingRegions", chkRenderLogger.Checked, KnownColor.GreenYellow)
-            //            , this
-            //            , ImageProcesses.Last()
-            //        );
             //Add process
-            Processes.Add(imgProc);
+            Processes.Add(EmguMoving);
+
+            //ScreenSplitter
+            var ScreenSplitter = new ScreenSplitter(
+                        "ScreenSplitter"
+
+                , Performance.Sub("ScreenSplitter", chkRenderLogger.Checked, KnownColor.GreenYellow)
+                        , this
+                        , (ImageProcess)Processes.Last()
+                    );
+
+            //Add process
+            Processes.Add(ScreenSplitter);
 
             //WebCam
             if (WebCam == null || resetAll)
@@ -182,6 +186,23 @@ namespace MED.EDWebCam
                 //ImageProcess.Stop() kills OnImageChanged register
                 WebCam.OnImageChanged += (Processes.Last() as IImageConsumer).ImageChanged;
             }
+
+
+            WebCam.OnFrameChanged = null;
+            WebCam.OnFrameChanged += EmguMoving.FrameChanged;
+
+            WebCam.OnImageChanged = null;
+            WebCam.OnImageChanged += ScreenSplitter.ImageChanged;
+
+            EmguMoving.OnImageChanged = null;
+            EmguMoving.OnImageChanged += ScreenSplitter.ImageChanged;
+
+            ScreenSplitter.OnImageChanged = null;
+            ScreenSplitter.OnImageChanged += Render.ImageChanged;
+
+            Render.OnImageChanged = null;
+            Render.OnImageChanged += this.ImageChanged;
+
             //WebCam.ImageSizeMax
             if (cboCaptureSize.Text == "")
             {

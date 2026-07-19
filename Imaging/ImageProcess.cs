@@ -23,13 +23,11 @@ namespace MED
             _ImageConsumer = null;
         }
 
-        public IConsumer AddConsumer(IConsumer consumer)
-        {
-            throw new NotImplementedException();
-        }
-
         private IImageConsumer _ImageConsumer;
         [Browsable(false)]
+        /**
+         * Unique ImageConsumer
+         */
         public virtual IImageConsumer ImageConsumer
         {
             get => _ImageConsumer;
@@ -68,6 +66,27 @@ namespace MED
             }
         }
 
+        public override bool AddConsumer(IConsumer consumer, string property = "ProcessState")
+        {
+
+            switch (property)
+            {
+                case "Image":
+                    if (consumer is IImageConsumer)
+                    {
+                        OnImageChanged -= (consumer as IImageConsumer).ImageChanged;
+                        OnImageChanged += (consumer as IImageConsumer).ImageChanged;
+                        return true;
+                    }
+                    break;
+                default:
+                    return base.AddConsumer(consumer, property);
+            }
+
+            return false;
+        }
+
+
         protected IImageProvider ImageProvider;
 
         [Browsable(false)]
@@ -99,6 +118,7 @@ namespace MED
         [Browsable(false)]
         public virtual void ImageChanged(IImageProvider sender, EventArgs e)
         {
+            Performance.Step($"ImageChanged from {sender.ToString()}");
             ImageProvider = sender;
             InvokeImageChanged(sender, e);
         }
@@ -136,7 +156,7 @@ namespace MED
             else
                 ImageSizeMax = Size.Empty;
         }
-        public virtual void SaveSettings(bool saveChildren = false)
+        public override void SaveSettings(bool saveChildren = false)
         {
 
             Core.Settings.SetValue("ImageSizeMax", Name, ImageSizeMax.IsEmpty ? "" : ImageSizeMax);
