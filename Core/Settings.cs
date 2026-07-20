@@ -71,16 +71,91 @@ namespace MED.Core
             {
                 object value = _saveValues[cacheKey];
                 string[] path = ParseCacheKey(cacheKey);
-                IniFile.WriteValue(path[1], value == null ? "" : Parser.ObjectToString(value), path[0]);
+
+                string settingsPath, settingsFile;
+                string sectionPath = ParseSettingsPathSection(path[0], out settingsPath, out settingsFile);
+
+                SaveValue(value == null ? "" : Parser.ObjectToString(value), path[1], sectionPath, settingsPath, settingsFile);
             }
             ClearCache();
         }
 
+        /**
+         * TODO
+         */
+        public static void SaveValue(object value, string item, string section, string settingsPath="", string settingsFile = "")
+        {
+            switch (settingsFile)
+            {
+                case "file":
+                default:
+
+                    IniFile.WriteValue(item, value == null ? "" : Parser.ObjectToString(value), section);
+
+                    break;
+
+            }
+        }
+
+        /**
+         * ParseSettingsPathSectionItem
+         * Parse [file:]path:section|item
+         * */
+        public static string ParseSettingsPathSectionItem(in string item, out string section, out string settingsPath, out string settingsFile)
+        {
+            settingsPath = "";
+            settingsFile = "";
+            section = "";
+            string sectionItem = ParseSettingsPathSection(settingsPath, out settingsPath, out settingsFile);
+
+            int sep;
+            if ((sep = sectionItem.IndexOf('|')) == -1)
+                return sectionItem;
+
+            section = sectionItem.Substring(0, sep).Trim();
+
+            return sectionItem.Substring(sep + 1).Trim();
+        }
+
+        /**
+         * ParseSettingsPathSection
+         * Parse [file:]path:section
+         * */
+        public static string ParseSettingsPathSection(in string section, out string settingsPath, out string settingsFile)
+        {
+
+            settingsPath = "";
+            settingsFile = "";
+
+            if (section == null)
+                return section;
+
+            int sep;
+            if ((sep = section.IndexOf(':')) == -1)
+                return section;
+
+            settingsFile = section.Substring(0, sep).Trim();
+            if ((sep = settingsFile.IndexOf(':')) == -1)
+            {
+                settingsPath = settingsFile;
+                settingsFile = "";
+                return section;
+            }
+
+            settingsPath = section.Substring(0, sep).Trim();
+
+            return section.Substring(sep + 1).Trim();
+        }
+
         public static void ClearCache(bool saveValues = true, bool values = true, string section = null)
         {
+            string settingsPath, settingsFile;
+            string sectionPath = ParseSettingsPathSection(section, out settingsPath, out settingsFile);
+
+
             if (saveValues)
             {
-                if(section != null && section != "")
+                if (section != null && section != "")
                 {
                     string pattern = GetCacheKey(section, "");
                     foreach (var kvp in _saveValues)
@@ -118,7 +193,7 @@ namespace MED.Core
         {
             string key = GetCacheKey(section, setting);
             if (_useCache
-                && _values.ContainsKey(key) )
+                && _values.ContainsKey(key))
                 return _values[key];
             object value = IniFile.ReadValue(setting, section, default_value == null ? "" : default_value?.ToString());
             value = Parser.ObjectFromString((string)value, default_value);
@@ -130,7 +205,7 @@ namespace MED.Core
         /**
          * Set value
          * */
-        public static void SetValue( string setting, string section = null, object set_value = null)
+        public static void SetValue(string setting, string section = null, object set_value = null)
         {
             if (_useCache)
             {
@@ -156,8 +231,8 @@ namespace MED.Core
          * Properties
          * 
          * *******/
-        
-        
+
+
         //public static string IP_Address
         //{
         //    get

@@ -36,47 +36,48 @@
             // 
             // cmdStart
             // 
+            cmdStart.Dock = DockStyle.Left;
             cmdStart.Image = (Image)resources.GetObject("cmdStart.Image");
             cmdStart.Location = new Point(0, 0);
-            cmdStart.Dock = DockStyle.Left;
             cmdStart.Name = "cmdStart";
             cmdStart.Size = new Size(32, 29);
             cmdStart.TabIndex = 0;
             cmdStart.UseVisualStyleBackColor = true;
             cmdStart.Click += cmdStart_Click;
             // 
-            // chkPause
-            // 
-            chkPause.Appearance = Appearance.Button;
-            chkPause.Dock = DockStyle.Right;
-            chkPause.Image = (Image)resources.GetObject("chkPause.Image");
-            chkPause.Location = new Point(33, 0);
-            chkPause.Name = "chkPause";
-            chkPause.Size = new Size(32, 29);
-            chkPause.TabIndex = 1;
-            chkPause.UseVisualStyleBackColor = true;
-            chkPause.CheckedChanged += chkPause_CheckedChanged;
-            // 
             // cmdStop
             // 
-            cmdStop.Dock = DockStyle.Right;
+            cmdStop.Dock = DockStyle.Left;
             cmdStop.Image = (Image)resources.GetObject("cmdStop.Image");
-            cmdStop.Location = new Point(65, 0);
+            cmdStop.Location = new Point(64, 0);
             cmdStop.Name = "cmdStop";
             cmdStop.Size = new Size(32, 29);
             cmdStop.TabIndex = 2;
             cmdStop.UseVisualStyleBackColor = true;
             cmdStop.Click += cmdStop_Click;
             // 
+            // chkPause
+            // 
+            chkPause.Appearance = Appearance.Button;
+            chkPause.Dock = DockStyle.Left;
+            chkPause.Image = (Image)resources.GetObject("chkPause.Image");
+            chkPause.Location = new Point(32, 0);
+            chkPause.Name = "chkPause";
+            chkPause.Size = new Size(32, 29);
+            chkPause.TabIndex = 1;
+            chkPause.UseVisualStyleBackColor = true;
+            chkPause.CheckedChanged += chkPause_CheckedChanged;
+            // 
             // ProcessControl
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            Controls.Add(chkPause);
+            BackColor = Color.Transparent;
             Controls.Add(cmdStop);
+            Controls.Add(chkPause);
             Controls.Add(cmdStart);
             Name = "ProcessControl";
-            Size = new Size(97, 29);
+            Size = new Size(100, 29);
             VisibleChanged += ProcessControl_VisibleChanged;
             ResumeLayout(false);
         }

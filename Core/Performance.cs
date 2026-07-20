@@ -20,7 +20,7 @@ namespace MED
         public long Ticks_Stop;
         public long Ticks_Previous;
         public Logger Logger;
-        public bool Enabled = true;
+        public bool Enabled { get; set; }
         public long IgnoreFirsts = 10L;
         public bool IgnoreFirsts_done;
 

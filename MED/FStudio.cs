@@ -1,6 +1,9 @@
-﻿using DynamicData;
+﻿using DevDecoder.HIDDevices.Controllers;
+using DynamicData;
+using Emgu.CV;
 using MED.EDJoystick;
 using MED.EDWebCam;
+using Microsoft.Win32;
 using MotionDetectionWinFormsApp;
 using System;
 using System.Collections.Generic;
@@ -12,6 +15,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Windows.Media;
 
 namespace MED
 {
@@ -126,6 +130,7 @@ namespace MED
             FLogger.Current.Show();
         }
 
+
         /*
          * 
          * 
@@ -140,31 +145,111 @@ namespace MED
 
         private void ShowNewForm(object sender, EventArgs e)
         {
-            Form childForm = new Form();
-            childForm.MdiParent = this;
-            childForm.Text = "Fenêtre " + childFormNumber++;
-            childForm.Show();
+            var processForm = GetNewProcessForm();
+
         }
+        private ProcessForm GetNewProcessForm()
+        {
+            ProcessForm processForm = new();
+            processForm.MdiParent = this;
+            processForm.Text = "Projet " + childFormNumber++;
+            processForm.MdiParent = this;
+            processForm.Dock = DockStyle.Fill;
+            processForm.OnProcessStateChanged += ProcessStateChanged;
+            processForm.Activated += ProcessForm_Activated;
+            if (processForm.Processes.Count > 0 && processForm.Processes.First() is ImageProcess)
+                (processForm.Processes.First() as ImageProcess).OnImageChanged += ProcessForm_ImageChanged;
+
+            processForm.Logger = FLogger.Current.Logger;
+
+            ProcessControl controller = new();
+            controller.Dock = DockStyle.Top;
+            controller.ActiveProcess = processForm;
+            controller.Show();
+            processForm.Controls.Add(controller);
+
+            var render = new Render(
+                "Render"
+                , new Performance("Render", FLogger.Current.Logger)
+                , processForm
+            );
+            processForm.Processes.Add(render);
+
+            var videoCapture = new EDVideoCapture(
+                "VideoCapture"
+                , new Performance("VideoCapture", FLogger.Current.Logger)
+                , processForm
+                , (IImageConsumer)processForm.Processes.Last()
+            );
+            videoCapture.OnImageChanged += render.ImageChanged;
+            processForm.Processes.Add(videoCapture);
+
+            processForm.Show();
+
+            return processForm;
+        }
+
+        #region ProcessForm
+        private void ProcessForm_Activated(object sender, EventArgs e)
+        {
+            List<object> objects = new();
+            var activeProcess = ActiveProcessForm;
+            if (activeProcess == null)
+                return;
+
+            objects.AddRange(activeProcess.Project.ObjectsProperties.Values);
+
+            var processes = activeProcess.Processes;
+            foreach (var process in processes)
+                objects.AddRange(process.ObjectsProperties.Values);
+            if (processes.Count > 0 && !activeProcess.Performance.IsEmpty)
+                objects.Add(activeProcess.Performance);
+
+            FProperties.CurrentProperties = objects.ToArray();
+        }
+        /**
+         * Image
+         * */
+        private void ProcessForm_ImageChanged(IImageProvider sender, EventArgs e)
+        {
+            if (this.Disposing || this.IsDisposed)
+                return;
+
+            FLogger.Current.RefreshProgress((ImageProcess)sender);
+
+            FLogger.Current.ProgressMessage = $"{(sender as Process).Name} [{(sender as Process).Performance.Counter}]";
+        }
+
+        #endregion
 
         private void OpenFile(object sender, EventArgs e)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
+            System.Windows.Forms.OpenFileDialog openFileDialog = new System.Windows.Forms.OpenFileDialog();
             openFileDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
-            openFileDialog.Filter = "Fichiers texte (*.txt)|*.txt|Tous les fichiers (*.*)|*.*";
+            openFileDialog.Filter = "Fichiers de projets MED (*.med)|*.med|Tous les fichiers (*.*)|*.*";
             if (openFileDialog.ShowDialog(this) == DialogResult.OK)
             {
                 string FileName = openFileDialog.FileName;
+
+                var processForm = GetNewProcessForm();
+                processForm.SettingsPath = $"file:{FileName}:{processForm.Name}";
+                processForm.LoadSettings(true);
             }
         }
 
         private void SaveAsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            System.Windows.Forms.SaveFileDialog saveFileDialog = new System.Windows.Forms.SaveFileDialog();
             saveFileDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
-            saveFileDialog.Filter = "Fichiers texte (*.txt)|*.txt|Tous les fichiers (*.*)|*.*";
+            saveFileDialog.Filter = "Fichiers de projets MED (*.med)|*.med|Tous les fichiers (*.*)|*.*";
             if (saveFileDialog.ShowDialog(this) == DialogResult.OK)
             {
                 string FileName = saveFileDialog.FileName;
+                if (ActiveProcess != null)
+                {
+                    ActiveProcess.SettingsPath = $"file:{FileName}:{ActiveProcess.Name}"; 
+                    ActiveProcess?.SaveSettings();
+                }
             }
         }
 
@@ -276,7 +361,11 @@ namespace MED
                     form.MdiParent = this;
                     form.Dock = DockStyle.Fill;
                     form.Show();
-                    form.ProcessStateChanged += ProcessStateChanged;
+                    form.OnProcessStateChanged += ProcessStateChanged;
+                    form.Activated += ProcessForm_Activated;
+                    if (form.Processes.First() is ImageProcess)
+                        (form.Processes.First() as ImageProcess).OnImageChanged += ProcessForm_ImageChanged;
+
                     return form;
                 }
 
@@ -289,6 +378,17 @@ namespace MED
             //return null;
         }
 
+
+        public ProcessForm ActiveProcessForm
+        {
+            get
+            {
+                var activeProcess = ActiveProcess;
+                if (activeProcess is ProcessForm)
+                    return (ProcessForm)activeProcess;
+                return null;
+            }
+        }
         private IProcess _active_Process;
         public IProcess ActiveProcess
         {
@@ -317,11 +417,11 @@ namespace MED
                 ActiveProcessChanged(_active_Process);
             }
         }
-        private void FStudio_MdiChildActivate(object sender, EventArgs e)
-        {
-            if (this.ActiveMdiChild is IProcess)
-                ActiveProcess = (IProcess)this.ActiveMdiChild;
-        }
+
+        /**
+         * 
+         * 
+         * */
         private void ActiveProcessChanged(IProcess sender, System.Threading.ThreadState state = System.Threading.ThreadState.Unstarted)
         {
             if (sender == null)
@@ -345,9 +445,15 @@ namespace MED
             btnProcessStop.Enabled = isRunning || isPaused;
         }
 
+        private void FStudio_MdiChildActivate(object sender, EventArgs e)
+        {
+            if (this.ActiveMdiChild is IProcess)
+                ActiveProcess = (IProcess)this.ActiveMdiChild;
+        }
+
         void ProcessStateChanged(IProcess sender, System.Threading.ThreadState state)
         {
-            if (sender == ActiveProcess)
+            if (ProcessForm.FindProcessForm(sender) == ActiveProcess)
                 ActiveProcessChanged(sender, state);
         }
         #endregion

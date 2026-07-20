@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Collections.Specialized.BitVector32;
 
 namespace MED
 {
@@ -15,9 +16,16 @@ namespace MED
             IsAsynchrone = isAsynchrone;
             //Consumer = consumer;
 
-            Name = name.Trim();
+            if (name == "")
+                name = this.GetType().Name;
+            
+            string settingsPath, settingsFile, section;
+            Name = Core.Settings.ParseSettingsPathSection(name, out settingsPath, out settingsFile);
+
+            SettingsPath = (settingsFile == "" ? settingsFile + ":" : "") + settingsPath;
 
             Performance = performance == null ? MED.Performance.Empty() : performance;
+
 
             LoadSettings();
         }
@@ -42,7 +50,7 @@ namespace MED
         public override string ToString()
         {
             var typeName = GetType().Name;
-            if(typeName==Name)
+            if (typeName == Name)
                 return $"{Name}({ProcessState})";
             return $"{typeName}[{Name}]({ProcessState})";
         }
@@ -56,9 +64,9 @@ namespace MED
             //        var type = consumer.GetType();
             //        break;
             //    default:
-                    RemoveHandler($"On{property}Changed", consumer, consumer.GetType(), $"{property}Changed");
-                    AddHandler($"On{property}Changed", consumer, consumer.GetType(), $"{property}Changed");
-                    //throw new ArgumentOutOfRangeException($"AddConsumer( IConsumer, string Property = \"{AddConsumer}\" UNKNOWN ");
+            RemoveHandler($"On{property}Changed", consumer, consumer.GetType(), $"{property}Changed");
+            AddHandler($"On{property}Changed", consumer, consumer.GetType(), $"{property}Changed");
+            //throw new ArgumentOutOfRangeException($"AddConsumer( IConsumer, string Property = \"{AddConsumer}\" UNKNOWN ");
             //        break;
             //}
 
@@ -94,7 +102,7 @@ namespace MED
 
                     _IsInvokingPropertyChanged.Add(delegateMethod);
 
-                    foreach(var consumerDelegate in delegateMethod.GetInvocationList())
+                    foreach (var consumerDelegate in delegateMethod.GetInvocationList())
                     {
                         var consumer = consumerDelegate.Target as IConsumer;
                         bool invoke = IsAsynchrone && !consumer.IsAsynchrone;
@@ -119,7 +127,7 @@ namespace MED
                         else
                         {
                             //delegateMethod.Method.Invoke(delegateMethod.Target, [this is IProvider ? (IProvider)this : sender]);
-                            Performance.Step($"-> {invoke_str}({consumer.GetType().Name}.{consumerDelegate.Method.Name})");
+                            //Performance.Step($"-> {invoke_str}({consumer.GetType().Name}.{consumerDelegate.Method.Name})");
                             consumerDelegate.DynamicInvoke(/*delegateMethod.Target,*/ this is IProvider ? (IProvider)this : sender, e);
                         }
 
@@ -155,7 +163,7 @@ namespace MED
             if (memberInfo == null)
                 throw new Exception($"Le type {handler_obj.GetType().FullName} n'a pas de delegate {handler_field}");
             var eventInfo = (System.Reflection.FieldInfo)memberInfo.GetValue(0);
-            
+
             var miHandler = consumer_type.GetMethod(consumer_method);
             if (miHandler == null)
                 throw new Exception($"Le type '{consumer_type.FullName}' n'a pas de méthode {consumer_method}");
@@ -209,21 +217,27 @@ namespace MED
         public string Name { get; set; }
 
         [Browsable(false)]
-        public Control InvokeHandler;
+        public Control InvokeHandler { get; set; }
 
-        [Browsable(true)]//SIC unvisible
-        public Performance Performance;
+        [Browsable(true)]
+        public Performance Performance { get; set; }
 
         #region Settings
+
+        [Browsable(false)]
+        public virtual string SettingsPath { get; set; }
+
         public virtual void LoadSettings(bool loadChildren = true)
         {
-            Core.Settings.ClearCache(true, true, Name);
+            if (SettingsPath == null) SettingsPath = "";
 
-            Performance.LoadSettings(Name);
+            Core.Settings.ClearCache(true, true, SettingsPath + ":" + Name);
+
+            Performance.LoadSettings(SettingsPath + ":" + Name);
         }
         public virtual void SaveSettings(bool saveChildren = true)
         {
-            Performance.SaveSettings(Name, saveChildren);
+            Performance.SaveSettings(SettingsPath + ":" + Name, saveChildren);
         }
         #endregion
 
@@ -301,14 +315,14 @@ namespace MED
             get => _ProcessState;
             set
             {
-                if (_ProcessState != value && ProcessStateChanged != null)
-                    ProcessStateChanged(this, _ProcessState = value);
+                if (_ProcessState != value && OnProcessStateChanged != null)
+                    OnProcessStateChanged(this, _ProcessState = value);
                 else
                     _ProcessState = value;
             }
         }
 
-        public IProcess.ProcessStateChangedDelegate ProcessStateChanged;
+        public IProcess.ProcessStateChangedDelegate OnProcessStateChanged;
 
 
 

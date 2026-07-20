@@ -40,18 +40,18 @@ namespace MED
                 if (_ActiveProcess != null)
                 {
                     if (_ActiveProcess is ProcessForm)
-                        (_ActiveProcess as ProcessForm).ProcessStateChanged -= ProcessStateChanged;
+                        (_ActiveProcess as ProcessForm).OnProcessStateChanged -= ProcessStateChanged;
                     else if (_ActiveProcess is Process)
-                        (_ActiveProcess as Process).ProcessStateChanged -= ProcessStateChanged;
+                        (_ActiveProcess as Process).OnProcessStateChanged -= ProcessStateChanged;
                 }
                 _ActiveProcess = value;
 
                 if (_ActiveProcess != null)
                 {
                     if (_ActiveProcess is ProcessForm)
-                        (_ActiveProcess as ProcessForm).ProcessStateChanged += ProcessStateChanged;
+                        (_ActiveProcess as ProcessForm).OnProcessStateChanged += ProcessStateChanged;
                     else if (_ActiveProcess is Process)
-                        (_ActiveProcess as Process).ProcessStateChanged += ProcessStateChanged;
+                        (_ActiveProcess as Process).OnProcessStateChanged += ProcessStateChanged;
                 }
             }
         }

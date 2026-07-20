@@ -13,6 +13,8 @@ namespace MED
         string Name { get; }
 
         #region Settings
+        [ReadOnly(true)]
+        string SettingsPath { get; set; }
         void LoadSettings(bool loadChildren = false);
         void SaveSettings(bool saveChildren = true);
 

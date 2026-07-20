@@ -20,7 +20,10 @@ namespace MED
             Centered = true;
 
             if (invokeHandler is PictureBox)
-                RenderPictureBox = (PictureBox)invokeHandler;
+                RenderImageControl = (PictureBox)invokeHandler;
+
+            if(imageConsumer == null)
+                RenderImageControl = (Control)invokeHandler;
         }
 
         #region Settings
@@ -57,7 +60,7 @@ namespace MED
             ProcessState = System.Threading.ThreadState.Running;
         }
 
-        public PictureBox RenderPictureBox { get; set; }
+        public Control RenderImageControl { get; set; }
 
         /**
          * Image
@@ -68,8 +71,8 @@ namespace MED
                 return;
             base.ImageChanged(sender, e);
 
-            if (RenderPictureBox != null)
-                Render.RefreshRender(this, RenderPictureBox, Performance, e);
+            if (RenderImageControl != null)
+                Render.RefreshRender(this, RenderImageControl, Performance, e);
         }
 
         public override Bitmap Image
@@ -92,17 +95,20 @@ namespace MED
         /**
          * RefreshRender
          * */
-        public static void RefreshRender(IImageProvider sender, PictureBox renderPictureBox, Performance performance, EventArgs e)
+        public static void RefreshRender(IImageProvider sender, Control renderImageControl, Performance performance, EventArgs e)
         {
             if (sender is IProcess && !(sender as IProcess).IsRunning)
                 return;
             //performance.Step("RefreshRender call stack :\n" + Environment.StackTrace);
-            if (renderPictureBox != null && sender.Image != null)
+            if (renderImageControl != null && sender.Image != null)
             {
                 performance.Resume("RefreshRender", true);
                 try
                 {
-                    renderPictureBox.Image = ResizeImage(sender);
+                    if(renderImageControl is PictureBox)
+                        (renderImageControl as PictureBox).Image = ResizeImage(sender);
+                    else
+                        renderImageControl.BackgroundImage = ResizeImage(sender);
                 }
                 catch (Exception ex)
                 {
@@ -120,21 +126,21 @@ namespace MED
                 return sender.Image;
             Render render = (Render)sender;
             var image = sender.Image;
-            if (render.RenderPictureBox == null)
+            if (render.RenderImageControl == null)
                 return image;
             if (render.ResizeToRenderSize)
                 if (render.KeepRenderRatio)
-                    image = new Bitmap(image, render.RenderPictureBox.Size);
+                    image = new Bitmap(image, render.RenderImageControl.Size);
                 else
                 {
-                    var ratio = render.RenderPictureBox.Size.Width / render.RenderPictureBox.Size.Height;
+                    var ratio = render.RenderImageControl.Size.Width / render.RenderImageControl.Size.Height;
                     var size = new Size(image.Width * ratio, image.Height * ratio);
                     image = new Bitmap(image, size);
                 }
             else if (render.Centered)
             {
                 var source = image;
-                image = new Bitmap(render.RenderPictureBox.Size.Width, render.RenderPictureBox.Size.Height, image.PixelFormat);
+                image = new Bitmap(render.RenderImageControl.Size.Width, render.RenderImageControl.Size.Height, image.PixelFormat);
                 Graphics graphics = Graphics.FromImage(image);
 
                 graphics.DrawImageUnscaled(source, (image.Width - source.Width) / 2, (image.Height - source.Height) / 2);

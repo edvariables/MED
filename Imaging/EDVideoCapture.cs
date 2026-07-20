@@ -26,7 +26,6 @@ namespace MED
         #region Properties
 
         [Browsable(true)]
-        [ReadOnly(true)]
         public override Size ImageSizeMax { get; set; }
 
 

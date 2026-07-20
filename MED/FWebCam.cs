@@ -17,14 +17,6 @@ namespace MED.EDWebCam
             InitializeComponent();
         }
 
-        protected override void WndProc(ref Message m)
-        {
-            FormWindowState org = this.WindowState;
-            base.WndProc(ref m);
-            if (this.WindowState != org)
-                this.FWebCam_WindowStateChanged(null, EventArgs.Empty);
-        }
-
         private void FWebCam_Load(object sender, EventArgs e)
         {
             Init_AvailableCameras();
@@ -37,39 +29,6 @@ namespace MED.EDWebCam
 
         }
 
-        #region Form
-        private void FWebCam_Activated(object sender, EventArgs e)
-        {
-            List<object> objects = new();
-            foreach (var process in Processes)
-                objects.AddRange(process.ObjectsProperties.Values);
-            if (Processes.Count > 0)
-                objects.Add(this.Performance);
-            FProperties.CurrentProperties = objects.ToArray();
-        }
-
-        private void FWebCam_WindowStateChanged(object sender, EventArgs e)
-        {
-            if (WindowState == FormWindowState.Maximized)
-                MdiParent = null;
-            else
-            {
-                MdiParent = FStudio.Current;
-                if (WindowState == FormWindowState.Normal)
-                    Dock = DockStyle.Fill;
-            }
-        }
-
-        Size DockedSize;
-        private void FWebCam_DockChanged(object sender, EventArgs e)
-        {
-            if (this.Dock == DockStyle.Fill)
-                DockedSize = this.Size;
-            else if (!DockedSize.IsEmpty)
-                this.Size = DockedSize;
-
-        }
-        #endregion
 
         private CheckBox chkLogColored;
         private CheckBox chkVideoCaptureLogger;
@@ -90,6 +49,9 @@ namespace MED.EDWebCam
 
         public override void LoadSettings(bool loadChildren = false)
         {
+            if (Name == "" || Render.Performance == null)
+                return;
+
             base.LoadSettings(loadChildren);
 
             chkRenderLogger.Checked = Render.Performance.Enabled;
@@ -126,17 +88,15 @@ namespace MED.EDWebCam
          * */
         protected override void InitializeProcesses(bool resetAll = false)
         {
+            this.Logger = FLogger.Current.Logger;
+
             base.InitializeProcesses(resetAll);
 
-            FLogger.Current.Logger.Clear();
+            Logger.Clear();
 
             if (Processes != null && Processes.Count > 0 && !resetAll)
                 return;
 
-            if (Performance == null || resetAll)
-            {
-                Performance = new(this.Name, FLogger.Current.Logger);
-            }
 
             //Render
             if (Render == null || resetAll)
@@ -191,7 +151,7 @@ namespace MED.EDWebCam
                     , (IImageConsumer)Processes.Last()
                 );
                 ImageSource.Performance.IsColored = chkLogColored.Checked;
-                ImageSource.ProcessStateChanged += WebCam_ProcessStateChanged;
+                ImageSource.OnProcessStateChanged += ImageSource_ProcessStateChanged;
             }
             else
             {
@@ -213,7 +173,7 @@ namespace MED.EDWebCam
             ScreenSplitter.OnImageChanged += Render.ImageChanged;
 
             Render.OnImageChanged = null;
-            Render.OnImageChanged += this.ImageChanged;
+            //Render.OnImageChanged += this.ImageChanged;
 
             //WebCam.ImageSizeMax
             if (cboCaptureSize.Text == "")
@@ -227,12 +187,12 @@ namespace MED.EDWebCam
             Processes.Add(ImageSource);
 
             foreach (var proc in Processes)
-                (proc as Process).LoadSettings();
+                (proc as Process).LoadSettings();//TODO Warning unsaved
         }
         #endregion
 
         #region Process
-        private void WebCam_ProcessStateChanged(IProcess sender, System.Threading.ThreadState state)
+        private void ImageSource_ProcessStateChanged(IProcess sender, System.Threading.ThreadState state)
         {
             if (sender.IsRunning)
             {
@@ -253,18 +213,11 @@ namespace MED.EDWebCam
          */
         public override void Start()
         {
-            base.Start();
-
             FLogger.Current.Start();
 
-            foreach (var item in Processes.ToArray().Reverse())
-            {
-                if (item == ImageSource)
-                {
-                    ImageSource.CameraIndex = cboCameras.SelectedIndex;
-                }
-                item.Start();
-            }
+            ImageSource.CameraIndex = cboCameras.SelectedIndex;
+
+            base.Start();
 
             ProcessState = ThreadState.Running;
         }
@@ -281,9 +234,9 @@ namespace MED.EDWebCam
 
             base.Stop();
 
-            FLogger.Current.Stop();
-
             ProcessState = ThreadState.Stopped;
+
+            FLogger.Current.Stop();
         }
         #endregion
         /**
