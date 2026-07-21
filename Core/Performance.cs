@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Linq;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 namespace MED
@@ -12,6 +13,7 @@ namespace MED
     public class Performance
     {
         public string Name;
+        public string Icon;
         public KnownColor LoggerColor;
         private bool _IsColored;
 
@@ -39,7 +41,7 @@ namespace MED
             Logger = logger;
             Enabled = enabled && Logger != null;
             Name = name ?? "";
-            Start();
+            Icon = "DateTime";
         }
 
         /**
@@ -210,13 +212,17 @@ namespace MED
                 AverageSample_Start += Now - Ticks_Pause;
                 Ticks_Pause = 0L;
             }
+            var WasRunning = Ticks_Stop == 0;
             Ticks_Stop = Now;
 
             if (stop_subs && Subs != null)
                 foreach (var kvp in Subs)
                     kvp.Value.Stop(stop_subs);
-
-            return Log(Report());
+            if (!WasRunning)
+                return "";
+            var s = Log(Report());
+            Logger.InvokeBufferChanged(this, EventArgs.Empty);
+            return s;
         }
         public string Suspend(string step = "Suspend", bool suspend_subs = false)
         {
@@ -417,6 +423,8 @@ namespace MED
         {
             get
             {
+                if (Ticks_Start == 0L)
+                    return 0L;
                 if (Ticks_Stop == 0)
                     if (Ticks_Pause == 0)
                         return Now - Ticks_Start;
@@ -473,7 +481,7 @@ namespace MED
 
             var counter = AverageSample_Counter > 0 ? AverageSample_Counter + Counter : Counter;
             var start = AverageSample_Counter > 0 ? AverageSample_Start : Ticks_Start;
-            var duration = To_msec(Now - start);
+            var duration = start == 0L ? 0L : To_msec((Ticks_Stop == 0L ? Now : Ticks_Stop) - start);
             var avg = duration / (counter == 0L ? 1L : counter);
             var s = $"{Name} : {duration.ToString("# ###")} msec / #{counter}";
             if (counter > 0)
@@ -495,21 +503,35 @@ namespace MED
          * Settings
          * */
         #region Settings
-        public virtual void LoadSettings(string paramSection = "Performance")
+        public virtual void LoadSettings(ProcessSettings settings)
         {
-            Core.Settings.ClearCache(true, true, paramSection);
-            Enabled = bool.Parse(Core.Settings.GetValue("Perf.Enabled", paramSection, true).ToString());
-            LoggerColor = (KnownColor)Enum.Parse(typeof(KnownColor), Core.Settings.GetValue("Perf.Color", paramSection, LoggerColor).ToString());
+            if (settings == null) return;
+            Enabled = (bool)settings.GetValue("Enabled", Enabled);
+            LoggerColor = (KnownColor)Enum.Parse(typeof(KnownColor), settings.GetValue("Color", LoggerColor).ToString());
         }
         /**
          * 
          * */
-        public virtual void SaveSettings(string ParamSection = "Performance", bool evenIsEmpty = false)
+        public virtual void SaveSettings(ProcessSettings settings, bool evenIsEmpty = false)
         {
             if (IsEmpty && !evenIsEmpty)
                 return;
-            Core.Settings.SetValue("Perf.Enabled", ParamSection, Enabled);
-            Core.Settings.SetValue("Perf.Color", ParamSection, LoggerColor);
+            settings.SetValue("Enabled", Enabled);
+            LoggerColor = (KnownColor)Enum.Parse(typeof(KnownColor), settings.GetValue("Color", LoggerColor).ToString());
+        }
+
+        public virtual JsonObject SaveNode(JsonObject node = null, bool evenIsEmpty = false)
+        {
+            if (IsEmpty && !evenIsEmpty)
+                return null;
+
+            if(node==null)
+                node = new();
+
+            node["Enabled"]=Enabled;
+            node["Color"] = LoggerColor.ToString();
+
+            return node;
         }
         #endregion
     }

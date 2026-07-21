@@ -17,6 +17,8 @@
             {
                 components.Dispose();
             }
+            RTGBAppendRegex = null;
+            Performance = null;
             base.Dispose(disposing);
         }
 

@@ -26,7 +26,7 @@ namespace MED
 
             LoadSettings();
 
-
+            Logger.OnBufferChanged += Logger_OnBufferChanged;
         }
 
         private void FLogger_Activated(object sender, EventArgs e)
@@ -48,8 +48,10 @@ namespace MED
             set => lblProgressMessage.Text = value;
         }
 
+        public void Logger_OnBufferChanged(object sender, EventArgs e) => RefreshProgress(sender is IProcess ? (IProcess)sender : null);
+
         #region Refresh
-        public void RefreshProgress(ImageProcess sender)
+        public void RefreshProgress(IProcess sender)
         {
             if (Logger == null)
                 return;
@@ -64,15 +66,8 @@ namespace MED
                 }
                 rtbLog.SelectionStart = int.MaxValue;
                 if (Logger.BufferLength > 0)
-                    //if (Logger.ProgressMessage[0] == '\b')
-                    //{
                     RTGBAppend(rtbLog);
-                //}
-                //else
-                //{
-                //    rtbLog.AppendText(Logger.ProgressMessage.ToString());
-                //    Logger.ProgressMessage.Clear();
-                //}
+
                 rtbLog.SelectionStart = int.MaxValue;
                 rtbLog.ScrollToCaret();
 
@@ -188,7 +183,11 @@ namespace MED
         public void Start()
         {
             if (chkClearLogOnRun.Checked)
+            {
                 rtbLog.Clear();
+                Logger.Clear();
+                Logger.AppendLine($"------ Log start at {DateTime.Now.ToString()}-------");
+            }
             Performance?.Start();
         }
 
@@ -199,8 +198,6 @@ namespace MED
         public void Stop()
         {
             Performance?.Stop();
-            RTGBAppendRegex = null;
-            Performance = null;
 
             RefreshProgress(null);
         }

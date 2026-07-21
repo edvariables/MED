@@ -26,19 +26,19 @@ namespace MED.Imaging
         [Browsable(true)]
         public Size Grid { get; set; }
 
-        public override void LoadSettings(bool loadChildren = true)
+        public override void LoadSettings(string fileName)
         {
-            base.LoadSettings(loadChildren);
+            base.LoadSettings(fileName);
 
-            Horizontal = (bool)Core.Settings.GetValue("Horizontal", Name, Horizontal);
-            Grid = (Size)Core.Settings.GetValue("Grid", Name, Grid);
+            Horizontal = (bool)ProcessSettings.GetValue("Horizontal", Horizontal);
+            Grid = (Size)ProcessSettings.GetValue("Grid", Grid);
         }
-        public override void SaveSettings(bool saveChildren = true)
+        public override void SaveSettings(ProcessSettings settings = null, string fileName = "")
         {
-            Core.Settings.SetValue("Horizontal", Name, Horizontal);
-            Core.Settings.SetValue("Grid", Name, Grid);
+            base.SaveSettings(settings, fileName);
 
-            base.SaveSettings(saveChildren);
+            ProcessSettings.SetValue("Horizontal", Horizontal);
+            ProcessSettings.SetValue("Grid", Grid);
         }
         #endregion
 

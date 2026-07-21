@@ -1,6 +1,7 @@
 ﻿using DevDecoder.HIDDevices.Controllers;
 using DynamicData;
 using Emgu.CV;
+using MED.Core;
 using MED.EDJoystick;
 using MED.EDWebCam;
 using Microsoft.Win32;
@@ -16,6 +17,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace MED
 {
@@ -148,7 +150,7 @@ namespace MED
             var processForm = GetNewProcessForm();
 
         }
-        private ProcessForm GetNewProcessForm()
+        private ProcessForm GetNewProcessForm(string fileName = "")
         {
             ProcessForm processForm = new();
             processForm.MdiParent = this;
@@ -157,8 +159,6 @@ namespace MED
             processForm.Dock = DockStyle.Fill;
             processForm.OnProcessStateChanged += ProcessStateChanged;
             processForm.Activated += ProcessForm_Activated;
-            if (processForm.Processes.Count > 0 && processForm.Processes.First() is ImageProcess)
-                (processForm.Processes.First() as ImageProcess).OnImageChanged += ProcessForm_ImageChanged;
 
             processForm.Logger = FLogger.Current.Logger;
 
@@ -168,23 +168,36 @@ namespace MED
             controller.Show();
             processForm.Controls.Add(controller);
 
-            var render = new Render(
-                "Render"
-                , new Performance("Render", FLogger.Current.Logger)
-                , processForm
-            );
-            processForm.Processes.Add(render);
+            if (fileName != "")
+            {
+                processForm.LoadSettings(fileName);
+            }
+            else
+            {
+                var render = new Render(
+                    "Render"
+                    , new Performance("Render", FLogger.Current.Logger)
+                    , processForm
+                );
+                processForm.Processes.Add(render);
 
-            var videoCapture = new EDVideoCapture(
-                "VideoCapture"
-                , new Performance("VideoCapture", FLogger.Current.Logger)
-                , processForm
-                , (IImageConsumer)processForm.Processes.Last()
-            );
-            videoCapture.OnImageChanged += render.ImageChanged;
-            processForm.Processes.Add(videoCapture);
+                var videoCapture = new EDVideoCapture(
+                    "VideoCapture"
+                    , new Performance("VideoCapture", FLogger.Current.Logger)
+                    , processForm
+                    , (IImageConsumer)processForm.Processes.Last()
+                );
+                videoCapture.OnImageChanged += render.ImageChanged;
+                processForm.Processes.Add(videoCapture);
 
+            }
+            processForm.Icon = Core.Settings.GetIcon(processForm.ProcessIcon);
             processForm.Show();
+
+            if (processForm.Processes.Count > 0 && processForm.Processes.First() is ImageProcess)
+                (processForm.Processes.First() as ImageProcess).OnImageChanged += ProcessForm_ImageChanged;
+
+            ActiveProcess = processForm;
 
             return processForm;
         }
@@ -197,13 +210,7 @@ namespace MED
             if (activeProcess == null)
                 return;
 
-            objects.AddRange(activeProcess.Project.ObjectsProperties.Values);
-
-            var processes = activeProcess.Processes;
-            foreach (var process in processes)
-                objects.AddRange(process.ObjectsProperties.Values);
-            if (processes.Count > 0 && !activeProcess.Performance.IsEmpty)
-                objects.Add(activeProcess.Performance);
+            objects.Add(activeProcess.Project);
 
             FProperties.CurrentProperties = objects.ToArray();
         }
@@ -225,30 +232,55 @@ namespace MED
         private void OpenFile(object sender, EventArgs e)
         {
             System.Windows.Forms.OpenFileDialog openFileDialog = new System.Windows.Forms.OpenFileDialog();
-            openFileDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
-            openFileDialog.Filter = "Fichiers de projets MED (*.med)|*.med|Tous les fichiers (*.*)|*.*";
+            openFileDialog.InitialDirectory = Settings.MyProjectsDirectory;
+            var extension = Settings.ProcessFileExtension;
+            openFileDialog.Filter = $"Fichiers de projets MED (*{extension})|*{extension}|Tous les fichiers (*.*)|*.*";
             if (openFileDialog.ShowDialog(this) == DialogResult.OK)
             {
-                string FileName = openFileDialog.FileName;
+                string fileName = openFileDialog.FileName;
 
-                var processForm = GetNewProcessForm();
-                processForm.SettingsPath = $"file:{FileName}:{processForm.Name}";
-                processForm.LoadSettings(true);
+                GetNewProcessForm(fileName);
             }
+        }
+
+        private void saveToolStripButton_Click(object sender, EventArgs e)
+        {
+            SaveSettings();
+            if (ActiveProcess is ProcessForm)
+            {
+                if (((IProcess)ActiveProcess).ProcessSettings?.FileName == "")
+                {
+                    SaveAsToolStripMenuItem_Click(sender, e);
+                    return;
+                }
+                ((ProcessForm)ActiveProcess).SaveSettings();
+                toolStripStatusLabel.Text = ActiveProcess.Name + " enregistrée";
+            }
+            else
+                toolStripStatusLabel.Text = "Aucun process à sauvegarder !";
         }
 
         private void SaveAsToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            if (ActiveProcess == null)
+            {
+                MessageBox.Show("Aucun projet actif à enregistrer", this.Text, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+
             System.Windows.Forms.SaveFileDialog saveFileDialog = new System.Windows.Forms.SaveFileDialog();
-            saveFileDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
-            saveFileDialog.Filter = "Fichiers de projets MED (*.med)|*.med|Tous les fichiers (*.*)|*.*";
+            saveFileDialog.InitialDirectory = Settings.MyProjectsDirectory;
+            saveFileDialog.FileName = ActiveProcess.ProcessSettings?.FileName;
+            if (saveFileDialog.FileName == "")
+                saveFileDialog.FileName = ActiveProcess.Name;
+            var extension = Settings.ProcessFileExtension;
+            saveFileDialog.Filter = $"Fichiers de projets MED (*{extension})|*{extension}|Tous les fichiers (*.*)|*.*";
             if (saveFileDialog.ShowDialog(this) == DialogResult.OK)
             {
-                string FileName = saveFileDialog.FileName;
+                string fileName = saveFileDialog.FileName;
                 if (ActiveProcess != null)
                 {
-                    ActiveProcess.SettingsPath = $"file:{FileName}:{ActiveProcess.Name}"; 
-                    ActiveProcess?.SaveSettings();
+                    ActiveProcess?.SaveSettings(null, fileName);
                 }
             }
         }
@@ -345,7 +377,7 @@ namespace MED
                 if (proc.GetType().Equals(type))
                     if (proc is ProcessForm)
                         return (ProcessForm)proc;
-                    else 
+                    else
                         throw new Exception($"{type.Name} is not a ProcessForm type");
             }
 
@@ -455,6 +487,10 @@ namespace MED
         {
             if (ProcessForm.FindProcessForm(sender) == ActiveProcess)
                 ActiveProcessChanged(sender, state);
+            if (state == System.Threading.ThreadState.Running)
+                FLogger.Current.Start();
+            else if (state == System.Threading.ThreadState.Stopped)
+                FLogger.Current.Stop();
         }
         #endregion
 
@@ -495,17 +531,6 @@ namespace MED
         }
         #endregion
 
-        private void saveToolStripButton_Click(object sender, EventArgs e)
-        {
-            SaveSettings();
-            if (ActiveProcess is ProcessForm)
-            {
-                ((ProcessForm)ActiveProcess).SaveSettings();
-                toolStripStatusLabel.Text = ActiveProcess.Name + " enregistrée";
-            }
-            else
-                toolStripStatusLabel.Text = "Aucun process à sauvegarder !";
-        }
 
     }
 }

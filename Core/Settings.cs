@@ -6,8 +6,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using static System.Collections.Specialized.BitVector32;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 
 /**
@@ -22,6 +24,10 @@ namespace MED.Core
 {
     public static class Settings
     {
+        static Settings() {
+            MyProjectsDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), Namespace) + "\\Projects";
+        }
+
         private static ConcurrentDictionary<string, object> _values = new();
         private static ConcurrentDictionary<string, object> _saveValues = new();
         private static readonly bool _useCache = true;
@@ -33,7 +39,45 @@ namespace MED.Core
                 return Assembly.GetExecutingAssembly().GetTypes().First().Namespace;
             }
         }
+        public const string ProcessFileExtension= ".med.json";
+        public static readonly string MyProjectsDirectory;
 
+        private static ImageList _IconsImageList = null;
+        public static ImageList IconsImageList
+        {
+            get
+            {
+                if (_IconsImageList != null)
+                    return _IconsImageList;
+                //First call initialize ResourceSet
+                if (EDIcons.ResourceManager.GetObject("EDV", System.Globalization.CultureInfo.InvariantCulture) == null)
+                    return null;
+                _IconsImageList = new();
+                foreach (var kvp in EDIcons.ResourceManager.GetResourceSet(System.Globalization.CultureInfo.InvariantCulture, false, false))
+                {
+                    string name= (string)((DictionaryEntry)kvp).Key;
+                    Image image = (Image)((DictionaryEntry)kvp).Value;
+                    _IconsImageList.Images.Add(name, image);
+                }
+                return _IconsImageList;
+            }
+        }
+        public static Bitmap GetImage(string name)
+        {
+            //System.Reflection.PropertyInfo prop = (System.Reflection.PropertyInfo)typeof(EDIcons).GetProperty(name);
+            var prop= typeof(EDIcons).GetProperty(name, System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+            object value=prop.GetValue(null, null);
+            if(value is Bitmap)
+                return (Bitmap)prop.GetValue(null, null);
+            if( name != "Null")
+                return GetImage("Null");
+            return null;
+        }
+        public static Icon GetIcon(string name)
+        {
+            Bitmap image = GetImage(name);
+            return System.Drawing.Icon.FromHandle(image.GetHicon());
+        }
         /**
          * Get section|setting
          * */
@@ -83,7 +127,7 @@ namespace MED.Core
         /**
          * TODO
          */
-        public static void SaveValue(object value, string item, string section, string settingsPath="", string settingsFile = "")
+        public static void SaveValue(object value, string item, string section, string settingsPath = "", string settingsFile = "")
         {
             switch (settingsFile)
             {

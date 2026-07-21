@@ -11,7 +11,7 @@ namespace MED
     {
         public ImageProcessForm()
         {
-
+            ProcessIcon = "VisualTrue";
         }
 
 

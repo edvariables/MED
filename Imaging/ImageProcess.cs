@@ -1,9 +1,11 @@
-﻿using System;
+﻿using MED.Core;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 namespace MED
@@ -13,6 +15,8 @@ namespace MED
         public ImageProcess(string name, Performance performance = null, Control invokeHandler = null, IImageConsumer imageConsumer = null, bool isAsynchrone = false)
             : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
         {
+            ProcessIcon = "Image";
+
             ImageProviders = new();
             ImageConsumer = imageConsumer;
         }
@@ -67,6 +71,13 @@ namespace MED
             }
         }
 
+        [Browsable(true)]
+        public List<IProcess> ImageConsumers { get => GetConsumers("Image"); }
+
+        [Browsable(true)]
+        public List<IProcess> FrameConsumers { get => GetConsumers("Frame"); }
+
+
         public override bool AddConsumer(IConsumer consumer, string property = "ProcessState")
         {
 
@@ -85,6 +96,28 @@ namespace MED
             }
 
             return false;
+        }
+
+        public override Dictionary<string, object> ObjectsProperties
+        {
+            get
+            {
+                var dict = base.ObjectsProperties;
+
+                var consumers = new List<IProcess>();
+                foreach (var proc in ImageConsumers)
+                    consumers.Add(proc);
+                if (consumers.Count > 0)
+                    dict.Add("Images vers", consumers);
+
+                consumers = new List<IProcess>();
+                foreach (var proc in FrameConsumers)
+                    consumers.Add(proc);
+                if (consumers.Count > 0)
+                    dict.Add("Frames vers", consumers);
+
+                return dict;
+            }
         }
 
         /**
@@ -139,7 +172,7 @@ namespace MED
                 if (IsAsynchrone)
                 {
                     //Generate in same thread
-                    var image = GetImage(sender);
+                    Image = GetImage(sender);
                 }
                 InvokeImageChanged(sender, e);
             }
@@ -216,23 +249,62 @@ namespace MED
          * 
          * */
         #region Settings
-        public override void LoadSettings(bool loadChildren = true)
-        {
-            base.LoadSettings(loadChildren);
+        //public override void LoadSettings(bool loadChildren = true)
+        //{
+        //    base.LoadSettings(loadChildren);
 
-            var value = Core.Settings.GetValue("ImageSizeMax", Name, ImageSizeMax);
+        //    var value = Core.Settings.GetValue("ImageSizeMax", Name, ImageSizeMax);
+        //    if (value is Size)
+        //        ImageSizeMax = (Size)value;
+        //    else
+        //        ImageSizeMax = Size.Empty;
+        //}
+        //public override void SaveSettings(bool saveChildren = false)
+        //{
+
+        //    Core.Settings.SetValue("ImageSizeMax", Name, ImageSizeMax.IsEmpty ? "" : ImageSizeMax);
+
+        //    base.SaveSettings(saveChildren);
+        //}
+
+        public override void LoadSettings(string fileName)
+        {
+            base.LoadSettings(fileName);
+
+            var value = ProcessSettings.GetValue("ImageSizeMax", ImageSizeMax);
             if (value is Size)
                 ImageSizeMax = (Size)value;
             else
                 ImageSizeMax = Size.Empty;
         }
-        public override void SaveSettings(bool saveChildren = false)
+        public override JsonObject SaveProcess(JsonObject node = null)
         {
+            node = base.SaveProcess(node);
+            node.Add("ImageSizeMax", Parser.ObjectToString(ImageSizeMax));
 
-            Core.Settings.SetValue("ImageSizeMax", Name, ImageSizeMax.IsEmpty ? "" : ImageSizeMax);
+            var consumers = new JsonObject();
 
-            base.SaveSettings(saveChildren);
+            string[] properties = ["Image", "Frame"];
+            foreach (var propertyName in properties)
+            {
+                JsonArray jsonCons = new JsonArray();
+                foreach (var consumer in GetConsumers(propertyName))
+                {
+                    JsonObject item = new();
+
+                    item["ProcessClass"] = consumer.GetType().FullName;
+                    item["Name"] = consumer.Name;
+
+                    jsonCons.Add(item);
+                }
+                if (jsonCons.Count > 0)
+                    consumers[propertyName] = jsonCons;
+            }
+            if (consumers.Count > 0)
+                node["Consumers"] = consumers;
+            return node;
         }
+
         #endregion
 
 

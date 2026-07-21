@@ -1,8 +1,10 @@
-﻿using System;
+﻿using MED.Core;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 namespace MED
@@ -11,7 +13,10 @@ namespace MED
     {
         public ProcessForm() : base()
         {
+            ProcessIcon = "Visual";
+
             this.FormClosed += Form_FormClosed;
+            this.DockChanged += ProcessForm_DockChanged;
 
             Project = new(this.GetType().Name, null, this);
 
@@ -39,10 +44,13 @@ namespace MED
         {
             if (WindowState == FormWindowState.Maximized)
             {
-                _MdiParent = MdiParent;
-                MdiParent = null;
+                if (MdiParent != null)
+                {
+                    _MdiParent = MdiParent;
+                    MdiParent = null;
+                }
             }
-            else if(_MdiParent!=null) 
+            else if (_MdiParent != null && MdiParent == null)
             {
                 MdiParent = _MdiParent;
                 if (WindowState == FormWindowState.Normal)
@@ -75,25 +83,54 @@ namespace MED
         [ReadOnly(true)]
         public bool IsAsynchrone { get => Project.IsAsynchrone; set => Project.IsAsynchrone = value; }
 
-        [ReadOnly(true)]
-        public string SettingsPath { get => Project.SettingsPath; set => Project.SettingsPath = value; }
+        [Browsable(true)]
+        public ProcessSettings ProcessSettings { get => Project.ProcessSettings; set => Project.ProcessSettings = value; }
 
-        public virtual void LoadSettings(bool loadChildren = true)
+        public virtual void LoadSettings(string fileName)
         {
-            Core.Settings.ClearCache(true, true, this.Name);
-            Performance.LoadSettings(Name + ".Perf");
-            Project.LoadSettings(loadChildren);
+            Project.LoadSettings(fileName);
+
+            Size = (Size)ProcessSettings.GetValue("Size", Size);
+            Location = (Point)ProcessSettings.GetValue("Location", Location);
         }
-        public virtual void SaveSettings(bool saveChildren = true)
+        public virtual void SaveSettings(ProcessSettings settings = null, string fileName = "")
         {
-            if (saveChildren && Processes != null)
-                foreach (var proc in Processes)
-                    proc.SaveSettings();
-            Performance.SaveSettings(Name + ".Perf", saveChildren);
+            Project.SaveSettings(settings, fileName);
+        }
+        public virtual JsonObject SaveProcess(JsonObject node = null)
+        {
+            if (node == null)
+                node = new JsonObject();
+            node["ProcessClass"] = this.GetType().FullName;
+            node["Name"] = Name;
+            node["IsAsynchrone"] = IsAsynchrone;
+            if (Visible)
+            {
+                node["Size"] = Parser.ObjectToString(Size);
+                node["Location"] = Parser.ObjectToString(Location);
+            }
+            node["Perf"] = Performance.SaveNode();
 
-            Core.Settings.Save();
+            return node;
         }
         #endregion
+
+        //public virtual void LoadSettings(bool loadChildren = true)
+        //{
+        //    Core.Settings.ClearCache(true, true, this.Name);
+        //    Performance.LoadSettings(Name + ".Perf");
+        //    Project.LoadSettings(loadChildren);
+        //}
+        //public virtual void SaveSettings(bool saveChildren = true)
+        //{
+        //    if (saveChildren && Processes != null)
+        //        foreach (var proc in Processes)
+        //            proc.SaveSettings();
+        //    Performance.SaveSettings(Name + ".Perf", saveChildren);
+
+        //    Core.Settings.Save();
+        //}
+        //#endregion
 
 
         [Browsable(true)]
@@ -160,10 +197,10 @@ namespace MED
             get
             {
                 var dict = Project.ObjectsProperties;
-                dict.Add(this.Name, this);
-
                 return dict;
             }
         }
+
+        public string ProcessIcon { get; set; }
     }
 }

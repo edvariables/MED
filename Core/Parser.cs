@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -58,6 +59,32 @@ namespace MED.Core
                 _ => str_value
             };
             return value;
+        }
+
+        public static object ObjectFromJsonNode(JsonNode node, object type_as)
+        {
+            if (type_as == null)
+                return node.GetValue<object>();
+
+            switch (node.GetValueKind())
+            {
+                case System.Text.Json.JsonValueKind.True:
+                    return true;
+                case System.Text.Json.JsonValueKind.False:
+                    return false;
+                case System.Text.Json.JsonValueKind.String:
+                    return ObjectFromString(node.AsValue().ToString(), type_as);
+                case System.Text.Json.JsonValueKind.Number:
+                    return ObjectFromString(node.AsValue().ToString(), type_as);
+                case System.Text.Json.JsonValueKind.Object:
+                    return ObjectFromString(node.AsValue().ToString(), type_as);
+                case System.Text.Json.JsonValueKind.Array:
+                    return ObjectFromString(node.AsValue().ToString(), type_as);
+                case System.Text.Json.JsonValueKind.Undefined:
+                case System.Text.Json.JsonValueKind.Null:
+                default:
+                    return null;
+            }
         }
 
         public static string SizeToPretty(Size size) => ObjectToString(size).Replace(",", " x ");

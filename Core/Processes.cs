@@ -1,8 +1,10 @@
-﻿using System;
+﻿using MED.Core;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 namespace MED
@@ -23,32 +25,41 @@ namespace MED
             get => _Logger;
             set
             {
+                _Logger = value;
                 if (value != null && (Performance == null || Performance.IsEmpty))
                     Performance = new(Name, value/*, false TODO*/);
                 else
                     Performance.Logger = value;
-                _Logger = value;
+                //Propagate
+                if (Items != null)
+                    foreach (var proc in Items)
+                        if (proc is Process)
+                            (proc as Process).Performance.Logger = _Logger;
+                        else if (proc is ProcessForm)
+                            (proc as ProcessForm).Logger = _Logger;
             }
         }
 
         #region Settings
 
-        [Browsable(true)]
-        public override string SettingsPath { get; set; }
-
-        public override void LoadSettings(bool loadChildren = true)
+        public override void LoadSettings(string fileName)
         {
-            base.LoadSettings(loadChildren);
+            base.LoadSettings(fileName);
 
-            //Horizontal = (bool)Core.Settings.GetValue("Horizontal", Name, Horizontal);
+            LoadProcesses(ProcessSettings);
 
             InitializeProcesses(false);
         }
-        public override void SaveSettings(bool saveChildren = true)
+        public override void SaveSettings(ProcessSettings settings = null, string fileName = "")
         {
-            //Core.Settings.SetValue("Horizontal", Name, Horizontal);
+            if (settings == null)
+                settings = ProcessSettings;
 
-            base.SaveSettings(saveChildren);
+            if (settings == null)
+                settings = ProcessSettings = new ProcessSettings(fileName);
+
+            SaveProcesses(settings);
+            base.SaveSettings(settings, fileName);
         }
         #endregion
 
@@ -60,13 +71,86 @@ namespace MED
 
         public virtual void DisposeProcesses()
         {
-
             if (Items != null)
             {
                 foreach (var handler in Items)
                     if (handler is IDisposable)
                         (handler as IDisposable).Dispose();
                 Items = null;
+            }
+        }
+
+        public virtual void LoadProcesses(ProcessSettings settings)
+        {
+
+            JsonArray nodes = settings.ChildArray("Processes");
+
+            if (nodes == null)
+                return;
+
+            DisposeProcesses();
+            Items = new();
+
+            Items.Clear();
+            var itemsNodes = new Dictionary<IProcess, JsonNode>();
+            foreach (var procNode in nodes)
+            {
+                var item = LoadProcess(procNode);
+                itemsNodes.Add(item, procNode);
+            }
+            foreach (var kvp in itemsNodes)
+            {
+                LoadConsumers(kvp.Key, kvp.Value);
+            }
+        }
+        public virtual IProcess LoadProcess(JsonNode node)
+        {
+            IProcess item = CreateProcess(node, Performance, InvokeHandler);
+
+            Items.Add(item);
+
+            return item;
+        }
+        public virtual void LoadConsumers(IProcess process, JsonNode node)
+        {
+            if (node["Consumers"] == null)
+                return;
+            var consumers = node["Consumers"].AsObject();
+            if (consumers == null) return;
+            foreach (var property in consumers)
+            {
+                var propertyName = property.Key;
+                foreach (var consumerNode in property.Value.AsArray())
+                {
+                    LoadConsumer(process, consumerNode.AsObject(), propertyName);
+                }
+            }
+        }
+        public virtual void LoadConsumer(IProcess process, JsonObject consumerNode, string propertyName)
+        {
+            string consumerName = consumerNode["Name"].ToString();
+
+            IProcess consumerProcess = null;
+            foreach (var item in Items)
+                if (item.Name == consumerName)
+                {
+                    consumerProcess = item;
+                    break;
+                }
+
+            if (consumerProcess == null)
+                return;
+
+            Process.AddConsumer((IProvider)process, (IConsumer)consumerProcess, propertyName);
+        }
+
+        public virtual void SaveProcesses(ProcessSettings settings)
+        {
+            JsonArray nodes = settings.ChildArray("Processes", true);
+            nodes.Clear();
+            foreach (var proc in Items)
+            {
+                nodes.Add(proc.SaveProcess());
             }
         }
 
@@ -176,7 +260,7 @@ namespace MED
             {
                 var dict = new Dictionary<string, object>();
                 dict.Add(this.Name, this);
-                if( ! Performance.IsEmpty)
+                if (!Performance.IsEmpty)
                     dict.Add(this.Name + ".Performance", Performance);
 
                 return dict;

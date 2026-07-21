@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 namespace MED
@@ -11,12 +12,13 @@ namespace MED
     public interface IProcess : IDisposable
     {
         string Name { get; }
+        string ProcessIcon { get; }
 
         #region Settings
-        [ReadOnly(true)]
-        string SettingsPath { get; set; }
-        void LoadSettings(bool loadChildren = false);
-        void SaveSettings(bool saveChildren = true);
+        ProcessSettings ProcessSettings { get; }
+        void LoadSettings(string fileName);
+        void SaveSettings(ProcessSettings settings = null, string fileName = "");
+        JsonObject SaveProcess(JsonObject node = null);
 
         [Browsable(false)]
         Dictionary<string, object> ObjectsProperties { get; }

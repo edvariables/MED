@@ -90,7 +90,7 @@ namespace MED
         {
             InvokePropertyChanged(sender, OnFrameChanged, e);
         }
-        public IMatFrameProvider.FrameChangedDelegate OnFrameChanged;
+        public IMatFrameProvider.FrameChangedDelegate? OnFrameChanged;
 
         /**
          * delegate Capture_ImageGrabbed
@@ -127,16 +127,7 @@ namespace MED
             Bitmap image;
             if (Frame == null)
                 return null;
-            //    if (IsInvokingPropertyChanged(OnFrameChanged))
-            //    {
-            //        Performance.StackTrace($"IsInvokingPropertyChanged {OnFrameChanged.Method.Name}");
-            //        return _Image;
-            //    }
-            //    if (IsInvokingPropertyChanged(OnImageChanged))
-            //    {
-            //        Performance.StackTrace($"IsInvokingPropertyChanged {OnImageChanged.Method.Name}");
-            //        return _Image;
-            //    }
+
             Performance.Step("LastFrame.ToBitmap()");
             try
             {
@@ -153,55 +144,8 @@ namespace MED
             return null;
         }
 
-        public Bitmap FrameToImage(IMatFrameProvider sender, Mat currentFrame = null)
-        {
-            return currentFrame?.ToBitmap();
-        }
+        public Bitmap FrameToImage(IMatFrameProvider sender, Mat currentFrame = null) => currentFrame?.ToBitmap();
 
-        //private Bitmap _Image;
-        //public override Bitmap Image
-        //{
-        //    get
-        //    {
-        //        if (_Image == null)
-        //        {
-        //            if (Frame == null)
-        //                return null;
-        //            //if (false)
-        //            //{
-        //            //    if (IsInvokingPropertyChanged(OnFrameChanged))
-        //            //    {
-        //            //        Performance.StackTrace($"IsInvokingPropertyChanged {OnFrameChanged.Method.Name}");
-        //            //        return _Image;
-        //            //    }
-        //            //    if (IsInvokingPropertyChanged(OnImageChanged))
-        //            //    {
-        //            //        Performance.StackTrace($"IsInvokingPropertyChanged {OnImageChanged.Method.Name}");
-        //            //        return _Image;
-        //            //    }
-        //            //}
-        //            //Generated at first query
-        //            Performance.Step("LastFrame.ToBitmap()");
-        //            try
-        //            {
-        //                _Image = Frame.ToBitmap();
-        //            }
-        //            catch (System.AccessViolationException ex)
-        //            {
-        //                Performance.Error("AccessViolationException in LastFrame.ToBitmap()");
-        //            }
-        //            catch (Exception ex)
-        //            {
-        //                Performance.Error("in LastFrame.ToBitmap() : ", ex);
-        //            }
-        //        }
-        //        return _Image;
-        //    }
-        //    set
-        //    {
-        //        _Image = value;
-        //    }
-        //}
         #endregion
 
         /**
@@ -264,6 +208,8 @@ namespace MED
         public override void Stop()
         {
             Capture?.Stop();
+            Capture?.Dispose();
+            Capture = null;
 
             base.Stop();
         }

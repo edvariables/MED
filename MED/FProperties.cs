@@ -27,63 +27,24 @@ namespace MED
 
         public static object CurrentProperty
         {
-            get => Current?.propertyGrid.SelectedObject;
+            get => Current?.propertiesControl1.CurrentProperty;
             set => Current?.ShowProperty(value);
         }
         public static object[] CurrentProperties
         {
-            get => Current?.cboObjectsList.Items.OfType<object>().ToArray();
-            set => Current?.ShowProperties(value);
+            get => Current?.propertiesControl1.CurrentProperties;
+            set => Current?.propertiesControl1.ShowProperties(value);
         }
 
         public void ShowProperty(object o)
         {
-            propertyGrid.SelectedObject = o;
+            propertiesControl1.ShowProperty(o);
         }
 
         public void ShowProperties(object[] items)
         {
-            object currentObject = propertyGrid.SelectedObject;
-            cboObjectsList.Items.Clear();
-            cboObjectsList.Items.AddRange(items);
-            if (cboObjectsList.Items.Count > 0)
-            {
-                if (currentObject != null)
-                {
-                    if (cboObjectsList.Items.Contains(currentObject))
-                        cboObjectsList.SelectedIndex = cboObjectsList.Items.IndexOf(currentObject);
-                    else
-                    {
-                        int index = 0;
-                        foreach (var item in cboObjectsList.Items)
-                            if (currentObject.GetType().Equals(item.GetType())
-                                && currentObject.ToString() == item.ToString())
-                            {
-                                cboObjectsList.SelectedIndex = index;
-                                break;
-                            }
-                            else
-                                index++;
-                    }
-                }
-            }
-            if (cboObjectsList.Items.Count > 0 && cboObjectsList.SelectedIndex == -1)
-                cboObjectsList.SelectedIndex = 0;
+            propertiesControl1.ShowProperties(items);
         }
 
-        private void cboObjectsList_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (cboObjectsList.SelectedIndex == -1)
-                propertyGrid.SelectedObject = null;
-            else
-                propertyGrid.SelectedObject = cboObjectsList.Items[cboObjectsList.SelectedIndex];
-        }
-
-        private void cmdRefresh_Click(object sender, EventArgs e)
-        {
-            //SIC Does not work : Les objets semblent être une copie
-            propertyGrid.SelectedObject = null;
-            cboObjectsList_SelectedIndexChanged(sender, e);
-        }
     }
 }

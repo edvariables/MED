@@ -1,14 +1,18 @@
-﻿using System;
+﻿using MED.Core;
+using Microsoft.VisualBasic.FileIO;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 using System.Text;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using static System.Collections.Specialized.BitVector32;
 
 namespace MED
 {
-    public abstract class Process : IProcess, IConsumer, IProvider
+    public class Process : IProcess, IConsumer, IProvider
     {
         public Process(string name, Performance performance = null, Control invokeHandler = null, IConsumer consumer = null, bool isAsynchrone = false)
         {
@@ -18,16 +22,12 @@ namespace MED
 
             if (name == "")
                 name = this.GetType().Name;
-            
-            string settingsPath, settingsFile, section;
-            Name = Core.Settings.ParseSettingsPathSection(name, out settingsPath, out settingsFile);
+            ProcessIcon = "Process";
 
-            SettingsPath = (settingsFile == "" ? settingsFile + ":" : "") + settingsPath;
+            Name = name;
 
             Performance = performance == null ? MED.Performance.Empty() : performance;
 
-
-            LoadSettings();
         }
 
 
@@ -55,7 +55,7 @@ namespace MED
             return $"{typeName}[{Name}]({ProcessState})";
         }
 
-        public virtual bool AddConsumer(IConsumer consumer, string property = "ProcessState")
+        public static bool AddConsumer(IProvider provider, IConsumer consumer, string property = "ProcessState")
         {
 
             //switch (property)
@@ -64,19 +64,43 @@ namespace MED
             //        var type = consumer.GetType();
             //        break;
             //    default:
-            RemoveHandler($"On{property}Changed", consumer, consumer.GetType(), $"{property}Changed");
-            AddHandler($"On{property}Changed", consumer, consumer.GetType(), $"{property}Changed");
+            RemoveHandler(provider, $"On{property}Changed", consumer, consumer.GetType(), $"{property}Changed");
+            AddHandler(provider, $"On{property}Changed", consumer, consumer.GetType(), $"{property}Changed");
             //throw new ArgumentOutOfRangeException($"AddConsumer( IConsumer, string Property = \"{AddConsumer}\" UNKNOWN ");
             //        break;
             //}
 
             return true;
         }
+        public virtual bool AddConsumer(IConsumer consumer, string property = "ProcessState")
+        {
+            return Process.AddConsumer(this, consumer, property);
+        }
 
-        //private IConsumer _Consumer;
-        //[Browsable(false)]
-        //public virtual IConsumer Consumer { get; set; }
+        /**
+         * 
+         * */
+        protected List<IProcess> GetConsumers(string propertyName = "")
+        {
+            List<IProcess> consumers = new();
+            foreach (var member in this.GetType().GetFields())
+            {
+                if (!member.FieldType.BaseType.Equals(typeof(MulticastDelegate))) continue;
+                if (member.Name == $"On{propertyName}Changed" || member.Name == $"{propertyName}Changed")
+                {
+                    MulticastDelegate del = (MulticastDelegate)(member.GetValue(this));
+                    if (del == null)
+                        continue;
+                    foreach (var invocation in del.GetInvocationList())
+                    {
+                        if (invocation.Target is IProcess)
+                            consumers.Add((IProcess)invocation.Target);
+                    }
+                }
+            }
+            return consumers;
 
+        }
         private List<Delegate> _IsInvokingPropertyChanged = new();
 
         protected bool IsInvokingPropertyChanged(Delegate delegateMethod)
@@ -156,9 +180,12 @@ namespace MED
             }
         }
 
-        public void AddHandler(string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
+        public void AddHandler( string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
         {
-            IProvider handler_obj = this;
+            Process.AddHandler(this, handler_field, consumer, consumer_type, consumer_method);
+        }
+        public static void AddHandler(IProvider handler_obj ,string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
+        {
             var memberInfo = handler_obj.GetType().GetMember(handler_field);
             if (memberInfo == null)
                 throw new Exception($"Le type {handler_obj.GetType().FullName} n'a pas de delegate {handler_field}");
@@ -178,8 +205,11 @@ namespace MED
 
         public void RemoveHandler(string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
         {
+            Process.RemoveHandler(this, handler_field, consumer, consumer_type, consumer_method);
+        }
+        public static void RemoveHandler(IProvider handler_obj, string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
+        {
             //TODO
-            IProvider handler_obj = this;
             var memberInfo = handler_obj.GetType().GetMember(handler_field);
             if (memberInfo == null)
                 throw new Exception($"Le type {handler_obj.GetType().FullName} n'a pas de delegate {handler_field}");
@@ -215,6 +245,7 @@ namespace MED
 
         [ReadOnly(true)]
         public string Name { get; set; }
+        public string ProcessIcon { get; set; }
 
         [Browsable(false)]
         public Control InvokeHandler { get; set; }
@@ -224,20 +255,71 @@ namespace MED
 
         #region Settings
 
-        [Browsable(false)]
-        public virtual string SettingsPath { get; set; }
+        [Browsable(true)]
+        public ProcessSettings ProcessSettings { get; set; }
 
-        public virtual void LoadSettings(bool loadChildren = true)
+        public virtual void LoadSettings(string fileName)
         {
-            if (SettingsPath == null) SettingsPath = "";
+            ProcessSettings = ProcessSettings.FromFile(fileName);
 
-            Core.Settings.ClearCache(true, true, SettingsPath + ":" + Name);
-
-            Performance.LoadSettings(SettingsPath + ":" + Name);
+            Performance.LoadSettings(ProcessSettings.ChildSettings("Perf"));
         }
-        public virtual void SaveSettings(bool saveChildren = true)
+
+        public virtual void SaveSettings(ProcessSettings settings = null, string fileName = "")
         {
-            Performance.SaveSettings(SettingsPath + ":" + Name, saveChildren);
+            if (settings == null)
+                settings = ProcessSettings;
+
+            if (settings != null)
+            {
+                SaveProcess(settings.Root.AsObject());
+
+                if (fileName != "" || settings.FileName != "")
+                    settings.Save(fileName);
+            }
+        }
+
+        public static IProcess CreateProcess(JsonNode node, Performance performance, Control invokeHandler)
+        {
+            string processClass = node["ProcessClass"].GetValue<string>();
+            string processLib = node["ProcessLib"].GetValue<string>();
+            string name = node["Name"].GetValue<string>();
+            bool isAsynchrone = (bool)Parser.ObjectFromJsonNode(node["IsAsynchrone"], false);
+
+            if (processClass == "")
+                processClass = MethodBase.GetCurrentMethod().DeclaringType.FullName;
+
+            try
+            {
+                IProcess item = (IProcess)AssemblyLoader.CreateObjectInstance(processLib, processClass, [name, performance.Sub(name), invokeHandler, null, isAsynchrone]);
+                //IProcess item = (IProcess)Activator.CreateInstance(processLib, processClass, [name, performance.Sub(name), invokeHandler, null, isAsynchrone]);
+                //Process item = new Process(name, performance.Sub(name), invokeHandler, null, isAsynchrone);
+                return item;
+            }
+            catch (Exception ex)
+            {
+                return null;
+                //                throw ex;
+            }
+            return null;
+        }
+        public virtual JsonObject SaveProcess(JsonObject node = null)
+        {
+            if (node == null)
+                node = new JsonObject();
+            var type = this.GetType();
+            var assembly = type.Assembly.Location;
+            if (Directory.GetParent(assembly).FullName == Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName)
+                assembly = type.AssemblyQualifiedName;
+
+            node["ProcessClass"] = type.FullName;
+            node["ProcessLib"] = assembly;
+            node["Name"] = Name;
+            node["IsAsynchrone"] = IsAsynchrone;
+
+            node["Perf"] = Performance.SaveNode();
+
+            return node;
         }
         #endregion
 

@@ -1,11 +1,13 @@
 ﻿using DirectShowLib;
 using Emgu.CV;
+using MED.Core;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 namespace MED
@@ -35,21 +37,23 @@ namespace MED
         [Browsable(true)]
         public bool Centered { get; set; }
 
-        public override void LoadSettings(bool loadChildren = true)
+        public override void LoadSettings(string fileName)
         {
-            base.LoadSettings(loadChildren);
+            base.LoadSettings(fileName);
 
-            Centered = (bool)Core.Settings.GetValue("Centered", Name, Centered);
-            KeepRenderRatio = (bool)Core.Settings.GetValue("KeepRenderRatio", Name, KeepRenderRatio);
-            ResizeToRenderSize = (bool)Core.Settings.GetValue("ResizeToRenderSize", Name, ResizeToRenderSize);
+            Centered = (bool)ProcessSettings.GetValue("Centered", Centered);
+            KeepRenderRatio = (bool)ProcessSettings.GetValue("KeepRenderRatio", KeepRenderRatio);
+            ResizeToRenderSize = (bool)ProcessSettings.GetValue("ResizeToRenderSize", ResizeToRenderSize);
         }
-        public override void SaveSettings(bool saveChildren = true)
+        public override JsonObject SaveProcess(JsonObject node = null)
         {
-            Core.Settings.SetValue("Centered", Name, Centered);
-            Core.Settings.SetValue("KeepRenderRatio", Name, KeepRenderRatio);
-            Core.Settings.SetValue("ResizeToRenderSize", Name, ResizeToRenderSize);
+            node = base.SaveProcess(node);
 
-            base.SaveSettings(saveChildren);
+            node.Add("Centered", Centered);
+            node.Add("KeepRenderRatio", KeepRenderRatio);
+            node.Add("ResizeToRenderSize", ResizeToRenderSize);
+
+            return node;
         }
         #endregion
 

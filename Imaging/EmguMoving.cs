@@ -3,8 +3,11 @@ using Emgu.CV.Structure;
 
 using libMotionDetection;
 using libVideoCapture;
-
+using MED.Core;
+using MED.Imaging;
 using System.ComponentModel;
+using System.Drawing.Drawing2D;
+using System.Text.Json.Nodes;
 
 namespace MED
 {
@@ -24,12 +27,8 @@ namespace MED
             get
             {
                 var dict = base.ObjectsProperties;
-                //if (DISOpticalFlow != null)
-                //{
-                //    dict.Add(this.Name + ".DISOpticalFlow", DISOpticalFlow);
-                //    //for (int i = 0; i < MoveDetector.IdxLimites; i++)
-                //    //    dict.Add($"{this.Name}.MoveDetector.Limites{i}", MoveDetector.get_Limites(i));
-                //}
+                //if (Capture != null)
+                //    dict.Add("Capture", Capture);//Forbidden
 
                 return dict;
             }
@@ -71,7 +70,10 @@ namespace MED
 
         public override Bitmap GetImage(IImageProvider provider = null)
         {
-            return FrameToImage((IMatFrameProvider)provider, Frame);
+            Performance.Resume($"GetImage Algorithm #{Transformer}", true);
+            var image= FrameToImage((IMatFrameProvider)provider, Frame);
+            Performance.Pause();
+            return image;
         }
         #endregion
 
@@ -80,7 +82,7 @@ namespace MED
         #region Frame
 
         private Mat PreviousFrame;
-
+        
         [Browsable(false)]
         public Mat Frame { get; protected set; }
         public void FrameChanged(IMatFrameProvider sender, EventArgs e)
@@ -89,12 +91,12 @@ namespace MED
 
             Frame = (ImageProvider as IMatFrameProvider).Frame;
 
-            //Do the job in same thread
-            Performance.Resume($"Process MoveDetectorAction Algorithm #{Algorithm}", true);
+            ////Do the job in same thread
+            //Performance.Resume($"Process MoveDetectorAction Algorithm #{Transformer}", true);
 
-            Image = GetImage((IImageProvider)sender);
+            //Image = GetImage((IImageProvider)sender);
 
-            Performance.Pause($"done Process MoveDetectorAction");
+            //Performance.Pause($"done Process MoveDetectorAction");
             //Performance.Step(Performance.ToString());
 
             InvokeFrameChanged(sender, e);
@@ -111,9 +113,10 @@ namespace MED
         #endregion
 
         #region Settings
-        public enum CvInvokeAlgorithms
+        public enum CvInvokeTransformers
         {
             CvInvoke_AbsDiff,
+            BorderFinder,
             Test,
             DenseOpticalFlow_WithHSV,
             Motion_History,
@@ -125,25 +128,36 @@ namespace MED
             BackgroundSubtraction_GMG,
         }
         [Browsable(true)]
-        public CvInvokeAlgorithms Algorithm { get; set; }
+        public CvInvokeTransformers Transformer { get; set; }
 
         [Browsable(true)]
-        public List<CvInvokeAlgorithms> Algorithms { get; set; }
+        public List<CvInvokeTransformers> Transformers { get; set; }
 
-        public override void LoadSettings(bool loadChildren = true)
+        [Browsable(true)]
+        public int DetectionLimit { get; set; }
+
+        public override void LoadSettings(string fileName)
         {
-            base.LoadSettings(loadChildren);
+            base.LoadSettings(fileName);
 
-            CvInvokeAlgorithms a;
-            if (Enum.TryParse<CvInvokeAlgorithms>(Core.Settings.GetValue("Algorithm", Name, Algorithm).ToString(), out a))
-                Algorithm = a;
+            var value = ProcessSettings.GetValue("ImageSizeMax", ImageSizeMax);
+
+            CvInvokeTransformers a;
+            if (Enum.TryParse<CvInvokeTransformers>(ProcessSettings.GetValue("Transformer", Transformer).ToString(), out a))
+                Transformer = a;
         }
-        public override void SaveSettings(bool saveChildren = true)
+        public override JsonObject SaveProcess(JsonObject node = null)
         {
-            Core.Settings.SetValue("Algorithm", Name, Algorithm);
-
-            base.SaveSettings(saveChildren);
+            node = base.SaveProcess(node);
+            node.Add("Transformer", Transformer.ToString());
+            return node;
         }
+        //public override void SaveSettings(bool saveChildren = true)
+        //{
+        //    Core.Settings.SetValue("Transformer", Name, Transformer);
+
+        //    base.SaveSettings(saveChildren);
+        //}
         #endregion
 
         #region CreateImage
@@ -168,9 +182,9 @@ namespace MED
             Mat frameDiff = null;
             Mat oldPrev = null;
 
-            switch (Algorithm)
+            switch (Transformer)
             {
-                case CvInvokeAlgorithms.Test:
+                case CvInvokeTransformers.Test:
 
                     if (PreviousFrame != null
                         && !currentFrame.Size.IsEmpty && !PreviousFrame.Size.IsEmpty &&
@@ -187,8 +201,66 @@ namespace MED
 
                     }
                     break;
+                    
+                case CvInvokeTransformers.BorderFinder:
 
-                case CvInvokeAlgorithms.CvInvoke_AbsDiff:
+                    if (PreviousFrame != null
+                        && !currentFrame.Size.IsEmpty && !PreviousFrame.Size.IsEmpty &&
+                        currentFrame.Size == PreviousFrame.Size)
+                    {
+                        frameDiff = new();
+                        CvInvoke.AbsDiff(PreviousFrame, currentFrame, frameDiff);
+
+                        bool useBmp = true;
+                        Bitmap bmp;
+                        if (useBmp)
+                            bmp = frameDiff.ToBitmap();
+                        else
+                            bmp = new Bitmap(currentFrame.Width, currentFrame.Height);
+
+
+
+                        Performance.Step($"borderFinder, useBmp={useBmp}");
+
+                        BorderFinder borderFinder = new(Color.FromArgb(DetectionLimit, DetectionLimit, DetectionLimit));
+
+                        List<PointF[]> points;
+                        if (useBmp)
+                            points = borderFinder.GetOutlinePointsNEW(bmp);
+                            //points = borderFinder.Find(bmp);
+                        else
+                            points = borderFinder.Find(frameDiff);
+
+                        if (points.Count > 0 && points[0].Count() > 0)
+                        {
+                            Performance.Step($"points {points.Count}");
+
+                            GraphicsPath path = borderFinder.GetPath(points);
+
+                            Performance.Step($"path {path.PointCount}");
+
+                            bmp = new Bitmap(currentFrame.Width, currentFrame.Height);
+
+                            Graphics gr = Graphics.FromImage(bmp);
+
+                            SolidBrush brush = new(Color.Red);
+                            gr.FillPath(brush, path);
+
+                            gr.Dispose();
+
+
+                            Performance.Step($"FillPath done");
+                        }
+                        oldPrev = PreviousFrame;
+                        PreviousFrame = currentFrame.Clone();
+                        oldPrev?.Dispose();
+
+                        return bmp;
+
+                    }
+                    break;
+
+                case CvInvokeTransformers.CvInvoke_AbsDiff:
                     // Dense Optical Flow
                     if (PreviousFrame != null
                         && !currentFrame.Size.IsEmpty && !PreviousFrame.Size.IsEmpty &&
@@ -199,7 +271,7 @@ namespace MED
                     }
                     break;
 
-                case CvInvokeAlgorithms.DenseOpticalFlow_WithHSV:
+                case CvInvokeTransformers.DenseOpticalFlow_WithHSV:
                     // Dense Optical Flow
                     if (PreviousFrame != null
                         && !currentFrame.Size.IsEmpty && !PreviousFrame.Size.IsEmpty &&
@@ -213,7 +285,7 @@ namespace MED
                     }
                     break;
 
-                case CvInvokeAlgorithms.Motion_History:
+                case CvInvokeTransformers.Motion_History:
                     frameDiff = currentFrame.Clone();
 
                     motionDetectionWithMotionHistory.GetFrameMotionComponents(frameDiff);
@@ -249,7 +321,7 @@ namespace MED
                         return frameDiff.ToBitmap();
                     break;
 
-                case CvInvokeAlgorithms.SparseOpticalFlow:
+                case CvInvokeTransformers.SparseOpticalFlow:
 
                     // Sparse Optical Flow (Lucas-Kanade)
                     Mat image = new Mat();
@@ -275,7 +347,7 @@ namespace MED
                     }
                     else
                     {
-                        Performance.Log($"{Algorithm} : PreviousFrame.Size.IsEmpty");
+                        Performance.Log($"{Transformer} : PreviousFrame.Size.IsEmpty");
                         frameDiff = displayImage;
                     }
 
@@ -287,7 +359,7 @@ namespace MED
                     Performance.Log($"Active Tracked Points: {vectors.Count}");
                     break;
 
-                case CvInvokeAlgorithms.TemporalFrameDifferencing:
+                case CvInvokeTransformers.TemporalFrameDifferencing:
                     // Temporal Frame Differencing (AbsDiff)
                     image = new Mat();
                     motionDetectionWithFrameDifferencing.ProcessFrame(image);
@@ -317,16 +389,16 @@ namespace MED
                     }
 
                     break;
-                case CvInvokeAlgorithms.BackgroundSubtraction_MOG2:
-                case CvInvokeAlgorithms.BackgroundSubtraction_KNN:
-                case CvInvokeAlgorithms.BackgroundSubtraction_CNT:
-                case CvInvokeAlgorithms.BackgroundSubtraction_GMG:
+                case CvInvokeTransformers.BackgroundSubtraction_MOG2:
+                case CvInvokeTransformers.BackgroundSubtraction_KNN:
+                case CvInvokeTransformers.BackgroundSubtraction_CNT:
+                case CvInvokeTransformers.BackgroundSubtraction_GMG:
 
                     // Background Subtraction (MOG2 / KNN / CNT / GMG)
                     MotionDetectionWithBackgroundSubtraction.SubtractorType subtractorType =
-                        Algorithm == CvInvokeAlgorithms.BackgroundSubtraction_MOG2 ? MotionDetectionWithBackgroundSubtraction.SubtractorType.MOG2 :
-                        Algorithm == CvInvokeAlgorithms.BackgroundSubtraction_KNN ? MotionDetectionWithBackgroundSubtraction.SubtractorType.KNN :
-                        Algorithm == CvInvokeAlgorithms.BackgroundSubtraction_CNT ? MotionDetectionWithBackgroundSubtraction.SubtractorType.CNT :
+                        Transformer == CvInvokeTransformers.BackgroundSubtraction_MOG2 ? MotionDetectionWithBackgroundSubtraction.SubtractorType.MOG2 :
+                        Transformer == CvInvokeTransformers.BackgroundSubtraction_KNN ? MotionDetectionWithBackgroundSubtraction.SubtractorType.KNN :
+                        Transformer == CvInvokeTransformers.BackgroundSubtraction_CNT ? MotionDetectionWithBackgroundSubtraction.SubtractorType.CNT :
                                      MotionDetectionWithBackgroundSubtraction.SubtractorType.GMG;
 
                     motionDetectionWithBackgroundSubtraction.ActiveSubtractor = subtractorType;
@@ -361,7 +433,7 @@ namespace MED
                     }
                     break;
                 default:
-                    Performance.Error($"Algorithme {Algorithm} inconnu");
+                    Performance.Error($"Algorithme {Transformer} inconnu");
                     break;
             }
 

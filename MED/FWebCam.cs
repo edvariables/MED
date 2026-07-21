@@ -25,7 +25,7 @@ namespace MED.EDWebCam
 
             InitializeProcesses();
 
-            LoadSettings();
+            LoadSettings("FWebCam");
 
         }
 
@@ -47,16 +47,15 @@ namespace MED.EDWebCam
 
         #region Settings
 
-        public override void LoadSettings(bool loadChildren = false)
+        public override void LoadSettings(string fileName)
         {
-            if (Name == "" || Render.Performance == null)
-                return;
+            base.LoadSettings(fileName);
 
-            base.LoadSettings(loadChildren);
-
-            chkRenderLogger.Checked = Render.Performance.Enabled;
-            chkVideoCaptureLogger.Checked = ImageSource.Performance.Enabled;
-
+            if (Render.Performance != null)
+            {
+                chkRenderLogger.Checked = Render.Performance.Enabled;
+                chkVideoCaptureLogger.Checked = ImageSource.Performance.Enabled;
+            }
             var value = ImageSource.ImageSizeMax;
             if (ImageSource.ImageSizeMax.IsEmpty)
                 cboCaptureSize.Text = "";
@@ -185,9 +184,6 @@ namespace MED.EDWebCam
                 ImageSource.ImageSizeMax = Core.Parser.SizeFromPretty(cboCaptureSize.Text);
             //Add process
             Processes.Add(ImageSource);
-
-            foreach (var proc in Processes)
-                (proc as Process).LoadSettings();//TODO Warning unsaved
         }
         #endregion
 
@@ -213,8 +209,6 @@ namespace MED.EDWebCam
          */
         public override void Start()
         {
-            FLogger.Current.Start();
-
             ImageSource.CameraIndex = cboCameras.SelectedIndex;
 
             base.Start();
@@ -235,8 +229,6 @@ namespace MED.EDWebCam
             base.Stop();
 
             ProcessState = ThreadState.Stopped;
-
-            FLogger.Current.Stop();
         }
         #endregion
         /**
@@ -250,7 +242,7 @@ namespace MED.EDWebCam
 
             FLogger.Current.RefreshProgress((ImageProcess)sender);
 
-            FLogger.Current.ProgressMessage = $"Webcam [{ImageSource.Performance.Counter}]";
+            FLogger.Current.ProgressMessage = $"Webcam [{ImageSource.Performance?.Counter}]";
         }
 
 
