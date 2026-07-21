@@ -21,7 +21,7 @@ using System.Windows.Media.Imaging;
 
 namespace MED
 {
-    public partial class FStudio : Form
+    public partial class FStudio : ProcessForm
     {
         private int childFormNumber = 0;
         public static FStudio Current { get; private set; }
@@ -40,7 +40,7 @@ namespace MED
         {
             LoadSettings();
 
-            Init_ProcessorTypes();
+            Init_ProcessorTypes();//TODO suppr
 
             LoadChilds();
 
@@ -130,8 +130,9 @@ namespace MED
 
             FProperties.Current.Show();
             FLogger.Current.Show();
-        }
 
+            FProperties.Current.ShowProperties((object[])[this.Project]);
+        }
 
         /*
          * 
@@ -147,9 +148,12 @@ namespace MED
 
         private void ShowNewForm(object sender, EventArgs e)
         {
-            var processForm = GetNewProcessForm();
+            GetNewProcessForm();
 
         }
+        /**
+         * 
+         * */
         private ProcessForm GetNewProcessForm(string fileName = "")
         {
             ProcessForm processForm = new();
@@ -196,6 +200,9 @@ namespace MED
 
             if (processForm.Processes.Count > 0 && processForm.Processes.First() is ImageProcess)
                 (processForm.Processes.First() as ImageProcess).OnImageChanged += ProcessForm_ImageChanged;
+            
+            Processes.Add(processForm);
+            FProperties.CurrentProperties = (object[])[this.Project];
 
             ActiveProcess = processForm;
 
@@ -205,14 +212,7 @@ namespace MED
         #region ProcessForm
         private void ProcessForm_Activated(object sender, EventArgs e)
         {
-            List<object> objects = new();
             var activeProcess = ActiveProcessForm;
-            if (activeProcess == null)
-                return;
-
-            objects.Add(activeProcess.Project);
-
-            FProperties.CurrentProperties = objects.ToArray();
         }
         /**
          * Image
@@ -284,57 +284,6 @@ namespace MED
                 }
             }
         }
-
-        private void CutToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-        }
-
-        private void CopyToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-        }
-
-        private void PasteToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-        }
-
-        private void ToolBarToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            toolStrip.Visible = toolBarToolStripMenuItem.Checked;
-        }
-
-        private void StatusBarToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            statusStrip.Visible = statusBarToolStripMenuItem.Checked;
-        }
-
-        private void CascadeToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            LayoutMdi(MdiLayout.Cascade);
-        }
-
-        private void TileVerticalToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            LayoutMdi(MdiLayout.TileVertical);
-        }
-
-        private void TileHorizontalToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            LayoutMdi(MdiLayout.TileHorizontal);
-        }
-
-        private void ArrangeIconsToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            LayoutMdi(MdiLayout.ArrangeIcons);
-        }
-
-        private void CloseAllToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            foreach (Form childForm in MdiChildren)
-            {
-                childForm.Close();
-            }
-        }
-
         private void btnWebCam_Click(object sender, EventArgs e)
         {
             ProcessForm form = GetProcessorForm(typeof(FWebCam));
@@ -475,6 +424,11 @@ namespace MED
             btnProcessPause.Checked = isPaused;
             btnProcessPause.Font = new Font(btnProcessPause.Font, isPaused ? FontStyle.Bold : FontStyle.Regular);
             btnProcessStop.Enabled = isRunning || isPaused;
+
+            if(sender is ProcessForm)
+                FProperties.CurrentProperties =(object[])[(sender as ProcessForm).Project];
+            else
+                FProperties.CurrentProperties =(object[])[sender];
         }
 
         private void FStudio_MdiChildActivate(object sender, EventArgs e)
@@ -531,6 +485,58 @@ namespace MED
         }
         #endregion
 
+
+
+
+        private void CutToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+        }
+
+        private void CopyToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+        }
+
+        private void PasteToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+        }
+
+        private void ToolBarToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            toolStrip.Visible = toolBarToolStripMenuItem.Checked;
+        }
+
+        private void StatusBarToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            statusStrip.Visible = statusBarToolStripMenuItem.Checked;
+        }
+
+        private void CascadeToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            LayoutMdi(MdiLayout.Cascade);
+        }
+
+        private void TileVerticalToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            LayoutMdi(MdiLayout.TileVertical);
+        }
+
+        private void TileHorizontalToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            LayoutMdi(MdiLayout.TileHorizontal);
+        }
+
+        private void ArrangeIconsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            LayoutMdi(MdiLayout.ArrangeIcons);
+        }
+
+        private void CloseAllToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            foreach (Form childForm in MdiChildren)
+            {
+                childForm.Close();
+            }
+        }
 
     }
 }

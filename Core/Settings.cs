@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using static System.Collections.Specialized.BitVector32;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
@@ -24,7 +25,8 @@ namespace MED.Core
 {
     public static class Settings
     {
-        static Settings() {
+        static Settings()
+        {
             MyProjectsDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), Namespace) + "\\Projects";
         }
 
@@ -39,7 +41,7 @@ namespace MED.Core
                 return Assembly.GetExecutingAssembly().GetTypes().First().Namespace;
             }
         }
-        public const string ProcessFileExtension= ".med.json";
+        public const string ProcessFileExtension = ".med.json";
         public static readonly string MyProjectsDirectory;
 
         private static ImageList _IconsImageList = null;
@@ -52,24 +54,47 @@ namespace MED.Core
                 //First call initialize ResourceSet
                 if (EDIcons.ResourceManager.GetObject("EDV", System.Globalization.CultureInfo.InvariantCulture) == null)
                     return null;
-                _IconsImageList = new();
+                ImageList imageList = new();
                 foreach (var kvp in EDIcons.ResourceManager.GetResourceSet(System.Globalization.CultureInfo.InvariantCulture, false, false))
-                {
-                    string name= (string)((DictionaryEntry)kvp).Key;
-                    Image image = (Image)((DictionaryEntry)kvp).Value;
-                    _IconsImageList.Images.Add(name, image);
+                    if (((DictionaryEntry)kvp).Value is Image)
+                    {
+                        string name = (string)((DictionaryEntry)kvp).Key;
+                        Image image = (Image)((DictionaryEntry)kvp).Value;
+                        imageList.Images.Add(name, image);
+                    }
+                return _IconsImageList = imageList;
+            }
+        }
+
+        private static ImageList _StatesImageList = null;
+        public static ImageList StatesImageList
+        {
+            get
+            {
+                if (_StatesImageList != null)
+                    return _StatesImageList;
+                //First call initialize ResourceSet
+                if (EDIcons.ResourceManager.GetObject("EDV", System.Globalization.CultureInfo.InvariantCulture) == null)
+                    return null;
+                ImageList imageList = new();
+
+                string[] images = ["False", "True", "AutoReset", "Alert"];
+                foreach (string name in images) {
+                    var image = EDIcons.ResourceManager.GetObject(name);
+                    if (image is Image)
+                        imageList.Images.Add(name, (Image)image);
                 }
-                return _IconsImageList;
+                return _StatesImageList = imageList;
             }
         }
         public static Bitmap GetImage(string name)
         {
             //System.Reflection.PropertyInfo prop = (System.Reflection.PropertyInfo)typeof(EDIcons).GetProperty(name);
-            var prop= typeof(EDIcons).GetProperty(name, System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
-            object value=prop.GetValue(null, null);
-            if(value is Bitmap)
+            var prop = typeof(EDIcons).GetProperty(name, System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+            object value = prop.GetValue(null, null);
+            if (value is Bitmap)
                 return (Bitmap)prop.GetValue(null, null);
-            if( name != "Null")
+            if (name != "Null")
                 return GetImage("Null");
             return null;
         }

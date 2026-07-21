@@ -259,8 +259,12 @@ namespace MED
             get
             {
                 var dict = new Dictionary<string, object>();
+                if (this.IsDisposed)
+                    return dict;
                 dict.Add(this.Name, this);
-                if (!Performance.IsEmpty)
+                if (ProcessSettings != null)
+                    dict.Add("Settings", ProcessSettings);
+                if (Performance != null && !Performance.IsEmpty)
                     dict.Add(this.Name + ".Performance", Performance);
 
                 return dict;

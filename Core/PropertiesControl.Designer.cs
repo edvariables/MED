@@ -28,14 +28,15 @@
         /// </summary>
         private void InitializeComponent()
         {
+            components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(PropertiesControl));
             propertyGrid = new PropertyGrid();
             cboObjectsList = new ComboBox();
-            panel1 = new Panel();
+            panCboObjects = new Panel();
             cmdRefresh = new Button();
             processesControl1 = new ProcessesControl();
             splitContainer1 = new SplitContainer();
-            panel1.SuspendLayout();
+            panCboObjects.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
             splitContainer1.Panel2.SuspendLayout();
@@ -48,34 +49,36 @@
             propertyGrid.Location = new Point(0, 23);
             propertyGrid.Margin = new Padding(3, 6, 3, 3);
             propertyGrid.Name = "propertyGrid";
-            propertyGrid.Size = new Size(238, 296);
+            propertyGrid.Size = new Size(259, 296);
             propertyGrid.TabIndex = 3;
             // 
             // cboObjectsList
             // 
+            cboObjectsList.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             cboObjectsList.DropDownStyle = ComboBoxStyle.DropDownList;
             cboObjectsList.FormattingEnabled = true;
             cboObjectsList.Location = new Point(0, 0);
             cboObjectsList.Name = "cboObjectsList";
-            cboObjectsList.Size = new Size(214, 23);
+            cboObjectsList.Size = new Size(235, 23);
             cboObjectsList.TabIndex = 1;
             cboObjectsList.SelectedIndexChanged += cboObjectsList_SelectedIndexChanged;
             // 
-            // panel1
+            // panCboObjects
             // 
-            panel1.Controls.Add(cboObjectsList);
-            panel1.Controls.Add(cmdRefresh);
-            panel1.Dock = DockStyle.Top;
-            panel1.Location = new Point(0, 0);
-            panel1.Margin = new Padding(3, 3, 3, 6);
-            panel1.Name = "panel1";
-            panel1.Size = new Size(238, 23);
-            panel1.TabIndex = 4;
+            panCboObjects.Controls.Add(cboObjectsList);
+            panCboObjects.Controls.Add(cmdRefresh);
+            panCboObjects.Dock = DockStyle.Top;
+            panCboObjects.Location = new Point(0, 0);
+            panCboObjects.Margin = new Padding(3, 3, 3, 8);
+            panCboObjects.Name = "panCboObjects";
+            panCboObjects.Size = new Size(259, 23);
+            panCboObjects.TabIndex = 4;
             // 
             // cmdRefresh
             // 
+            cmdRefresh.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             cmdRefresh.Image = (Image)resources.GetObject("cmdRefresh.Image");
-            cmdRefresh.Location = new Point(214, 0);
+            cmdRefresh.Location = new Point(235, 0);
             cmdRefresh.Name = "cmdRefresh";
             cmdRefresh.Size = new Size(24, 23);
             cmdRefresh.TabIndex = 2;
@@ -85,9 +88,11 @@
             // processesControl1
             // 
             processesControl1.Dock = DockStyle.Fill;
+            processesControl1.ImageIndex = 0;
             processesControl1.Location = new Point(0, 0);
             processesControl1.Name = "processesControl1";
-            processesControl1.Size = new Size(238, 322);
+            processesControl1.SelectedImageIndex = 0;
+            processesControl1.Size = new Size(259, 322);
             processesControl1.TabIndex = 5;
             processesControl1.BeforeSelect += ProcessesControl1_BeforeSelect;
             // 
@@ -105,8 +110,8 @@
             // splitContainer1.Panel2
             // 
             splitContainer1.Panel2.Controls.Add(propertyGrid);
-            splitContainer1.Panel2.Controls.Add(panel1);
-            splitContainer1.Size = new Size(238, 645);
+            splitContainer1.Panel2.Controls.Add(panCboObjects);
+            splitContainer1.Size = new Size(259, 645);
             splitContainer1.SplitterDistance = 322;
             splitContainer1.TabIndex = 6;
             // 
@@ -116,8 +121,8 @@
             AutoScaleMode = AutoScaleMode.Font;
             Controls.Add(splitContainer1);
             Name = "PropertiesControl";
-            Size = new Size(238, 645);
-            panel1.ResumeLayout(false);
+            Size = new Size(259, 645);
+            panCboObjects.ResumeLayout(false);
             splitContainer1.Panel1.ResumeLayout(false);
             splitContainer1.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
@@ -129,7 +134,7 @@
 
         private PropertyGrid propertyGrid;
         private ComboBox cboObjectsList;
-        private Panel panel1;
+        private Panel panCboObjects;
         private Button cmdRefresh;
         private ProcessesControl processesControl1;
         private SplitContainer splitContainer1;

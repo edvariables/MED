@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -18,6 +19,7 @@ namespace MED
             InitializeComponent();
 
             ImageList = Core.Settings.IconsImageList;
+            StateImageList = Core.Settings.StatesImageList;
         }
 
 
@@ -49,7 +51,7 @@ namespace MED
             this.SelectedNode = null;
         }
 
-        public void ShowProperties(object[] items, TreeNode rootNode = null, bool clear = true)
+        public void ShowProperties(object[] items, TreeNode rootNode = null, bool clear = false)
         {
             object currentObject = this.SelectedNode?.Tag;
             TreeNodeCollection nodes;
@@ -59,6 +61,18 @@ namespace MED
                 nodes = rootNode.Nodes;
             if (clear)
                 NodesClear(rootNode);
+            else
+            {
+                TreeNode node;
+                foreach (var item in items)
+                    if (ObjectsNodes.ContainsKey(item.GetHashCode()))
+                    {
+                        ObjectsNodes.Remove(item.GetHashCode(), out node);
+                        if (node.Parent == rootNode)
+                            node.Remove();
+                    }
+                NodesClean();
+            }
 
             AddItems(items, nodes);
 
@@ -74,7 +88,6 @@ namespace MED
             if (nodes.Count > 0 && SelectedNode == null)
                 SelectedNode = nodes[0];
         }
-
         public void NodesClear(TreeNode rootNode = null)
         {
             if (rootNode == null)
@@ -103,7 +116,11 @@ namespace MED
                     || kvp.Value.Tag is Process && (kvp.Value.Tag as Process).IsDisposed
                     || kvp.Value.Tag is Control && (kvp.Value.Tag as Control).IsDisposed
                     )
-                    ObjectsNodes.Remove(kvp.Key);
+                {
+                    TreeNode node;
+                    ObjectsNodes.Remove(kvp.Key, out node);
+                    node.Remove();
+                }
             }
         }
 
@@ -115,15 +132,25 @@ namespace MED
                 AddItem(item, nodes);
         }
 
-        public TreeNode AddItem(object item, TreeNodeCollection nodes)
+        public TreeNode AddItem(object item, TreeNodeCollection nodes, bool addChildren = true)
         {
+            bool isRootNodes = nodes == this.Nodes || nodes == this.Nodes[0].Nodes;
+
             if (ObjectsNodes.ContainsKey(item.GetHashCode()))
             {
                 TreeNode n = (TreeNode)ObjectsNodes[item.GetHashCode()];
                 if (n.Handle == 0)
                     NodesClean();
+                else if (isRootNodes)
+                {
+                    if (n.Parent == null || n.Parent.Parent == null)
+                        return n;
+                }
                 else
-                    return n;
+                    addChildren = false;
+
+                //Priority to root
+                ObjectsNodes.Remove(item.GetHashCode(), out n);
             }
 
             string name;
@@ -142,32 +169,42 @@ namespace MED
                 name = item.ToString();
             if (image == "")
                 image = "Null";
+
             TreeNode node = nodes.Add(name);
+
             ObjectsNodes.Add(item.GetHashCode(), node);
 
             node.Tag = item;
             node.ImageKey = image;
             node.SelectedImageKey = node.ImageKey;
+            node.StateImageKey = "False";
 
-            if (item is Processes)
+            if (addChildren)
             {
-                AddItems((item as Processes).Items.ToArray(), node.Nodes);
-            }
-            if (item is IProcess)
-            {
-                //AddItems((item as IProcess).ObjectsProperties.Values.ToArray(), node.Nodes);
-                foreach (var kvp in (item as IProcess).ObjectsProperties)
+                if (item is Processes)
                 {
-                    if (kvp.Value is List<IProcess>)
+                    object[] items = (item as Processes).Items.ToArray();
+                    //Reverse
+                    if (node.Parent == null)
+                        items = items.Reverse().ToArray<object>();
+                    AddItems(items, node.Nodes);
+                }
+                if (item is IProcess)
+                {
+                    //AddItems((item as IProcess).ObjectsProperties.Values.ToArray(), node.Nodes);
+                    foreach (var kvp in (item as IProcess).ObjectsProperties)
                     {
-                        var subNode = node.Nodes.Add(kvp.Key);
-                        AddItems((kvp.Value as List<IProcess>).ToArray(), subNode.Nodes);
+                        if (kvp.Value is List<IProcess>)
+                        {
+                            var subNode = node.Nodes.Add(kvp.Key);
+                            AddItems((kvp.Value as List<IProcess>).ToArray(), subNode.Nodes);
+                        }
                     }
                 }
-            }
 
-            if (nodes == this.Nodes)
-                node.Expand();
+                if (node.Parent == null || node.Parent.Parent == null)
+                    node.Expand();
+            }
 
             return node;
         }

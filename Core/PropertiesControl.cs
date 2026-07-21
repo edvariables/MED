@@ -40,6 +40,7 @@ namespace MED
         public void ShowProperty(object o)
         {
             propertyGrid.SelectedObject = o;
+            processesControl1.ShowProperty(o);
         }
 
         public void ShowProperties(object[] items)

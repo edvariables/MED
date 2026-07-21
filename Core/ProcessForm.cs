@@ -34,6 +34,7 @@ namespace MED
         protected virtual void Form_FormClosed(object sender, FormClosedEventArgs e)
         {
             Stop();
+            Project.Dispose();
         }
 
 
