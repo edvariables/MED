@@ -37,9 +37,9 @@ namespace MED
         [Browsable(true)]
         public bool Centered { get; set; }
 
-        public override void LoadSettings(string fileName)
+        public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
         {
-            base.LoadSettings(fileName);
+            base.LoadSettings(settings, fileName);
 
             Centered = (bool)ProcessSettings.GetValue("Centered", Centered);
             KeepRenderRatio = (bool)ProcessSettings.GetValue("KeepRenderRatio", KeepRenderRatio);

@@ -26,9 +26,9 @@ namespace MED.Imaging
         [Browsable(true)]
         public Size Grid { get; set; }
 
-        public override void LoadSettings(string fileName)
+        public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
         {
-            base.LoadSettings(fileName);
+            base.LoadSettings(settings, fileName);
 
             Horizontal = (bool)ProcessSettings.GetValue("Horizontal", Horizontal);
             Grid = (Size)ProcessSettings.GetValue("Grid", Grid);

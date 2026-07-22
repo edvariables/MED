@@ -180,11 +180,11 @@ namespace MED
             }
         }
 
-        public void AddHandler( string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
+        public void AddHandler(string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
         {
             Process.AddHandler(this, handler_field, consumer, consumer_type, consumer_method);
         }
-        public static void AddHandler(IProvider handler_obj ,string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
+        public static void AddHandler(IProvider handler_obj, string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
         {
             var memberInfo = handler_obj.GetType().GetMember(handler_field);
             if (memberInfo == null)
@@ -258,11 +258,21 @@ namespace MED
         [Browsable(true)]
         public ProcessSettings ProcessSettings { get; set; }
 
-        public virtual void LoadSettings(string fileName)
+        public virtual void LoadSettings(ProcessSettings settings = null, string fileName = "")
         {
-            ProcessSettings = ProcessSettings.FromFile(fileName);
+            if (settings == null)
+                ProcessSettings = ProcessSettings.FromFile(fileName);
+            else
+                ProcessSettings = settings;
+            
+            LoadProcess(ProcessSettings.Root);
 
             Performance.LoadSettings(ProcessSettings.ChildSettings("Perf"));
+        }
+
+        public virtual void LoadProcess(JsonNode node)
+        {
+
         }
 
         public virtual void SaveSettings(ProcessSettings settings = null, string fileName = "")
@@ -303,6 +313,7 @@ namespace MED
             }
             return null;
         }
+
         public virtual JsonObject SaveProcess(JsonObject node = null)
         {
             if (node == null)

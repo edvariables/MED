@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace MED
 {
@@ -39,36 +40,6 @@ namespace MED
                             (proc as ProcessForm).Logger = _Logger;
             }
         }
-
-        #region Settings
-
-        public override void LoadSettings(string fileName)
-        {
-            base.LoadSettings(fileName);
-
-            LoadProcesses(ProcessSettings);
-
-            InitializeProcesses(false);
-        }
-        public override void SaveSettings(ProcessSettings settings = null, string fileName = "")
-        {
-            if (settings == null)
-                settings = ProcessSettings;
-
-            if (settings == null)
-                settings = ProcessSettings = new ProcessSettings(fileName);
-
-            SaveProcesses(settings);
-            base.SaveSettings(settings, fileName);
-        }
-        #endregion
-
-        #region Processes
-
-        [Browsable(true)]
-        public virtual List<IProcess> Items { get; protected set; }
-
-
         public virtual void DisposeProcesses()
         {
             if (Items != null)
@@ -80,11 +51,53 @@ namespace MED
             }
         }
 
+        #region Settings
+
+        public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
+        {
+            base.LoadSettings(settings, fileName);
+
+            InitializeProcesses(false);
+        }
+        public override void LoadProcess(JsonNode node)
+        {
+            base.LoadProcess(node);
+
+            LoadProcesses(ProcessSettings);
+        }
+
+        public virtual void SaveSettings(ProcessSettings settings = null, string fileName = "")
+        {
+            if (settings == null)
+                settings = ProcessSettings;
+
+            if (settings == null)
+                settings = ProcessSettings = new ProcessSettings(fileName);
+
+            SaveProcesses(settings);
+            base.SaveSettings(settings, fileName);
+        }
+        public virtual void SaveProcesses(ProcessSettings settings)
+        {
+            JsonArray nodes = settings.ChildArray("Processes", true);
+            nodes.Clear();
+            foreach (var proc in Items)
+            {
+                nodes.Add(proc.SaveProcess());
+            }
+        }
+        #endregion
+
+        #region Processes
+
+        [Browsable(true)]
+        public virtual List<IProcess> Items { get; protected set; }
+
         public virtual void LoadProcesses(ProcessSettings settings)
         {
-
-            JsonArray nodes = settings.ChildArray("Processes");
-
+            ProcessSettings processesSettings = settings.ChildSettings("Processes", true);
+            JsonArray nodes = processesSettings.Root.AsArray();
+            
             if (nodes == null)
                 return;
 
@@ -95,21 +108,17 @@ namespace MED
             var itemsNodes = new Dictionary<IProcess, JsonNode>();
             foreach (var procNode in nodes)
             {
-                var item = LoadProcess(procNode);
+                IProcess item = CreateProcess(procNode, Performance, InvokeHandler);
+                
+                item.LoadSettings(processesSettings.ChildSettings(item.Name));
+
+                Items.Add(item);
                 itemsNodes.Add(item, procNode);
             }
             foreach (var kvp in itemsNodes)
             {
                 LoadConsumers(kvp.Key, kvp.Value);
             }
-        }
-        public virtual IProcess LoadProcess(JsonNode node)
-        {
-            IProcess item = CreateProcess(node, Performance, InvokeHandler);
-
-            Items.Add(item);
-
-            return item;
         }
         public virtual void LoadConsumers(IProcess process, JsonNode node)
         {
@@ -144,15 +153,6 @@ namespace MED
             Process.AddConsumer((IProvider)process, (IConsumer)consumerProcess, propertyName);
         }
 
-        public virtual void SaveProcesses(ProcessSettings settings)
-        {
-            JsonArray nodes = settings.ChildArray("Processes", true);
-            nodes.Clear();
-            foreach (var proc in Items)
-            {
-                nodes.Add(proc.SaveProcess());
-            }
-        }
 
         public virtual void InitializeProcesses(bool resetAll = false)
         {

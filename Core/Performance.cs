@@ -221,7 +221,8 @@ namespace MED
             if (!WasRunning)
                 return "";
             var s = Log(Report());
-            Logger.InvokeBufferChanged(this, EventArgs.Empty);
+            if (Logger != null)
+                Logger.InvokeBufferChanged(this, EventArgs.Empty);
             return s;
         }
         public string Suspend(string step = "Suspend", bool suspend_subs = false)
@@ -525,10 +526,10 @@ namespace MED
             if (IsEmpty && !evenIsEmpty)
                 return null;
 
-            if(node==null)
+            if (node == null)
                 node = new();
 
-            node["Enabled"]=Enabled;
+            node["Enabled"] = Enabled;
             node["Color"] = LoggerColor.ToString();
 
             return node;

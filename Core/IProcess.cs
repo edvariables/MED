@@ -16,7 +16,10 @@ namespace MED
 
         #region Settings
         ProcessSettings ProcessSettings { get; }
-        void LoadSettings(string fileName);
+        void LoadSettings(ProcessSettings settings = null, string fileName = "");
+        void LoadProcess(JsonNode node);
+
+        //void LoadSettings(string fileName);
         void SaveSettings(ProcessSettings settings = null, string fileName = "");
         JsonObject SaveProcess(JsonObject node = null);
 

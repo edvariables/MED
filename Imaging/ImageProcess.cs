@@ -267,9 +267,9 @@ namespace MED
         //    base.SaveSettings(saveChildren);
         //}
 
-        public override void LoadSettings(string fileName)
+        public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
         {
-            base.LoadSettings(fileName);
+            base.LoadSettings(settings, fileName);
 
             var value = ProcessSettings.GetValue("ImageSizeMax", ImageSizeMax);
             if (value is Size)

@@ -87,17 +87,17 @@ namespace MED
         [Browsable(true)]
         public ProcessSettings ProcessSettings { get => Project.ProcessSettings; set => Project.ProcessSettings = value; }
 
-        public virtual void LoadSettings(string fileName)
+        public virtual void LoadSettings(ProcessSettings processSettings = null, string fileName = "")
         {
-            Project.LoadSettings(fileName);
+            Project.LoadSettings(processSettings, fileName);
 
             Size = (Size)ProcessSettings.GetValue("Size", Size);
             Location = (Point)ProcessSettings.GetValue("Location", Location);
         }
-        public virtual void SaveSettings(ProcessSettings settings = null, string fileName = "")
-        {
-            Project.SaveSettings(settings, fileName);
-        }
+        public virtual void LoadProcess(JsonNode node) => Project.LoadProcess(node);
+
+        public virtual void SaveSettings(ProcessSettings settings = null, string fileName = "") => Project.SaveSettings(settings, fileName);
+
         public virtual JsonObject SaveProcess(JsonObject node = null)
         {
             if (node == null)

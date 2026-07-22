@@ -65,8 +65,10 @@ namespace MED
             }
         }
 
-        private void LoadSettings()
+        public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
         {
+            base.LoadSettings(settings, fileName);
+
             string settingsSection = this.SettingsSection;
             Core.Settings.ClearCache(true, true, settingsSection);
 
@@ -174,7 +176,7 @@ namespace MED
 
             if (fileName != "")
             {
-                processForm.LoadSettings(fileName);
+                processForm.LoadSettings(null,fileName);
             }
             else
             {

@@ -2,10 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices.JavaScript;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace MED
 {
@@ -24,6 +26,19 @@ namespace MED
         public JsonNode Root { get; set; }
         public JsonNode ChildNode(string childName, bool createIfNone = false)
         {
+            if (Root is JsonArray)
+            {
+                foreach (var node in (Root as JsonArray))
+                    if (node["Name"]?.GetValue<string>() == childName)
+                        return node;
+                if (createIfNone)
+                {
+                    var node = new JsonObject();
+                    node["Name"] = childName;
+                    Root.AsArray().Add(node);
+                    return node;
+                }
+            }
             if (Root[childName] == null)
                 if (createIfNone)
                     Root[childName] = new JsonObject();
@@ -31,6 +46,22 @@ namespace MED
         }
         public JsonArray ChildArray(string childName, bool createIfNone = false)
         {
+            if (Root is JsonArray)
+            {
+                foreach (var node in (Root as JsonArray))
+                    if (node["Name"]?.GetValue<string>() == childName)
+                        if (node is JsonArray)
+                            return (JsonArray)node;
+                        else
+                            throw new Exception("Node is not of JsonArray type.");
+                if (createIfNone)
+                {
+                    var node = new JsonArray();
+                    node["Name"] = childName;
+                    Root.AsArray().Add(node);
+                    return node;
+                }
+            }
             if (Root[childName] == null)
                 if (createIfNone)
                     Root[childName] = new JsonArray();
@@ -38,8 +69,10 @@ namespace MED
                     return null;
             return (JsonArray)Root[childName];
         }
-        public ProcessSettings ChildSettings(string childName)
+        public ProcessSettings ChildSettings(string childName, bool asJsonArray = false)
         {
+            if (asJsonArray)
+                return new("", ChildArray(childName, true));
             return new("", ChildNode(childName, true));
         }
 

@@ -23,9 +23,9 @@ namespace MED.EDWebCam
 
             Initialize_Logger();
 
-            InitializeProcesses();
+            //InitializeProcesses();
 
-            LoadSettings("FWebCam");
+            LoadSettings(null, "FWebCam");
 
         }
 
@@ -46,11 +46,15 @@ namespace MED.EDWebCam
 
 
         #region Settings
-
-        public override void LoadSettings(string fileName)
+        public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
         {
-            base.LoadSettings(fileName);
+            base.LoadSettings(settings,fileName);
+            
+            InitializeProcesses();
 
+            if (Render == null)
+                return;
+            
             if (Render.Performance != null)
             {
                 chkRenderLogger.Checked = Render.Performance.Enabled;
@@ -92,6 +96,12 @@ namespace MED.EDWebCam
             base.InitializeProcesses(resetAll);
 
             Logger.Clear();
+
+            if (Render == null && Processes != null && Processes.Count > 0)
+            {
+                Render = (Render)Processes.First();
+                ImageSource = (EDVideoCapture)Processes.Last();
+            }
 
             if (Processes != null && Processes.Count > 0 && !resetAll)
                 return;

@@ -117,6 +117,7 @@ namespace MED
         {
             CvInvoke_AbsDiff,
             BorderFinder,
+            PyrDown,
             Test,
             DenseOpticalFlow_WithHSV,
             Motion_History,
@@ -136,11 +137,9 @@ namespace MED
         [Browsable(true)]
         public int DetectionLimit { get; set; }
 
-        public override void LoadSettings(string fileName)
+        public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
         {
-            base.LoadSettings(fileName);
-
-            var value = ProcessSettings.GetValue("ImageSizeMax", ImageSizeMax);
+            base.LoadSettings(settings, fileName);
 
             CvInvokeTransformers a;
             if (Enum.TryParse<CvInvokeTransformers>(ProcessSettings.GetValue("Transformer", Transformer).ToString(), out a))
@@ -198,6 +197,19 @@ namespace MED
 
                         v = CvInvoke.Moments(frameDiff, false);
                         Performance.Log($"Moments {v}");
+
+                    }
+                    break;
+                    
+                case CvInvokeTransformers.PyrDown:
+
+                    if (PreviousFrame != null
+                        && !currentFrame.Size.IsEmpty && !PreviousFrame.Size.IsEmpty &&
+                        currentFrame.Size == PreviousFrame.Size)
+                    {
+                        frameDiff = new();
+                        CvInvoke.PyrDown(currentFrame, frameDiff, Emgu.CV.CvEnum.BorderType.Reflect);
+
 
                     }
                     break;
