@@ -30,6 +30,9 @@ namespace MED
         {
             InitializeComponent();
 
+            Project.Name = Name = "Studio";
+            Project.ProcessIcon = "EDV";
+
             ActiveProcessChanged(null);
 
             Current = this;
@@ -156,9 +159,10 @@ namespace MED
         /**
          * 
          * */
-        private ProcessForm GetNewProcessForm(string fileName = "")
+        private ProcessForm GetNewProcessForm(string fileName = "", ProcessForm processForm = null)
         {
-            ProcessForm processForm = new("Projet " + childFormNumber++);
+            if (processForm == null)
+                processForm = new("Projet " + childFormNumber++);
             processForm.MdiParent = this;
             processForm.Dock = DockStyle.Fill;
             processForm.OnProcessStateChanged += ProcessStateChanged;
@@ -166,22 +170,35 @@ namespace MED
 
             processForm.Logger = FLogger.Current.Logger;
 
-            ProcessControl controller = new();
-            controller.Dock = DockStyle.Top;
-            controller.ActiveProcess = processForm;
-            controller.Show();
-            processForm.Controls.Add(controller);
+            PictureBox pictureBox = null;
 
+            if (processForm.GetType() == typeof(ProcessForm) || processForm.Processes.Count == 0)
+            {
+                processForm.Icon = Core.Settings.GetIcon(processForm.ProcessIcon);
+
+                ProcessControl controller = new();
+                controller.BackColor = System.Drawing.Color.Transparent;
+                controller.Dock = DockStyle.Top;
+                controller.ActiveProcess = processForm;
+                controller.Show();
+                processForm.Controls.Add(controller);
+
+                pictureBox = new();
+                pictureBox.BackColor = System.Drawing.Color.LightSteelBlue;
+                pictureBox.Size = processForm.ClientSize;
+                pictureBox.Dock = DockStyle.Fill;
+                processForm.Controls.Add(pictureBox);
+            }
             if (fileName != "")
             {
-                processForm.LoadSettings(null,fileName);
+                processForm.LoadSettings(null, fileName);
             }
-            else
+            else if(processForm.Processes.Count==0)
             {
                 var render = new Render(
                     "Render"
                     , new Performance("Render", FLogger.Current.Logger)
-                    , processForm
+                    , pictureBox
                 );
                 processForm.Processes.Add(render);
 
@@ -191,16 +208,20 @@ namespace MED
                     , processForm
                     , (IImageConsumer)processForm.Processes.Last()
                 );
-                videoCapture.OnImageChanged += render.ImageChanged;
                 processForm.Processes.Add(videoCapture);
 
             }
-            processForm.Icon = Core.Settings.GetIcon(processForm.ProcessIcon);
             processForm.Show();
 
             if (processForm.Processes.Count > 0 && processForm.Processes.First() is ImageProcess)
+            {
+                if (processForm.Processes.First() is Render)
+                    (processForm.Processes.First() as Render).RenderImageControl = pictureBox;
+                else
+                    (processForm.Processes.First() as ImageProcess).InvokeHandler = pictureBox;
                 (processForm.Processes.First() as ImageProcess).OnImageChanged += ProcessForm_ImageChanged;
-            
+            }
+
             Processes.Add(processForm);
             FProperties.CurrentProperties = (object[])[this.Project];
 
@@ -339,15 +360,19 @@ namespace MED
                     Processors.Add(proc);
 
                     ProcessForm form = (ProcessForm)proc;
-                    form.MdiParent = this;
-                    form.Dock = DockStyle.Fill;
-                    form.Show();
-                    form.OnProcessStateChanged += ProcessStateChanged;
-                    form.Activated += ProcessForm_Activated;
-                    if (form.Processes.First() is ImageProcess)
-                        (form.Processes.First() as ImageProcess).OnImageChanged += ProcessForm_ImageChanged;
+                    
+                    return GetNewProcessForm("", form);
 
-                    return form;
+                    
+                    //form.MdiParent = this;
+                    //form.Dock = DockStyle.Fill;
+                    //form.Show();
+                    //form.OnProcessStateChanged += ProcessStateChanged;
+                    //form.Activated += ProcessForm_Activated;
+                    //if (form.Processes.First() is ImageProcess)
+                    //    (form.Processes.First() as ImageProcess).OnImageChanged += ProcessForm_ImageChanged;
+
+                    //return form;
                 }
 
                 throw new Exception($"{type.Name} is not a ProcessForm type");
@@ -425,10 +450,17 @@ namespace MED
             btnProcessPause.Font = new Font(btnProcessPause.Font, isPaused ? FontStyle.Bold : FontStyle.Regular);
             btnProcessStop.Enabled = isRunning || isPaused;
 
-            if(sender is ProcessForm)
-                FProperties.CurrentProperties =(object[])[(sender as ProcessForm).Project];
-            else
-                FProperties.CurrentProperties =(object[])[sender];
+            if (sender is ProcessForm)
+            {
+                if (!(sender as ProcessForm).Project.IsDisposed)
+                    FProperties.CurrentProperties = (object[])[(sender as ProcessForm).Project];
+                //else
+                //    FProperties.RemoveProperties((object[])[(sender as ProcessForm).Project]);
+            }
+            else if (!(sender is Process && (sender as Process).IsDisposed))
+                FProperties.CurrentProperties = (object[])[sender];
+            //else
+            //     FProperties.RemoveProperties((object[])[(sender as ProcessForm).Project]);
         }
 
         private void FStudio_MdiChildActivate(object sender, EventArgs e)

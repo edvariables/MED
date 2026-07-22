@@ -18,6 +18,8 @@ namespace MED
         {
             InitializeComponent();
 
+            this.HideSelection = false;
+
             ImageList = Core.Settings.IconsImageList;
             StateImageList = Core.Settings.StatesImageList;
         }
@@ -113,8 +115,8 @@ namespace MED
             foreach (KeyValuePair<int, TreeNode> kvp in ObjectsNodes.ToArray())
             {
                 if (kvp.Value.Handle == 0
-                    || kvp.Value.Tag is Process && (kvp.Value.Tag as Process).IsDisposed
-                    || kvp.Value.Tag is Control && (kvp.Value.Tag as Control).IsDisposed
+                    || kvp.Value.Tag is Process && ((kvp.Value.Tag as Process).IsDisposed || (kvp.Value.Tag as Process).Disposing)
+                    || kvp.Value.Tag is Control && ((kvp.Value.Tag as Control).IsDisposed || (kvp.Value.Tag as Control).Disposing)
                     )
                 {
                     TreeNode node;
@@ -134,8 +136,29 @@ namespace MED
 
         public TreeNode AddItem(object item, TreeNodeCollection nodes, bool addChildren = true)
         {
-            if((item is Control && (item as Control).IsDisposed)
-            || (item is Process && (item as Process).IsDisposed))
+            try
+            {
+                var disposed = false;
+                if (item is Control)
+                {
+                    if ((item as Control).IsDisposed || (item as Control).Disposing)
+                        disposed = true;
+                }
+                else if (item is Process && ((item as Process).IsDisposed) || (item as Process).Disposing)
+                    disposed = true;
+
+                if (disposed)
+                {
+                    if (ObjectsNodes.ContainsKey(item.GetHashCode()))
+                    {
+                        TreeNode n;
+                        ObjectsNodes.Remove(item.GetHashCode(), out n);
+                        n.Remove();
+                    }
+                    return null;
+                }
+            }
+            catch
             {
                 if (ObjectsNodes.ContainsKey(item.GetHashCode()))
                 {

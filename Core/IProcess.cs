@@ -13,6 +13,7 @@ namespace MED
     {
         string Name { get; }
         string ProcessIcon { get; }
+        Performance Performance { get; }
 
         #region Settings
         ProcessSettings ProcessSettings { get; }

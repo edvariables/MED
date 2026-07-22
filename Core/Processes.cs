@@ -17,6 +17,11 @@ namespace MED
         {
             Items = new();
         }
+        public override void Dispose()
+        {
+            DisposeProcesses();
+            base.Dispose();
+        }
 
         private Logger _Logger { get; set; }
 
@@ -38,16 +43,6 @@ namespace MED
                             (proc as Process).Performance.Logger = _Logger;
                         else if (proc is ProcessForm)
                             (proc as ProcessForm).Logger = _Logger;
-            }
-        }
-        public virtual void DisposeProcesses()
-        {
-            if (Items != null)
-            {
-                foreach (var handler in Items)
-                    if (handler is IDisposable)
-                        (handler as IDisposable).Dispose();
-                Items = null;
             }
         }
 
@@ -92,6 +87,16 @@ namespace MED
 
         [Browsable(true)]
         public virtual List<IProcess> Items { get; protected set; }
+        public virtual void DisposeProcesses()
+        {
+            if (Items != null)
+            {
+                foreach (var handler in Items)
+                    if (handler is IDisposable)
+                        (handler as IDisposable).Dispose();
+                Items = null;
+            }
+        }
 
         public virtual void LoadProcesses(ProcessSettings settings)
         {

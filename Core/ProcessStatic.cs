@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace MED
 {
-    public class ProcessStatic
+    public static class ProcessStatic
     {
         public static string test = "ciic";
 
@@ -118,6 +118,79 @@ namespace MED
                 }
             }
             return onChangedDelegates;
+        }
+        internal static List<IProcess> GetOnChangedConsumers(MulticastDelegate onChangedDelegate)
+        {
+            List<IProcess> consumers = new();
+            foreach (var invocation in onChangedDelegate.GetInvocationList())
+            {
+                if (invocation.Target is IProcess)
+                    consumers.Add((IProcess)invocation.Target);
+            }
+            return consumers;
+        }
+
+        private static Dictionary<IProcess, List<Delegate>> _IsInvokingPropertyChanged = new();
+        public static bool IsInvokingPropertyChanged(IProcess process, Delegate delegateMethod)
+        {
+            return _IsInvokingPropertyChanged.ContainsKey(process)
+                && _IsInvokingPropertyChanged[process].Contains(delegateMethod);
+        }
+        public static void InvokePropertyChanged(IProcess process, IProvider sender, Delegate delegateMethod, EventArgs e)
+        {
+            if ((process as IProvider).InvokeHandler == null || (process as IProvider).InvokeHandler.Disposing || (process as IProvider).InvokeHandler.IsDisposed)
+                return;
+            if (delegateMethod != null && process.IsRunning)
+            {
+                if (IsInvokingPropertyChanged(process, delegateMethod))
+                {
+                    process.Performance.Alert($"(already)IsInvokingPropertyChanged {delegateMethod.Method.Name}");
+                    return;
+                }
+
+                try
+                {
+                    if (!_IsInvokingPropertyChanged.ContainsKey(process))
+                        _IsInvokingPropertyChanged[process] = new();
+                    _IsInvokingPropertyChanged[process].Add(delegateMethod);
+
+                    //if(!process.Equals(sender))
+                    //    process.Performance.Debug($"InvokePropertyChanged TODO sender({sender}) != process({process}). process has priority over sender.");
+
+                    foreach (var consumerDelegate in delegateMethod.GetInvocationList())
+                    {
+                        var consumer = consumerDelegate.Target as IConsumer;
+                        //IsAsynchrone but if next Consumer is also asynchrone
+                        bool invoke = (process as IConsumer).IsAsynchrone && !consumer.IsAsynchrone;
+                        string invoke_str = invoke ? "Invoke" : "Call";
+
+                        if (invoke)
+                        {
+                            process.Performance.Debug($"-> PInvoke({consumer.GetType().Name}.{consumerDelegate.Method.Name}, {process})");
+
+                            (process as IProvider).InvokeHandler.Invoke(consumerDelegate, process /*sender*/, e);
+
+                            process.Performance.Debug($"{invoke_str} done");
+                        }
+                        else
+                        {
+                            //Performance.Step($"-> {invoke_str}({consumer.GetType().Name}.{consumerDelegate.Method.Name})");
+                            consumerDelegate.DynamicInvoke(process /*sender*/, e);
+                        }
+
+                    }
+                }
+                catch (Exception ex)
+                {
+                    process.Performance?.Error("InvokePropertyChanged", ex);
+                }
+                finally
+                {
+                    _IsInvokingPropertyChanged[process].Remove(delegateMethod);
+                    if (_IsInvokingPropertyChanged[process].Count == 0)
+                        _IsInvokingPropertyChanged.Remove(process);
+                }
+            }
         }
     }
 

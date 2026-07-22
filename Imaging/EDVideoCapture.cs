@@ -86,10 +86,8 @@ namespace MED
             InvokeImageChanged((IImageProvider)sender, e);
         }
 
-        public void InvokeFrameChanged(IMatFrameProvider sender, EventArgs e)
-        {
-            InvokePropertyChanged(sender, OnFrameChanged, e);
-        }
+        public void InvokeFrameChanged(IMatFrameProvider sender, EventArgs e) => InvokePropertyChanged(sender, OnFrameChanged, e);
+
         public IMatFrameProvider.FrameChangedDelegate? OnFrameChanged;
 
         /**
@@ -98,12 +96,22 @@ namespace MED
          */
         private void Capture_ImageGrabbed(object? sender, EventArgs e)
         {
+            if (IsDisposed || Disposing)
+            {
+                Stop();
+                return;
+            }
             Performance.Step("------------------");
             Performance.Resume($"Capture_ImageGrabbed. Sleep : {sleep}", true);//increment
             Mat frame = new();
             if (Capture.Retrieve(frame))
             {
                 Frame = frame;
+            }
+            if (IsDisposed || Disposing)
+            {
+                Stop();
+                return;
             }
 
             if (Performance.Average_msec < 40)
@@ -125,7 +133,7 @@ namespace MED
         public override Bitmap GetImage(IImageProvider provider = null)
         {
             Bitmap image;
-            if (Frame == null)
+            if (Frame == null || IsDisposed || Disposing)
                 return null;
 
             Performance.Step("LastFrame.ToBitmap()");

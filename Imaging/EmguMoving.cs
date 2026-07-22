@@ -8,6 +8,7 @@ using MED.Imaging;
 using System.ComponentModel;
 using System.Drawing.Drawing2D;
 using System.Text.Json.Nodes;
+using static libMotionDetection.MotionDetectionWithMotionHistory;
 
 namespace MED
 {
@@ -71,7 +72,7 @@ namespace MED
         public override Bitmap GetImage(IImageProvider provider = null)
         {
             Performance.Resume($"GetImage Algorithm #{Transformer}", true);
-            var image= FrameToImage((IMatFrameProvider)provider, Frame);
+            var image = FrameToImage((IMatFrameProvider)provider, Frame);
             Performance.Pause();
             return image;
         }
@@ -82,7 +83,7 @@ namespace MED
         #region Frame
 
         private Mat PreviousFrame;
-        
+
         [Browsable(false)]
         public Mat Frame { get; protected set; }
         public void FrameChanged(IMatFrameProvider sender, EventArgs e)
@@ -104,10 +105,7 @@ namespace MED
             ImageChanged((IImageProvider)sender, e);
         }
 
-        public void InvokeFrameChanged(IMatFrameProvider sender, EventArgs e)
-        {
-            InvokePropertyChanged(sender, OnFrameChanged, e);
-        }
+        public void InvokeFrameChanged(IMatFrameProvider sender, EventArgs e) => InvokePropertyChanged(sender, OnFrameChanged, e);
 
         public IMatFrameProvider.FrameChangedDelegate OnFrameChanged;
         #endregion
@@ -130,6 +128,15 @@ namespace MED
         }
         [Browsable(true)]
         public CvInvokeTransformers Transformer { get; set; }
+
+        public int MotionThreshold { get; set; } = 1000;
+        public bool MotionCalculateInfo { get; set; } = true;
+        public double MotionPixelCountThresholdPerCentArea { get; set; } = 0.05;
+
+        public bool MhiReset { get; set; }
+        public double MhiDuration { get; set; } = 2;
+        public double MhiMinTimeDelta { get; set; } = 0.05;
+        public double MhiMaxTimeDelta { get; set; } = 0.5;
 
         [Browsable(true)]
         public List<CvInvokeTransformers> Transformers { get; set; }
@@ -200,7 +207,7 @@ namespace MED
 
                     }
                     break;
-                    
+
                 case CvInvokeTransformers.PyrDown:
 
                     if (PreviousFrame != null
@@ -213,7 +220,7 @@ namespace MED
 
                     }
                     break;
-                    
+
                 case CvInvokeTransformers.BorderFinder:
 
                     if (PreviousFrame != null
@@ -239,7 +246,7 @@ namespace MED
                         List<PointF[]> points;
                         if (useBmp)
                             points = borderFinder.GetOutlinePointsNEW(bmp);
-                            //points = borderFinder.Find(bmp);
+                        //points = borderFinder.Find(bmp);
                         else
                             points = borderFinder.Find(frameDiff);
 
@@ -299,6 +306,18 @@ namespace MED
 
                 case CvInvokeTransformers.Motion_History:
                     frameDiff = currentFrame.Clone();
+
+                    motionDetectionWithMotionHistory.Setting = new MotionDetectionWithMotionHistory.MotionSetting
+                    {
+                        MotionThreshold = MotionThreshold,
+                        CalculateMotionInfo = MotionCalculateInfo,
+                        MotionPixelCountThresholdPerCentArea = MotionPixelCountThresholdPerCentArea
+                    };
+                    if (MhiReset)
+                    {
+                        motionDetectionWithMotionHistory.Reset(MhiDuration, MhiMaxTimeDelta, MhiMinTimeDelta);
+                        MhiReset = false;
+                    }
 
                     motionDetectionWithMotionHistory.GetFrameMotionComponents(frameDiff);
 
@@ -499,6 +518,9 @@ namespace MED
 
             motionDetectionWithMotionHistory?.Dispose();
             motionDetectionWithMotionHistory = new MotionDetectionWithMotionHistory();
+            MhiDuration = motionDetectionWithMotionHistory.HistorySetting.MhiDuration;
+            MhiMinTimeDelta = motionDetectionWithMotionHistory.HistorySetting.MinTimeDelta;
+            MhiMaxTimeDelta = motionDetectionWithMotionHistory.HistorySetting.MaxTimeDelta;
 
             motionDetectionWithSparseOpticalFlow?.Dispose();
             motionDetectionWithSparseOpticalFlow = new MotionDetectionWithSparseOpticalFlow();
