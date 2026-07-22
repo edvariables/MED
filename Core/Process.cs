@@ -1,5 +1,4 @@
 ﻿using MED.Core;
-using Microsoft.VisualBasic.FileIO;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -8,7 +7,6 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
-using static System.Collections.Specialized.BitVector32;
 
 namespace MED
 {
@@ -59,21 +57,11 @@ namespace MED
          * Delegates ans consumers
          * 
          * */
-        /**
-         * 
-         */
-        public static bool AddConsumer(IProvider provider, IConsumer consumer, string property = "ProcessState")
-        {
-            RemoveHandler(provider, $"On{property}Changed", consumer, consumer.GetType(), $"{property}Changed");
-            AddHandler(provider, $"On{property}Changed", consumer, consumer.GetType(), $"{property}Changed");
-
-            return true;
-        }
         public virtual bool AddConsumer(IConsumer consumer, string property = "ProcessState")
         {
-            var b = Process.AddConsumer(this, consumer, property);
+            var b = ProcessStatic.AddConsumer(this, consumer, property);
 
-            PropertiesConsumers_Reset();
+            PropertiesConsumers_CacheReset();
 
             return b;
         }
@@ -83,38 +71,21 @@ namespace MED
          * */
         protected List<IProcess> GetConsumers(string propertyName = "")
         {
-            var consumers = new List<IProcess>();
-            foreach (var onChangedDelegate in GetOnChangedDelegates(propertyName))
-                consumers.AddRange(GetOnChangedConsumers(onChangedDelegate));
+            Dictionary<string, Dictionary<MulticastDelegate, List<IProcess>>> map = GetPropertiesDelegatesConsumers(propertyName);
+            Dictionary<MulticastDelegate, List<IProcess>> delConsumers = map.Values;
+            List<IProcess> consumers = (List<IProcess>)delConsumers.Values;
             return consumers;
+
+            //var consumers = new List<IProcess>();
+            //foreach (var onChangedDelegate in GetOnChangedDelegates(propertyName))
+            //    consumers.AddRange(GetOnChangedConsumers(onChangedDelegate));
+            //return consumers;
         }
         /**
          * 
          * */
-        protected List<MulticastDelegate> GetOnChangedDelegates(string propertyName = "")
-        {
-            List<MulticastDelegate> onChangedDelegates = new();
-            foreach (var member in this.GetType().GetFields())
-            {
-                if (!member.FieldType.BaseType.Equals(typeof(MulticastDelegate))) continue;
-                if (propertyName == ""
-                    || member.Name == $"On{propertyName}Changed"
-                    || member.Name == $"{propertyName}Changed")
-                {
-                    MulticastDelegate del = (MulticastDelegate)(member.GetValue(this));
-                    if (del == null)
-                        if (propertyName != "")
-                            return onChangedDelegates;
-                        else
-                            continue;
+        protected List<MulticastDelegate> GetOnChangedDelegates(string propertyName = "") => ProcessStatic.GetOnChangedDelegates(this, propertyName);
 
-                    onChangedDelegates.Add(del);
-                    if (propertyName != "")
-                        break;
-                }
-            }
-            return onChangedDelegates;
-        }
         /**
          * 
          * */
@@ -147,22 +118,24 @@ namespace MED
          * */
         protected List<string> GetProperties(string propertyName = "")
         {
-            List<string> properties = new();
-            foreach (var onChangedDelegate in GetOnChangedDelegates(propertyName))
-            {
-                string delegateName = onChangedDelegate.GetMethodInfo().Name;
-                if (propertyName == ""
-                    || delegateName == $"On{propertyName}Changed"
-                    || delegateName == $"{propertyName}Changed")
-                {
-                    properties.Add(delegateName);
-                    if (propertyName != "")
-                        break;
-                }
+            return GetPropertiesDelegatesConsumers(propertyName).Keys.ToList();
 
-            }
+            //List<string> properties = new();
+            //foreach (var onChangedDelegate in GetOnChangedDelegates(propertyName))
+            //{
+            //    string delegateName = onChangedDelegate.GetMethodInfo().Name;
+            //    if (propertyName == ""
+            //        || delegateName == $"On{propertyName}Changed"
+            //        || delegateName == $"{propertyName}Changed")
+            //    {
+            //        properties.Add(delegateName);
+            //        if (propertyName != "")
+            //            break;
+            //    }
 
-            return properties;
+            //}
+
+            //return properties;
         }
         /**
          * 
@@ -170,42 +143,57 @@ namespace MED
         protected bool PropertyExists(string propertyName) => GetProperties(propertyName).Count > 0;
 
 
-        private Dictionary<string, List<IProcess>> _PropertiesConsumers;
-        protected void PropertiesConsumers_Reset(string propertyName = "")
+        private Dictionary<string, Dictionary<MulticastDelegate, List<IProcess>>> _PropertiesDelegatesConsumers;
+        protected void PropertiesConsumers_CacheReset(string propertyName = "")
         {
-            _PropertiesConsumers = null;
+            _PropertiesDelegatesConsumers = null;
         }
         /**
          * 
          * */
-        public Dictionary<string, List<IProcess>> GetPropertiesConsumers(string propertyName = "", bool evenEmpty = true)
+        public Dictionary<string, Dictionary<MulticastDelegate, List<IProcess>>> GetPropertiesDelegatesConsumers(string propertyName = "", bool evenEmpty = true)
         {
-            if (_PropertiesConsumers != null)
+            if (_PropertiesDelegatesConsumers != null)
             {
-                if (propertyName != null)
-                    if (_PropertiesConsumers.ContainsKey(propertyName))
+                if (propertyName != "")
+                    if (_PropertiesDelegatesConsumers.ContainsKey(propertyName))
                     {
-                        Dictionary<string, List<IProcess>> dic = new();
-                        dic.Add(propertyName, _PropertiesConsumers[propertyName]);
+                        Dictionary<string, Dictionary<MulticastDelegate, List<IProcess>>> dic = new();
+                        dic.Add(propertyName, _PropertiesDelegatesConsumers[propertyName]);
                         return dic;
                     }
                     else
-                        return _PropertiesConsumers;
+                        return _PropertiesDelegatesConsumers;
             }
-            Dictionary<string, List<IProcess>> propertiesConsumers = new();
+            Dictionary<string, Dictionary<MulticastDelegate, List<IProcess>>> propertiesDelegatesConsumers = new();
+            Dictionary<MulticastDelegate, List<IProcess>>delegatesConsumers = new();
             List<IProcess> consumers;
             foreach (var onChangedDelegate in GetOnChangedDelegates(propertyName))
-                if ((consumers = GetOnChangedConsumers(onChangedDelegate)) != null || evenEmpty)
-                    propertiesConsumers.Add(onChangedDelegate.GetMethodInfo().Name, consumers);
-
-            if (propertyName != null)
             {
-                Dictionary<string, List<IProcess>> dic = new();
-                dic.Add(propertyName, _PropertiesConsumers[propertyName]);
-                return dic;
+                string prop = onChangedDelegate.GetMethodInfo().Name;
+                if (prop.StartsWith("On"))
+                    prop = prop.Substring(2);
+                if (prop.EndsWith("Changed"))
+                    prop = prop.Substring(prop.Length - "Changed".Length);
+
+                delegatesConsumers = new();
+                if ((consumers = GetOnChangedConsumers(onChangedDelegate)) != null || evenEmpty)
+                {
+                    delegatesConsumers.Add(onChangedDelegate, consumers);
+                    propertiesDelegatesConsumers.Add(prop, delegatesConsumers);
+                }
+            }
+            if (propertyName != "")
+            {
+                Dictionary<string, Dictionary<MulticastDelegate, List<IProcess>>> dic = new();
+                dic.Add(propertyName, propertiesDelegatesConsumers[propertyName]);
+
+                if (_PropertiesDelegatesConsumers == null)
+                    _PropertiesDelegatesConsumers = new();
+                return _PropertiesDelegatesConsumers[propertyName] = dic;
             }
 
-            return propertiesConsumers;
+            return _PropertiesDelegatesConsumers = propertiesDelegatesConsumers;
         }
 
         /***
@@ -285,52 +273,14 @@ namespace MED
 
         public void AddHandler(string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
         {
-            Process.AddHandler(this, handler_field, consumer, consumer_type, consumer_method);
-            PropertiesConsumers_Reset();
-        }
-        public static void AddHandler(IProvider handler_obj, string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
-        {
-            var memberInfo = handler_obj.GetType().GetMember(handler_field);
-            if (memberInfo == null)
-                throw new Exception($"Le type {handler_obj.GetType().FullName} n'a pas de delegate {handler_field}");
-            var eventInfo = (System.Reflection.FieldInfo)memberInfo.GetValue(0);
-
-            var miHandler = consumer_type.GetMethod(consumer_method);
-            if (miHandler == null)
-                throw new Exception($"Le type '{consumer_type.FullName}' n'a pas de méthode {consumer_method}");
-            Delegate handler =
-                 Delegate.CreateDelegate(eventInfo.FieldType,
-                                         consumer,
-                                         miHandler);
-            //TODO  
-            //eventInfo.RemoveEventHandler(this, handler);
-            eventInfo.SetValue(handler_obj, handler);
+            ProcessStatic.AddHandler(this, handler_field, consumer, consumer_type, consumer_method);
+            PropertiesConsumers_CacheReset();
         }
 
         public void RemoveHandler(string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
         {
-            Process.RemoveHandler(this, handler_field, consumer, consumer_type, consumer_method);
-            PropertiesConsumers_Reset();
-        }
-        public static void RemoveHandler(IProvider handler_obj, string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
-        {
-            //TODO
-            var memberInfo = handler_obj.GetType().GetMember(handler_field);
-            if (memberInfo == null)
-                throw new Exception($"Le type {handler_obj.GetType().FullName} n'a pas de delegate {handler_field}");
-            var eventInfo = (System.Reflection.FieldInfo)memberInfo.GetValue(0);
-
-
-            var miHandler = consumer_type.GetMethod(consumer_method);
-            if (miHandler == null)
-                throw new Exception($"Le type '{consumer_type.FullName}' n'a pas de méthode {consumer_method}");
-            Delegate handler =
-                 Delegate.CreateDelegate(eventInfo.FieldType,
-                                         consumer,
-                                         miHandler);
-            //eventInfo.RemoveEventHandler(this, handler);
-            //TODO eventInfo.SetValue(handler_obj, handler);
-
+            ProcessStatic.RemoveHandler(this, handler_field, consumer, consumer_type, consumer_method);
+            PropertiesConsumers_CacheReset();
         }
 
         public virtual Dictionary<string, object> ObjectsProperties
@@ -394,30 +344,6 @@ namespace MED
             }
         }
 
-        public static IProcess CreateProcess(JsonNode node, Performance performance, Control invokeHandler)
-        {
-            string processClass = node["ProcessClass"].GetValue<string>();
-            string processLib = node["ProcessLib"].GetValue<string>();
-            string name = node["Name"].GetValue<string>();
-            bool isAsynchrone = (bool)Parser.ObjectFromJsonNode(node["IsAsynchrone"], false);
-
-            if (processClass == "")
-                processClass = MethodBase.GetCurrentMethod().DeclaringType.FullName;
-
-            try
-            {
-                IProcess item = (IProcess)AssemblyLoader.CreateObjectInstance(processLib, processClass, [name, performance.Sub(name), invokeHandler, null, isAsynchrone]);
-                //IProcess item = (IProcess)Activator.CreateInstance(processLib, processClass, [name, performance.Sub(name), invokeHandler, null, isAsynchrone]);
-                //Process item = new Process(name, performance.Sub(name), invokeHandler, null, isAsynchrone);
-                return item;
-            }
-            catch (Exception ex)
-            {
-                return null;
-                //                throw ex;
-            }
-            return null;
-        }
 
         public virtual JsonObject SaveProcess(JsonObject node = null)
         {

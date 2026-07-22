@@ -59,12 +59,12 @@ namespace MED
             
             return Activator.CreateInstance(assembly.GetName().Name, processClass, paramsObjects);
 
-            foreach (var type in assembly.GetExportedTypes())
-                if (type.FullName == processClass)
-                {
-                    return Activator.CreateInstance(assembly.GetName().Name, processClass, paramsObjects);
-                }
-            return null;
+            //foreach (var type in assembly.GetExportedTypes())
+            //    if (type.FullName == processClass)
+            //    {
+            //        return Activator.CreateInstance(assembly.GetName().Name, processClass, paramsObjects);
+            //    }
+            //return null;
         }
     }
 }

@@ -108,7 +108,7 @@ namespace MED
             var itemsNodes = new Dictionary<IProcess, JsonNode>();
             foreach (var procNode in nodes)
             {
-                IProcess item = CreateProcess(procNode, Performance, InvokeHandler);
+                IProcess item = ProcessStatic.CreateProcess(procNode, Performance, InvokeHandler);
                 
                 item.LoadSettings(processesSettings.ChildSettings(item.Name));
 
@@ -150,7 +150,7 @@ namespace MED
             if (consumerProcess == null)
                 return;
 
-            Process.AddConsumer((IProvider)process, (IConsumer)consumerProcess, propertyName);
+            ProcessStatic.AddConsumer((IProvider)process, (IConsumer)consumerProcess, propertyName);
         }
 
 
