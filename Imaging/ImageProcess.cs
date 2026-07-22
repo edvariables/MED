@@ -78,25 +78,7 @@ namespace MED
         public List<IProcess> FrameConsumers { get => GetConsumers("Frame"); }
 
 
-        public override bool AddConsumer(IConsumer consumer, string property = "ProcessState")
-        {
-
-            switch (property)
-            {
-                case "Image":
-                    if (consumer is IImageConsumer)
-                    {
-                        OnImageChanged -= (consumer as IImageConsumer).ImageChanged;
-                        OnImageChanged += (consumer as IImageConsumer).ImageChanged;
-                        return true;
-                    }
-                    break;
-                default:
-                    return base.AddConsumer(consumer, property);
-            }
-
-            return false;
-        }
+        public override bool AddConsumer(IConsumer consumer, string property = "ProcessState")=>base.AddConsumer(consumer, property);
 
         public override Dictionary<string, object> ObjectsProperties
         {
