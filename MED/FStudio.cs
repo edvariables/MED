@@ -158,9 +158,7 @@ namespace MED
          * */
         private ProcessForm GetNewProcessForm(string fileName = "")
         {
-            ProcessForm processForm = new();
-            processForm.MdiParent = this;
-            processForm.Text = "Projet " + childFormNumber++;
+            ProcessForm processForm = new("Projet " + childFormNumber++);
             processForm.MdiParent = this;
             processForm.Dock = DockStyle.Fill;
             processForm.OnProcessStateChanged += ProcessStateChanged;

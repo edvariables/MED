@@ -38,6 +38,7 @@ namespace MED
                     Root.AsArray().Add(node);
                     return node;
                 }
+                return null;
             }
             if (Root[childName] == null)
                 if (createIfNone)
@@ -61,6 +62,7 @@ namespace MED
                     Root.AsArray().Add(node);
                     return node;
                 }
+                return null;
             }
             if (Root[childName] == null)
                 if (createIfNone)

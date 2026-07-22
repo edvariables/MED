@@ -134,6 +134,17 @@ namespace MED
 
         public TreeNode AddItem(object item, TreeNodeCollection nodes, bool addChildren = true)
         {
+            if((item is Control && (item as Control).IsDisposed)
+            || (item is Process && (item as Process).IsDisposed))
+            {
+                if (ObjectsNodes.ContainsKey(item.GetHashCode()))
+                {
+                    TreeNode n;
+                    ObjectsNodes.Remove(item.GetHashCode(), out n);
+                    n.Remove();
+                }
+                return null;
+            }
             bool isRootNodes = nodes == this.Nodes || nodes == this.Nodes[0].Nodes;
 
             if (ObjectsNodes.ContainsKey(item.GetHashCode()))

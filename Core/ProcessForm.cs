@@ -11,14 +11,18 @@ namespace MED
 {
     public class ProcessForm : Form, IProcess, IConsumer
     {
-        public ProcessForm() : base()
+        public ProcessForm() : this("ProcessForm"){}
+
+        public ProcessForm(string name) : base()
         {
+            Text = Name = name;
+
             ProcessIcon = "Visual";
 
             this.FormClosed += Form_FormClosed;
             this.DockChanged += ProcessForm_DockChanged;
 
-            Project = new(this.GetType().Name, null, this);
+            Project = new(name, null, this);
 
             Project.OnProcessStateChanged += Invoke_ProcessStateChanged;
         }
