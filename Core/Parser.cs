@@ -17,6 +17,8 @@ namespace MED.Core
             {
                 Point pt => $"{pt.X},{pt.Y}",
                 Size sz => $"{sz.Width},{sz.Height}",
+                KnownColor color => $"{color.ToString()}",
+                Color color => $"{color.ToString()}",
                 null => "<null>",
                 _ => value.ToString()
             };
@@ -49,6 +51,14 @@ namespace MED.Core
                     str_value = Regex.Replace(str_value, @"[\{\}a-zA-Z=]", "");
                 string[] coords = str_value.Split(',');
                 return new Size(int.Parse(coords[0]), int.Parse(coords[1]));
+            }
+            if (out_type.Equals(typeof(KnownColor)))
+            {
+                return (KnownColor)Enum.Parse(typeof(KnownColor), str_value);
+            }
+            if (out_type.Equals(typeof(Color)))
+            {
+                return Color.FromName(str_value.Replace("Color [", "").Replace("]", ""));
             }
             object value = type_as switch
             {

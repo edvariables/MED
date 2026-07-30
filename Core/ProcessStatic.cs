@@ -73,22 +73,20 @@ namespace MED
             string name = node["Name"].GetValue<string>();
             bool isAsynchrone = (bool)Parser.ObjectFromJsonNode(node["IsAsynchrone"], false);
 
-            if (processClass == "")
-                processClass = MethodBase.GetCurrentMethod().DeclaringType.FullName;
+            return CreateProcess(processClass, processLib, name, isAsynchrone, performance, invokeHandler);
+        }
 
-            try
-            {
-                IProcess item = (IProcess)AssemblyLoader.CreateObjectInstance(processLib, processClass, [name, performance.Sub(name), invokeHandler, null, isAsynchrone]);
-                //IProcess item = (IProcess)Activator.CreateInstance(processLib, processClass, [name, performance.Sub(name), invokeHandler, null, isAsynchrone]);
-                //Process item = new Process(name, performance.Sub(name), invokeHandler, null, isAsynchrone);
-                return item;
-            }
-            catch (Exception ex)
-            {
-                return null;
-                //                throw ex;
-            }
-            return null;
+        /***
+         * 
+         * 
+         * */
+        public static IProcess CreateProcess(string processClass, string processLib, string name, bool isAsynchrone, Performance performance, Control invokeHandler)
+        {
+
+            if (processClass == "")
+                processClass = "MED.Process";
+
+           return (IProcess)AssemblyLoader.CreateObjectInstance(processLib, processClass, [name, performance.Sub(name), invokeHandler, null, isAsynchrone]);
         }
 
 
@@ -186,9 +184,13 @@ namespace MED
                 }
                 finally
                 {
-                    _IsInvokingPropertyChanged[process].Remove(delegateMethod);
-                    if (_IsInvokingPropertyChanged[process].Count == 0)
-                        _IsInvokingPropertyChanged.Remove(process);
+                    if (_IsInvokingPropertyChanged.ContainsKey(process))
+                    {
+                        if (_IsInvokingPropertyChanged[process].Contains(delegateMethod))
+                            _IsInvokingPropertyChanged[process].Remove(delegateMethod);
+                        if (_IsInvokingPropertyChanged[process].Count == 0)
+                            _IsInvokingPropertyChanged.Remove(process);
+                    }
                 }
             }
         }

@@ -7,6 +7,7 @@ using MED.Core;
 using MED.Imaging;
 using System.ComponentModel;
 using System.Drawing.Drawing2D;
+using System.IO;
 using System.Text.Json.Nodes;
 using static libMotionDetection.MotionDetectionWithMotionHistory;
 
@@ -125,6 +126,7 @@ namespace MED
             BackgroundSubtraction_KNN,
             BackgroundSubtraction_CNT,
             BackgroundSubtraction_GMG,
+            FixedBackground_MOG2,
         }
         [Browsable(true)]
         public CvInvokeTransformers Transformer { get; set; }
@@ -137,6 +139,10 @@ namespace MED
         public double MhiDuration { get; set; } = 2;
         public double MhiMinTimeDelta { get; set; } = 0.05;
         public double MhiMaxTimeDelta { get; set; } = 0.5;
+
+        public bool FixedBackgroundNow { get; set; }
+
+        private Mat _ThresholdMat = null;
 
         [Browsable(true)]
         public List<CvInvokeTransformers> Transformers { get; set; }
@@ -280,13 +286,53 @@ namespace MED
                     break;
 
                 case CvInvokeTransformers.CvInvoke_AbsDiff:
+                    if (_ThresholdMat == null || FixedBackgroundNow)
+                    {
+                        _ThresholdMat = new();
+                        CvInvoke.CvtColor(currentFrame, _ThresholdMat, Emgu.CV.CvEnum.ColorConversion.Bgr2Gray);
+                        double threshold = (double)DetectionLimit;
+                        _ThresholdMat.SetTo(new MCvScalar(threshold, threshold, threshold));
+                    }
+                    if (FixedBackgroundNow)
+                    {
+                        FixedBackgroundNow = false;
+                        PreviousFrame = new();
+                        CvInvoke.CvtColor(currentFrame, PreviousFrame, Emgu.CV.CvEnum.ColorConversion.Bgr2Gray);
+                        //PreviousFrame = currentFrame.Clone();
+                    }
                     // Dense Optical Flow
                     if (PreviousFrame != null
                         && !currentFrame.Size.IsEmpty && !PreviousFrame.Size.IsEmpty &&
                         currentFrame.Size == PreviousFrame.Size)
                     {
                         frameDiff = new();
-                        CvInvoke.AbsDiff(PreviousFrame, currentFrame, frameDiff);
+
+                        Mat grayCurrent = new();
+                        CvInvoke.CvtColor(currentFrame, grayCurrent, Emgu.CV.CvEnum.ColorConversion.Bgr2Gray);
+
+                        CvInvoke.AbsDiff(PreviousFrame, grayCurrent, frameDiff);
+
+                        CvInvoke.Subtract(frameDiff, _ThresholdMat, frameDiff);
+                        CvInvoke.Blur(frameDiff, frameDiff, new Size(8, 8), new Point(-1, -1));
+                        //frameDiff.ConvertTo(grayDiff, Emgu.CV.CvEnum.DepthType.Cv8S);
+
+                        GraphicsPath grPath = new GraphicsPath();
+                        foreach (var pts in motionDetectionWithFixedBackgroundSubtraction.GetContours(0.01, frameDiff))
+                        {
+                            grPath.AddPolygon(pts);
+                            grPath.CloseFigure();
+                        }
+                        Region grRegion = new Region(grPath);
+
+                        var bmpSource = currentFrame.ToBitmap();
+
+                        Bitmap newBmp = new Bitmap(frameDiff.Width, frameDiff.Height);
+
+                        Graphics grBmp = Graphics.FromImage(newBmp);
+                        grBmp.SetClip(grRegion, CombineMode.Replace);
+                        grBmp.DrawImage(bmpSource, 0, 0);
+                        grBmp.Dispose();
+                        return newBmp;
                     }
                     break;
 
@@ -435,11 +481,12 @@ namespace MED
                     motionDetectionWithBackgroundSubtraction.ActiveSubtractor = subtractorType;
 
                     image = new Mat();
+                    frameDiff = currentFrame.Clone();
 
-                    motionDetectionWithBackgroundSubtraction.ProcessFrame(image);
+                    motionDetectionWithBackgroundSubtraction.ProcessFrame(frameDiff);
 
                     // 1. Captured visualizer: Raw frame with bounding boxes overlaid
-                    displayImage = image.Clone();
+                    displayImage = frameDiff.Clone();
                     motionDetectionWithBackgroundSubtraction.DrawMotionGraphics(displayImage);
                     //SafeSetImageBoxImage(capturedImageBox, displayImage);
 
@@ -454,6 +501,72 @@ namespace MED
                     image.Dispose();
 
                     componentsR = motionDetectionWithBackgroundSubtraction.MotionComponents;
+                    Performance.Log($"Total Motions found: {componentsR.Length}");
+
+                    idx = 0;
+                    foreach (Rectangle comp in componentsR)
+                    {
+                        Performance.Log($"Motion Box {idx}: {comp}");
+                        idx++;
+                    }
+                    break;
+                case CvInvokeTransformers.FixedBackground_MOG2:
+
+                    // Background Subtraction (MOG2 / KNN / CNT / GMG)
+                    MotionDetectionWithFixedBackgroundSubtraction.SubtractorType fixedSubtractorType =
+                        Transformer == CvInvokeTransformers.FixedBackground_MOG2 ? MotionDetectionWithFixedBackgroundSubtraction.SubtractorType.MOG2 :
+                        Transformer == CvInvokeTransformers.BackgroundSubtraction_MOG2 ? MotionDetectionWithFixedBackgroundSubtraction.SubtractorType.MOG2 :
+                        Transformer == CvInvokeTransformers.BackgroundSubtraction_KNN ? MotionDetectionWithFixedBackgroundSubtraction.SubtractorType.KNN :
+                        Transformer == CvInvokeTransformers.BackgroundSubtraction_CNT ? MotionDetectionWithFixedBackgroundSubtraction.SubtractorType.CNT :
+                                     MotionDetectionWithFixedBackgroundSubtraction.SubtractorType.GMG;
+
+                    motionDetectionWithFixedBackgroundSubtraction.ActiveSubtractor = fixedSubtractorType;
+                    if (FixedBackgroundNow)
+                    {
+                        FixedBackgroundNow = false;
+                        motionDetectionWithFixedBackgroundSubtraction.MotionBackgroundMask = currentFrame.Clone();
+                    }
+                    image = new Mat();
+                    frameDiff = currentFrame.Clone();
+
+                    motionDetectionWithFixedBackgroundSubtraction.ProcessFrame(frameDiff);
+                    if (motionDetectionWithFixedBackgroundSubtraction.MotionComponents.Length == 0)
+                        return null;
+                    //GraphicsPath grPath = new GraphicsPath();
+                    //foreach (var pts in motionDetectionWithFixedBackgroundSubtraction.GetContours(0.01))
+                    //{
+                    //    grPath.AddPolygon(pts);
+                    //    grPath.CloseFigure();
+                    //}
+                    //Region grRegion = new Region(grPath);
+
+                    //var bmpSource = frameDiff.ToBitmap();
+
+                    //Bitmap newBmp = new Bitmap(frameDiff.Width, frameDiff.Height); 
+
+                    //Graphics grBmp = Graphics.FromImage(newBmp);
+                    //grBmp.SetClip(grRegion, CombineMode.Replace);
+                    //grBmp.DrawImage(bmpSource, 0, 0);
+                    //grBmp.Dispose();
+                    //return newBmp;
+
+
+                    // 1. Captured visualizer: Raw frame with bounding boxes overlaid
+                    displayImage = frameDiff.Clone();
+                    motionDetectionWithFixedBackgroundSubtraction.DrawMotionGraphics(displayImage);
+                    //SafeSetImageBoxImage(capturedImageBox, displayImage);
+
+                    // 2. Motion visualizer: Raw camera frame
+                    //SafeSetImageBoxImage(motionImageBox, image.Clone());
+
+                    // 3. Foreground visualizer: Binary mask
+                    frameDiff = motionDetectionWithFixedBackgroundSubtraction.MotionForgroundMask.Clone();
+
+                    //frameDiff = displayImage;
+
+                    image.Dispose();
+
+                    componentsR = motionDetectionWithFixedBackgroundSubtraction.MotionComponents;
                     Performance.Log($"Total Motions found: {componentsR.Length}");
 
                     idx = 0;
@@ -511,6 +624,7 @@ namespace MED
         private MotionDetectionWithSparseOpticalFlow motionDetectionWithSparseOpticalFlow;
         private MotionDetectionWithFrameDifferencing motionDetectionWithFrameDifferencing;
         private MotionDetectionWithBackgroundSubtraction motionDetectionWithBackgroundSubtraction;
+        private MotionDetectionWithFixedBackgroundSubtraction motionDetectionWithFixedBackgroundSubtraction;
         private void InitializeMotionDetectionExt()
         {
             motionDetectionWithDenseOpticalFlow?.Dispose();
@@ -530,6 +644,9 @@ namespace MED
 
             motionDetectionWithBackgroundSubtraction?.Dispose();
             motionDetectionWithBackgroundSubtraction = new MotionDetectionWithBackgroundSubtraction();
+
+            motionDetectionWithFixedBackgroundSubtraction?.Dispose();
+            motionDetectionWithFixedBackgroundSubtraction = new();
 
         }
 

@@ -102,7 +102,7 @@ namespace MED
         {
             ProcessSettings processesSettings = settings.ChildSettings("Processes", true);
             JsonArray nodes = processesSettings.Root.AsArray();
-            
+
             if (nodes == null)
                 return;
 
@@ -113,12 +113,18 @@ namespace MED
             var itemsNodes = new Dictionary<IProcess, JsonNode>();
             foreach (var procNode in nodes)
             {
-                IProcess item = ProcessStatic.CreateProcess(procNode, Performance, InvokeHandler);
-                
-                item.LoadSettings(processesSettings.ChildSettings(item.Name));
+                try
+                {
+                    IProcess item = ProcessStatic.CreateProcess(procNode, Performance, InvokeHandler);
+                    item.LoadSettings(processesSettings.ChildSettings(item.Name));
 
-                Items.Add(item);
-                itemsNodes.Add(item, procNode);
+                    Items.Add(item);
+                    itemsNodes.Add(item, procNode);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.ToString(), $"Création de {procNode.ToString()}", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
             foreach (var kvp in itemsNodes)
             {

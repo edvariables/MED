@@ -4,7 +4,9 @@ using System.ComponentModel;
 using System.Configuration.Provider;
 using System.Drawing;
 using System.Linq;
+using System.Security.Cryptography.Xml;
 using System.Text;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 namespace MED.Imaging
@@ -33,12 +35,12 @@ namespace MED.Imaging
             Horizontal = (bool)ProcessSettings.GetValue("Horizontal", Horizontal);
             Grid = (Size)ProcessSettings.GetValue("Grid", Grid);
         }
-        public override void SaveSettings(ProcessSettings settings = null, string fileName = "")
+        public override JsonObject SaveProcess(JsonObject node = null)
         {
-            base.SaveSettings(settings, fileName);
-
-            ProcessSettings.SetValue("Horizontal", Horizontal);
-            ProcessSettings.SetValue("Grid", Grid);
+            node = base.SaveProcess(node);
+            node.Add("Horizontal", Horizontal);
+            node.Add("Grid", Core.Parser.ObjectToString(Grid));
+            return node;
         }
         #endregion
 

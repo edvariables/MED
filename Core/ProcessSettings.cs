@@ -101,10 +101,17 @@ namespace MED
         {
             if (fileName == "")
                 fileName = FileName;
+            try
+            {
+                Root = JsonNode.Parse(File.ReadAllText(fileName));
 
-            Root = JsonNode.Parse(File.ReadAllText(fileName));
-
-            return true;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), $"Ouverture de ...{fileName.Substring(-16)}", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            return false;
         }
 
         public static bool Save(JsonNode root, string fileName)

@@ -63,7 +63,7 @@ namespace MED
         {
             var b = ProcessStatic.AddConsumer(this, consumer, property);
 
-            PropertiesConsumers_CacheReset();
+            PropertiesConsumers_CacheReset(property);
 
             return b;
         }

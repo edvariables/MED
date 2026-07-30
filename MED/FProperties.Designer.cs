@@ -38,6 +38,7 @@
             propertiesControl1.Location = new Point(0, 0);
             propertiesControl1.Name = "propertiesControl1";
             propertiesControl1.Size = new Size(327, 812);
+            propertiesControl1.SplitterDistance = 405;
             propertiesControl1.TabIndex = 0;
             // 
             // FProperties

@@ -22,9 +22,9 @@ namespace MED.Imaging
         {
             BackgroundColor = Color.Transparent;
         }
-        public BorderFinder(Color backgroundColor):base()
+        public BorderFinder(Color backgroundColor) : base()
         {
-            if( ! backgroundColor.IsEmpty)
+            if (!backgroundColor.IsEmpty)
                 BackgroundColor = backgroundColor;
         }
         int stride = 0;
@@ -78,8 +78,8 @@ namespace MED.Imaging
 
             byte[] bytes = new byte[size.Width * size.Height * 3];
             ColorBytes = 3;
-            stride = size.Width* ColorBytes;
-            Marshal.Copy(frame.GetDataPointer(), bytes, 0, bytes.Length); 
+            stride = size.Width * ColorBytes;
+            Marshal.Copy(frame.GetDataPointer(), bytes, 0, bytes.Length);
             //byte[,,] bytes = (byte[,,])frame.GetData();
             return Find(bytes, size, outside);
         }
@@ -90,7 +90,7 @@ namespace MED.Imaging
 
             stride = bmpdata.Stride;
 
-            byte[] bytes = new byte[bmp.Width * bmp.Height * ColorBytes ];
+            byte[] bytes = new byte[bmp.Width * bmp.Height * ColorBytes];
 
             size = bmp.Size;
 
@@ -107,7 +107,7 @@ namespace MED.Imaging
 
 
             // Get all Borderpoint
-            if(bytes is Byte[,,])
+            if (bytes is Byte[,,])
                 borderdata = getBorderData((Byte[,,])bytes);
             else
                 borderdata = getBorderData((Byte[])bytes);
@@ -714,7 +714,7 @@ namespace MED.Imaging
                         }
                         continue;
                     }
-                    if (BackgroundColor != Color.Transparent || ColorBytes==3)
+                    if (BackgroundColor != Color.Transparent || ColorBytes == 3)
                         currenttrans = bytes[y * stride + x * ColorBytes + 0] <= BackgroundColor_R
                             && bytes[y * stride + x * ColorBytes + 1] <= BackgroundColor_G
                             && bytes[y * stride + x * ColorBytes + 2] <= BackgroundColor_B;
@@ -756,10 +756,10 @@ namespace MED.Imaging
                         }
                         continue;
                     }
-                    currenttrans = bytes[y,x,0] <= BackgroundColor.R
+                    currenttrans = bytes[y, x, 0] <= BackgroundColor.R
                         && bytes[y, x, 1] <= BackgroundColor.G
                         && bytes[y, x, 2] <= BackgroundColor.B;
-                
+
                     if (x == 0 && !currenttrans)
                         isborderpoint.SetPointF(y * size.Width + x, true);
                     if (prevtrans && !currenttrans)
@@ -785,7 +785,7 @@ namespace MED.Imaging
                     currenttrans = bytes[y, x, 0] <= BackgroundColor.R
                         && bytes[y, x, 1] <= BackgroundColor.G
                         && bytes[y, x, 2] <= BackgroundColor.B;
-                    
+
                     if (y == 0 && !currenttrans)
                         isborderpoint.SetPointF(y * size.Width + x, true);
                     if (prevtrans && !currenttrans)
@@ -831,7 +831,7 @@ namespace MED.Imaging
                     //byte alpha = originalBytes[y * bitmapData.Stride + 4 * x + 3];
 
                     //if (alpha != 0)
-                    if(!empty)
+                    if (!empty)
                     {
                         PointF p = new PointF(x, y);
 
@@ -863,19 +863,20 @@ namespace MED.Imaging
                     float x = currentP.X + neighbourPoints[neighbourPosition].X;
                     float y = currentP.Y + neighbourPoints[neighbourPosition].Y;
 
-                    if (x < 0 || y < 0 || x >= image.Width-1 || y >= image.Height-1)
+                    if (x < 0 || y < 0 || x >= image.Width - 1 || y >= image.Height - 1)
                     {
                         transparentNeighbourFound = false;
                         continue;
                     }
                     int n = (int)(y * stride + x * ColorBytes);
                     if (BackgroundColor != Color.Transparent || ColorBytes == 3)
-                        try {
+                        try
+                        {
                             empty = bytes[n + 0] <= BackgroundColor_R
                                 && bytes[n + 1] <= BackgroundColor_G
                                 && bytes[n + 2] <= BackgroundColor_B;
                         }
-                        catch(Exception ex)
+                        catch (Exception ex)
                         {
                             Console.WriteLine(ex.Message);
                             return null;
@@ -883,7 +884,7 @@ namespace MED.Imaging
                     else
                         empty = bytes[(int)(y * stride + x * ColorBytes + 3)] == 0;
 
-                    byte alpha= (byte)(empty ? 0 : 255);
+                    byte alpha = (byte)(empty ? 0 : 255);
                     //alpha = bytes[(int)(y * bitmapData.Stride + 4 * x + 3)];
 
                     //a transparent pixel has to be found first

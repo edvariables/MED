@@ -360,6 +360,7 @@ namespace libMotionDetection
                     foreach (Rectangle motionZone in motionZones) {
                         if (motionZone.Contains (motionBoundingRectangle)) {
                             isInMotionZone = true;
+                            break;
                         }
                     }
                     // If the motion component does not belong in any motion

@@ -39,7 +39,7 @@ namespace MED
         {
             LoggerColor = color;
             Logger = logger;
-            Enabled = enabled && Logger != null;
+            Enabled = enabled/* && Logger != null*/;
             Name = name ?? "";
             Icon = "DateTime";
         }
@@ -518,7 +518,7 @@ namespace MED
             if (IsEmpty && !evenIsEmpty)
                 return;
             settings.SetValue("Enabled", Enabled);
-            LoggerColor = (KnownColor)Enum.Parse(typeof(KnownColor), settings.GetValue("Color", LoggerColor).ToString());
+            settings.SetValue("Color", LoggerColor.ToString());
         }
 
         public virtual JsonObject SaveNode(JsonObject node = null, bool evenIsEmpty = false)

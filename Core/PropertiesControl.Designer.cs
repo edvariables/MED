@@ -36,11 +36,16 @@
             cmdRefresh = new Button();
             processesControl1 = new ProcessesControl();
             splitContainer1 = new SplitContainer();
+            contextMenuProcesses = new ContextMenuStrip(components);
+            toolStripMenuProcAdd = new ToolStripMenuItem();
+            toolStripCboProcAddClasses = new ToolStripComboBox();
+            toolStripMenuProcRemove = new ToolStripMenuItem();
             panCboObjects.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
             splitContainer1.Panel2.SuspendLayout();
             splitContainer1.SuspendLayout();
+            contextMenuProcesses.SuspendLayout();
             SuspendLayout();
             // 
             // propertyGrid
@@ -88,6 +93,7 @@
             // processesControl1
             // 
             processesControl1.Dock = DockStyle.Fill;
+            processesControl1.HideSelection = false;
             processesControl1.ImageIndex = 0;
             processesControl1.Location = new Point(0, 0);
             processesControl1.Name = "processesControl1";
@@ -95,6 +101,8 @@
             processesControl1.Size = new Size(259, 322);
             processesControl1.TabIndex = 5;
             processesControl1.BeforeSelect += ProcessesControl1_BeforeSelect;
+            processesControl1.NodeMouseClick += processesControl1_NodeMouseClick;
+            processesControl1.MouseClick += processesControl1_MouseClick;
             // 
             // splitContainer1
             // 
@@ -115,6 +123,37 @@
             splitContainer1.SplitterDistance = 322;
             splitContainer1.TabIndex = 6;
             // 
+            // contextMenuProcesses
+            // 
+            contextMenuProcesses.Items.AddRange(new ToolStripItem[] { toolStripMenuProcAdd, toolStripCboProcAddClasses, toolStripMenuProcRemove });
+            contextMenuProcesses.Name = "contextMenuProcesses";
+            contextMenuProcesses.Size = new Size(183, 97);
+            contextMenuProcesses.Text = "Processes";
+            // 
+            // toolStripMenuProcAdd
+            // 
+            toolStripMenuProcAdd.Image = (Image)resources.GetObject("toolStripMenuProcAdd.Image");
+            toolStripMenuProcAdd.Name = "toolStripMenuProcAdd";
+            toolStripMenuProcAdd.Size = new Size(182, 22);
+            toolStripMenuProcAdd.Text = "Ajouter un process...";
+            toolStripMenuProcAdd.Click += toolStripMenuProcAdd_Click;
+            // 
+            // toolStripCboProcAddClasses
+            // 
+            toolStripCboProcAddClasses.Items.AddRange(new object[] { "MED.Render", "MED.Imaging.ScreenSplitter", "MED.Processes", "MED.EmguMoving", "MED.EDVideoCapture", "MED.Imaging.Background", "Autre..." });
+            toolStripCboProcAddClasses.Name = "toolStripCboProcAddClasses";
+            toolStripCboProcAddClasses.Size = new Size(121, 23);
+            toolStripCboProcAddClasses.Visible = false;
+            toolStripCboProcAddClasses.KeyPress += toolStripCboProcAddClasses_KeyPress;
+            toolStripCboProcAddClasses.KeyUp += toolStripCboProcAddClasses_KeyUp;
+            // 
+            // toolStripMenuProcRemove
+            // 
+            toolStripMenuProcRemove.Image = (Image)resources.GetObject("toolStripMenuProcRemove.Image");
+            toolStripMenuProcRemove.Name = "toolStripMenuProcRemove";
+            toolStripMenuProcRemove.Size = new Size(182, 22);
+            toolStripMenuProcRemove.Text = "Supprimer...";
+            // 
             // PropertiesControl
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -127,6 +166,7 @@
             splitContainer1.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
             splitContainer1.ResumeLayout(false);
+            contextMenuProcesses.ResumeLayout(false);
             ResumeLayout(false);
         }
 
@@ -138,5 +178,9 @@
         private Button cmdRefresh;
         private ProcessesControl processesControl1;
         private SplitContainer splitContainer1;
+        private ContextMenuStrip contextMenuProcesses;
+        private ToolStripMenuItem toolStripMenuProcAdd;
+        private ToolStripMenuItem toolStripMenuProcRemove;
+        private ToolStripComboBox toolStripCboProcAddClasses;
     }
 }

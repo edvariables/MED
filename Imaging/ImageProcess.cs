@@ -125,6 +125,18 @@ namespace MED
         [Browsable(false)]
         public virtual Size ImageSizeMax { get; set; }
 
+        [Browsable(true)]
+        public virtual int FPSMax { get; set; } = 25;
+        protected int FPSMaxDuration
+        {
+            get
+            {
+                if (FPSMax <= 0)
+                    return 0;
+                return 1000 / FPSMax;
+            }
+        }
+
         public IImageProvider.ImageChangedDelegate OnImageChanged;
 
         [Browsable(true)]
@@ -141,7 +153,8 @@ namespace MED
         [Browsable(false)]
         public virtual void ImageChanged(IImageProvider sender, EventArgs e)
         {
-            Performance.Debug($"ImageChanged from {sender.ToString()}");
+            string? from = sender == this ? "myself" : sender.ToString();
+            Performance.Debug($"ImageChanged from {from}");
             ImageProvider = sender; //Add
 
             if (ImageProviders.Count <= 1 || ImageProviders.Last() == sender)
@@ -162,7 +175,7 @@ namespace MED
                 Performance.Debug($"Waiting for last provider {sender} => {ImageProviders.Last()}");
         }
 
-        private Bitmap _Image;
+        protected Bitmap _Image;
         [Browsable(false)]
         public virtual Bitmap Image
         {
@@ -253,6 +266,8 @@ namespace MED
         {
             base.LoadSettings(settings, fileName);
 
+            FPSMax = (int)settings.GetValue("FPSMax", FPSMax);
+
             var value = ProcessSettings.GetValue("ImageSizeMax", ImageSizeMax);
             if (value is Size)
                 ImageSizeMax = (Size)value;
@@ -263,6 +278,7 @@ namespace MED
         {
             node = base.SaveProcess(node);
             node.Add("ImageSizeMax", Parser.ObjectToString(ImageSizeMax));
+            node.Add("FPSMax", FPSMax);
 
             var consumers = new JsonObject();
 

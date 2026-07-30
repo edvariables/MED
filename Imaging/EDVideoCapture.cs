@@ -1,11 +1,13 @@
 ﻿using DirectShowLib;
 using Emgu.CV;
+using MED.Core;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -32,6 +34,19 @@ namespace MED
         [Browsable(true)]
         [ReadOnly(false)]
         public int CameraIndex { get; set; }
+
+        public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
+        {
+            base.LoadSettings(settings, fileName);
+
+            CameraIndex = (int)settings.GetValue("CameraIndex", CameraIndex);
+        }
+        public override JsonObject SaveProcess(JsonObject node = null)
+        {
+            node = base.SaveProcess(node);
+            node.Add("CameraIndex", CameraIndex);
+            return node;
+        }
 
         #endregion
 
@@ -114,7 +129,7 @@ namespace MED
                 return;
             }
 
-            if (Performance.Average_msec < 40)
+            if (Performance.Average_msec < FPSMaxDuration)
                 sleep += 5;
             else if (sleep > 0)
                 sleep -= 5;

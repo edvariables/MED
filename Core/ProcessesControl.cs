@@ -180,8 +180,10 @@ namespace MED
                     if (n.Parent == null || n.Parent.Parent == null)
                         return n;
                 }
+                else if (n.Parent.Nodes == nodes)
+                    return n;
                 else
-                    addChildren = false;
+                    addChildren = !(n.Parent == null || n.Parent.Parent == null);
 
                 //Priority to root
                 ObjectsNodes.Remove(item.GetHashCode(), out n);
@@ -228,9 +230,10 @@ namespace MED
                     //AddItems((item as IProcess).ObjectsProperties.Values.ToArray(), node.Nodes);
                     foreach (var kvp in (item as IProcess).ObjectsProperties)
                     {
-                        if (kvp.Value is List<IProcess>)
+                        if (kvp.Value is List<IProcess> && (kvp.Value as List<IProcess>).Count > 0 && (kvp.Value as List<IProcess>).First() != item)
                         {
                             var subNode = node.Nodes.Add(kvp.Key);
+                            subNode.SelectedImageKey = subNode.ImageKey = "next_blue";
                             AddItems((kvp.Value as List<IProcess>).ToArray(), subNode.Nodes);
                         }
                     }

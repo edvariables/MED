@@ -112,5 +112,97 @@ namespace MED
             propertyGrid.SelectedObject = null;
             cboObjectsList_SelectedIndexChanged(sender, e);
         }
+
+        /***
+         * Menus
+         * 
+         * TODO
+         * 
+         * */
+
+        private void processesControl1_MouseClick(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                contextMenuProcesses.Show((Control)sender, e.Location);
+            }
+        }
+
+        private void processesControl1_NodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+
+                toolStripMenuProcAdd.Visible = e.Node.Tag != null;
+                toolStripCboProcAddClasses.Visible = e.Node.Tag != null;
+                toolStripMenuProcAdd.Visible = e.Node.Tag != null;
+                toolStripMenuProcRemove.Visible = e.Node.Tag != null;
+                processesControl1.SelectedNode = e.Node;
+                contextMenuProcesses.Show((Control)sender, e.Location);
+
+
+            }
+        }
+
+        private void toolStripMenuProcAdd_Click(object sender, EventArgs e)
+        {
+            if (toolStripCboProcAddClasses.SelectedIndex == -1 || toolStripCboProcAddClasses.SelectedItem == null)
+            {
+                MessageBox.Show("Veuillez sélectionner un type de process.");
+                contextMenuProcesses.Show(processesControl1, processesControl1.SelectedNode == null ? Point.Empty : processesControl1.SelectedNode.Bounds.Location);
+                toolStripCboProcAddClasses.Visible = true;
+                toolStripCboProcAddClasses.Focus();
+                return;
+            }
+
+            try
+            {
+                var process = ProcessStatic.CreateProcess(toolStripCboProcAddClasses.SelectedItem.ToString(), "", toolStripCboProcAddClasses.SelectedItem.ToString(), false, Performance.Empty(), null);
+
+                if (process is Processes)
+                    if (processesControl1.SelectedNode == null || processesControl1.SelectedNode.Tag is not IProcess)
+                    {
+                        //TODO Add to Studio.Project.Processes
+                        ShowProperties([process]);
+                        return;
+                    }
+                IProcess selectedProcess = (IProcess)processesControl1.SelectedNode.Tag;
+                IProcess? selectedParentProcess = processesControl1.SelectedNode.Parent == null || processesControl1.SelectedNode.Parent.Tag == null ? null
+                                            : (IProcess)processesControl1.SelectedNode.Parent.Tag;
+                if (selectedProcess is not Processes
+                    && selectedParentProcess is Processes)
+                    selectedProcess = selectedParentProcess;
+                if (selectedProcess is Processes)
+                {
+                    (selectedProcess as Processes).Items.Insert((selectedProcess as Processes).Items.Count - 1, process);
+                    var render = (selectedProcess as Processes).Items.First();
+                    var provider = (selectedProcess as Processes).Items.Last();
+                    if ((provider is IProvider) && (process is IConsumer))
+                        (provider as IProvider).AddConsumer((IConsumer)process, "Image");//TODO default property
+                    (selectedProcess as Processes).Items.Insert((selectedProcess as Processes).Items.Count - 1, process);
+                    ShowProperties([selectedProcess]);
+                    return;
+                }
+                MessageBox.Show("Impossible de déterminer un jeu de process parent.", "Ajouter un process");
+                process.Dispose();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Impossible de créer ce process {toolStripCboProcAddClasses.SelectedItem.ToString()}", "Ajout d'un process");
+                return;
+            }
+        }
+
+        private void toolStripCboProcAddClasses_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == '\n')
+                toolStripMenuProcAdd_Click(sender, e);
+        }
+
+        private void toolStripCboProcAddClasses_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Escape)
+                contextMenuProcesses.Visible = false;
+        }
     }
 }
