@@ -127,7 +127,7 @@
             // 
             contextMenuProcesses.Items.AddRange(new ToolStripItem[] { toolStripMenuProcAdd, toolStripCboProcAddClasses, toolStripMenuProcRemove });
             contextMenuProcesses.Name = "contextMenuProcesses";
-            contextMenuProcesses.Size = new Size(183, 97);
+            contextMenuProcesses.Size = new Size(183, 75);
             contextMenuProcesses.Text = "Processes";
             // 
             // toolStripMenuProcAdd
@@ -140,7 +140,7 @@
             // 
             // toolStripCboProcAddClasses
             // 
-            toolStripCboProcAddClasses.Items.AddRange(new object[] { "MED.Render", "MED.Imaging.ScreenSplitter", "MED.Processes", "MED.EmguMoving", "MED.EDVideoCapture", "MED.Imaging.Background", "Autre..." });
+            toolStripCboProcAddClasses.DropDownStyle = ComboBoxStyle.DropDownList;
             toolStripCboProcAddClasses.Name = "toolStripCboProcAddClasses";
             toolStripCboProcAddClasses.Size = new Size(121, 23);
             toolStripCboProcAddClasses.Visible = false;
@@ -153,6 +153,7 @@
             toolStripMenuProcRemove.Name = "toolStripMenuProcRemove";
             toolStripMenuProcRemove.Size = new Size(182, 22);
             toolStripMenuProcRemove.Text = "Supprimer...";
+            toolStripMenuProcRemove.Click += toolStripMenuProcRemove_Click;
             // 
             // PropertiesControl
             // 

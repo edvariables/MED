@@ -53,6 +53,9 @@ namespace MED
                 return Activator.CreateInstance(processType.Namespace, processType.Name, paramsObjects);
 
             //TODO
+            if (string.IsNullOrEmpty(processLib))
+                throw new Exception($"Librairie inconnue (argument processLib)");
+
             var al = new AssemblyLoader(Directory.GetParent(processLib).FullName);
 
             Assembly assembly = al.LoadFromAssemblyPath(processLib);

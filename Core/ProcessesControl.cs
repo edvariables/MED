@@ -102,7 +102,10 @@ namespace MED
 
             foreach (TreeNode node in nodes)
             {
-                if (ObjectsNodes.ContainsKey(node.Tag.GetHashCode()))
+                if (node == null)
+                    continue;
+
+                if (node.Tag != null && ObjectsNodes.ContainsKey(node.Tag.GetHashCode()))
                     ObjectsNodes.Remove(node.Tag.GetHashCode());
                 if (node.Nodes.Count > 0)
                     NodesClear(node);
@@ -180,7 +183,7 @@ namespace MED
                     if (n.Parent == null || n.Parent.Parent == null)
                         return n;
                 }
-                else if (n.Parent.Nodes == nodes)
+                else if (n.Parent != null && n.Parent.Nodes == nodes)
                     return n;
                 else
                     addChildren = !(n.Parent == null || n.Parent.Parent == null);
@@ -217,9 +220,9 @@ namespace MED
 
             if (addChildren)
             {
-                if (item is Processes)
+                if (item is IProcesses)
                 {
-                    object[] items = (item as Processes).Items.ToArray();
+                    object[] items = (item as IProcesses).Items.ToArray();
                     //Reverse
                     if (node.Parent == null)
                         items = items.Reverse().ToArray<object>();

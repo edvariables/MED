@@ -491,7 +491,7 @@
             btnProcessPause.Image = (Image)resources.GetObject("btnProcessPause.Image");
             btnProcessPause.ImageTransparentColor = Color.Magenta;
             btnProcessPause.Name = "btnProcessPause";
-            btnProcessPause.Size = new Size(59, 22);
+            btnProcessPause.Size = new Size(58, 22);
             btnProcessPause.Text = "Pause";
             btnProcessPause.Click += btnProcessPause_Click;
             // 

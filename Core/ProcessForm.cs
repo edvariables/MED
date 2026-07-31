@@ -11,18 +11,18 @@ namespace MED
 {
     public class ProcessForm : Form, IProcess, IConsumer
     {
-        public ProcessForm() : this("ProcessForm"){}
+        public ProcessForm() : this("ProcessForm") { }
 
         public ProcessForm(string name) : base()
         {
             Text = Name = name;
 
-            ProcessIcon = "Visual";
-
             this.FormClosed += Form_FormClosed;
             this.DockChanged += ProcessForm_DockChanged;
 
             Project = new(name, null, this);
+
+            ProcessIcon = Project.ProcessIcon;
 
             Project.OnProcessStateChanged += Invoke_ProcessStateChanged;
         }
@@ -97,6 +97,8 @@ namespace MED
 
             Size = (Size)ProcessSettings.GetValue("Size", Size);
             Location = (Point)ProcessSettings.GetValue("Location", Location);
+
+            ProcessIcon = Project.ProcessIcon;
         }
         public virtual void LoadProcess(JsonNode node) => Project.LoadProcess(node);
 
@@ -145,9 +147,9 @@ namespace MED
         {
             if (proc is ProcessForm)
                 return (ProcessForm)proc;
-            if (proc is Processes)
-                if ((proc as Processes).InvokeHandler is ProcessForm)
-                    return (ProcessForm)((proc as Processes).InvokeHandler);
+            if (proc is IProcesses)
+                if ((proc as Process).InvokeHandler is ProcessForm)
+                    return (ProcessForm)((proc as Process).InvokeHandler);
 
             if (proc is IProvider)
                 if ((proc as IProvider).InvokeHandler is ProcessForm)
@@ -206,6 +208,15 @@ namespace MED
             }
         }
 
-        public string ProcessIcon { get; set; }
+        public string ProcessIcon
+        {
+            get => Project.ProcessIcon;
+            set
+            {
+                Project.ProcessIcon = value;
+                if (!String.IsNullOrEmpty(value))
+                    this.Icon = Core.Settings.GetIcon(value);
+            }
+        }
     }
 }

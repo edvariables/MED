@@ -10,7 +10,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
-namespace MED
+namespace MED.Imaging
 {
     public class Render : ImageProcess
     {

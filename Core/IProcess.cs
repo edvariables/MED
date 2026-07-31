@@ -11,7 +11,7 @@ namespace MED
 {
     public interface IProcess : IDisposable
     {
-        string Name { get; }
+        string Name { get; set; }
         string ProcessIcon { get; }
         Performance Performance { get; }
 

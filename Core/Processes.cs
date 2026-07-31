@@ -10,7 +10,7 @@ using System.Xml.Linq;
 
 namespace MED
 {
-    public class Processes : Process
+    public class Processes : Process, IProcesses
     {
         public Processes(string name = "MED.Project", Performance performance = null, Control invokeHandler = null, IConsumer consumer = null, bool isAsynchrone = false)
             : base(name == null || name == "" ? "MED.Project" : name, performance, invokeHandler, consumer, isAsynchrone)
@@ -70,16 +70,31 @@ namespace MED
                 settings = ProcessSettings = new ProcessSettings(fileName);
 
             SaveProcesses(settings);
+
             base.SaveSettings(settings, fileName);
         }
         public virtual void SaveProcesses(ProcessSettings settings)
         {
-            JsonArray nodes = settings.ChildArray("Processes", true);
-            nodes.Clear();
-            foreach (var proc in Items)
+            //Create children nodes in order
+            var childSettings = settings.ChildSettings("Processes");
+            if (childSettings.Root is JsonArray)
             {
-                nodes.Add(proc.SaveProcess());
+                settings.Root["Processes"] = new JsonObject();
+                childSettings = settings.ChildSettings("Processes");
             }
+            else
+                childSettings.Root.AsObject().Clear();
+
+            foreach (var proc in Items)
+                childSettings.ChildSettings(proc.Name);
+
+            JsonObject nodes = childSettings.Root.AsObject();
+
+            foreach (var proc in Items)
+                if (proc is IProcesses)
+                    proc.SaveSettings(childSettings.ChildSettings(proc.Name));
+                else
+                    nodes[proc.Name] = proc.SaveProcess();
         }
         #endregion
 
@@ -100,8 +115,16 @@ namespace MED
 
         public virtual void LoadProcesses(ProcessSettings settings)
         {
-            ProcessSettings processesSettings = settings.ChildSettings("Processes", true);
-            JsonArray nodes = processesSettings.Root.AsArray();
+            ProcessSettings processesSettings = settings.ChildSettings("Processes", false);
+            JsonObject nodes;
+            if (processesSettings.Root is JsonArray)
+            {//Compatibility
+                nodes = new();
+                foreach (var procNode in processesSettings.Root.AsArray())
+                    nodes.Add(nodes.Count.ToString(), procNode.DeepClone());
+            }
+            else
+                nodes = processesSettings.Root.AsObject();
 
             if (nodes == null)
                 return;
@@ -111,7 +134,7 @@ namespace MED
 
             Items.Clear();
             var itemsNodes = new Dictionary<IProcess, JsonNode>();
-            foreach (var procNode in nodes)
+            foreach (var (nodeName, procNode) in nodes)
             {
                 try
                 {

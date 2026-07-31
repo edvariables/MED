@@ -47,7 +47,7 @@ namespace MED
                  Delegate.CreateDelegate(eventInfo.FieldType,
                                          consumer,
                                          miHandler);
-            //eventInfo.RemoveEventHandler(this, handler);
+            //eventInfo.RemoveEventHandler(this, miHandler);
             //TODO eventInfo.SetValue(handler_obj, handler);
 
         }
@@ -69,7 +69,7 @@ namespace MED
         public static IProcess CreateProcess(JsonNode node, Performance performance, Control invokeHandler)
         {
             string processClass = node["ProcessClass"].GetValue<string>();
-            string processLib = node["ProcessLib"].GetValue<string>();
+            string processLib = node["ProcessLib"]?.GetValue<string>();
             string name = node["Name"].GetValue<string>();
             bool isAsynchrone = (bool)Parser.ObjectFromJsonNode(node["IsAsynchrone"], false);
 
@@ -86,7 +86,7 @@ namespace MED
             if (processClass == "")
                 processClass = "MED.Process";
 
-           return (IProcess)AssemblyLoader.CreateObjectInstance(processLib, processClass, [name, performance.Sub(name), invokeHandler, null, isAsynchrone]);
+            return (IProcess)AssemblyLoader.CreateObjectInstance(processLib, processClass, [name, performance.Sub(name), invokeHandler, null, isAsynchrone]);
         }
 
 
@@ -131,8 +131,12 @@ namespace MED
         private static Dictionary<IProcess, List<Delegate>> _IsInvokingPropertyChanged = new();
         public static bool IsInvokingPropertyChanged(IProcess process, Delegate delegateMethod)
         {
-            return _IsInvokingPropertyChanged.ContainsKey(process)
+
+            lock (_IsInvokingPropertyChanged)
+            {
+                return _IsInvokingPropertyChanged.ContainsKey(process)
                 && _IsInvokingPropertyChanged[process].Contains(delegateMethod);
+            }
         }
         public static void InvokePropertyChanged(IProcess process, IProvider sender, Delegate delegateMethod, EventArgs e)
         {
@@ -145,12 +149,14 @@ namespace MED
                     process.Performance.Alert($"(already)IsInvokingPropertyChanged {delegateMethod.Method.Name}");
                     return;
                 }
-
                 try
                 {
-                    if (!_IsInvokingPropertyChanged.ContainsKey(process))
-                        _IsInvokingPropertyChanged[process] = new();
-                    _IsInvokingPropertyChanged[process].Add(delegateMethod);
+                    lock (_IsInvokingPropertyChanged)
+                    {
+                        if (!_IsInvokingPropertyChanged.ContainsKey(process))
+                            _IsInvokingPropertyChanged.Add(process, new());
+                        _IsInvokingPropertyChanged[process].Add(delegateMethod);
+                    }
 
                     //if(!process.Equals(sender))
                     //    process.Performance.Debug($"InvokePropertyChanged TODO sender({sender}) != process({process}). process has priority over sender.");
@@ -181,19 +187,35 @@ namespace MED
                 catch (Exception ex)
                 {
                     process.Performance?.Error("InvokePropertyChanged", ex);
+                    int index = 0;
+                    lock (_IsInvokingPropertyChanged)
+                    {
+                        foreach (var kvp in _IsInvokingPropertyChanged.ToArray())
+                        {
+                            if (kvp.Key == null)
+                            {
+                                _IsInvokingPropertyChanged.Clear();
+                                break;
+                            }
+                            else
+                                index++;
+                        }
+                    }
                 }
                 finally
                 {
-                    if (_IsInvokingPropertyChanged.ContainsKey(process))
+                    lock (_IsInvokingPropertyChanged)
                     {
-                        if (_IsInvokingPropertyChanged[process].Contains(delegateMethod))
-                            _IsInvokingPropertyChanged[process].Remove(delegateMethod);
-                        if (_IsInvokingPropertyChanged[process].Count == 0)
-                            _IsInvokingPropertyChanged.Remove(process);
+                        if (_IsInvokingPropertyChanged.ContainsKey(process))
+                        {
+                            if (_IsInvokingPropertyChanged[process].Contains(delegateMethod))
+                                _IsInvokingPropertyChanged[process].Remove(delegateMethod);
+                            if (_IsInvokingPropertyChanged[process].Count == 0)
+                                _IsInvokingPropertyChanged.Remove(process);
+                        }
                     }
                 }
             }
         }
     }
-
 }

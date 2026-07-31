@@ -16,6 +16,27 @@ namespace MED
         public PropertiesControl()
         {
             InitializeComponent();
+
+            InitProcessClasses();
+        }
+
+        Dictionary<string, string> ProcessClasses = new();
+        private void InitProcessClasses()
+        {
+            ProcessClasses.Add("Render", "MED.Imaging.Render");
+            ProcessClasses.Add("ScreenSplitter", "MED.Imaging.ScreenSplitter");
+            ProcessClasses.Add("Project", "MED.Processes");
+            ProcessClasses.Add("Images", "MED.Imaging.Images");
+            ProcessClasses.Add("EmguMoving", "MED.Imaging.EmguMoving");
+            ProcessClasses.Add("EDVideoCapture", "MED.Imaging.EDVideoCapture");
+            ProcessClasses.Add("Background", "MED.Imaging.Background");
+            ProcessClasses.Add("(Autre...)", "");
+
+            toolStripCboProcAddClasses.Items.Clear();
+            foreach (var proc in ProcessClasses)
+            {
+                toolStripCboProcAddClasses.Items.Add(proc.Key);
+            }
         }
 
         [Setting]
@@ -43,9 +64,9 @@ namespace MED
             processesControl1.ShowProperty(o);
         }
 
-        public void ShowProperties(object[] items)
+        public void ShowProperties(object[] items, TreeNode rootNode = null, bool clear = false)
         {
-            processesControl1.ShowProperties(items);
+            processesControl1.ShowProperties(items, rootNode, clear);
             if (items.Length == 0)
                 ShowNodeProperties(null);
             else
@@ -157,30 +178,53 @@ namespace MED
 
             try
             {
-                var process = ProcessStatic.CreateProcess(toolStripCboProcAddClasses.SelectedItem.ToString(), "", toolStripCboProcAddClasses.SelectedItem.ToString(), false, Performance.Empty(), null);
+                var processName = toolStripCboProcAddClasses.SelectedItem.ToString();
+                var processClass = ProcessClasses[processName];
+                var process = ProcessStatic.CreateProcess(processClass, "", processName, true, Performance.Empty(), null);
 
-                if (process is Processes)
+                if (process is IProcesses)
                     if (processesControl1.SelectedNode == null || processesControl1.SelectedNode.Tag is not IProcess)
                     {
                         //TODO Add to Studio.Project.Processes
                         ShowProperties([process]);
                         return;
                     }
-                IProcess selectedProcess = (IProcess)processesControl1.SelectedNode.Tag;
-                IProcess? selectedParentProcess = processesControl1.SelectedNode.Parent == null || processesControl1.SelectedNode.Parent.Tag == null ? null
-                                            : (IProcess)processesControl1.SelectedNode.Parent.Tag;
-                if (selectedProcess is not Processes
-                    && selectedParentProcess is Processes)
-                    selectedProcess = selectedParentProcess;
-                if (selectedProcess is Processes)
+                TreeNode selectedNode = processesControl1.SelectedNode;
+                IProcess selectedProcess = (IProcess)selectedNode.Tag;
+                TreeNode? selectedParentNode = selectedNode.Parent == null ? null : selectedNode.Parent;
+                IProcess? selectedParentProcess = selectedParentNode == null || selectedParentNode.Tag == null ? null
+                                            : (IProcess)selectedParentNode.Tag;
+                if (selectedProcess is not IProcesses
+                    && selectedParentProcess is IProcesses)
                 {
-                    (selectedProcess as Processes).Items.Insert((selectedProcess as Processes).Items.Count - 1, process);
-                    var render = (selectedProcess as Processes).Items.First();
-                    var provider = (selectedProcess as Processes).Items.Last();
-                    if ((provider is IProvider) && (process is IConsumer))
-                        (provider as IProvider).AddConsumer((IConsumer)process, "Image");//TODO default property
-                    (selectedProcess as Processes).Items.Insert((selectedProcess as Processes).Items.Count - 1, process);
-                    ShowProperties([selectedProcess]);
+                    selectedProcess = selectedParentProcess;
+                    selectedNode = selectedParentNode;
+                }
+
+                if (selectedProcess is IProcesses)
+                {
+                    var items = (selectedProcess as IProcesses).Items;
+
+                    //Name
+                    int processNameIndex = 0;
+                    foreach (var item in items)
+                        if (item.Name == processName || item.Name == $"{processName}{processNameIndex}")
+                            processNameIndex++;
+                    if (processNameIndex > 0)
+                        process.Name = processName = $"{processName}{processNameIndex}";
+
+                    //Add or Insert
+                    if (items.Count == 0)
+                        items.Add(process);
+                    else
+                    {
+                        items.Insert(items.Count - 1, process);
+                        var render = items.First();
+                        var provider = items.Last();
+                        if ((provider is IProvider) && (process is IConsumer))
+                            (provider as IProvider).AddConsumer((IConsumer)process, "Image");//TODO default property
+                    }
+                    ShowProperties([selectedProcess], selectedNode.Parent);
                     return;
                 }
                 MessageBox.Show("Impossible de déterminer un jeu de process parent.", "Ajouter un process");
@@ -188,7 +232,7 @@ namespace MED
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Impossible de créer ce process {toolStripCboProcAddClasses.SelectedItem.ToString()}", "Ajout d'un process");
+                MessageBox.Show($"Impossible de créer ce process {toolStripCboProcAddClasses.SelectedItem.ToString()} : \n{ex.ToString()}", "Ajout d'un process");
                 return;
             }
         }
@@ -203,6 +247,27 @@ namespace MED
         {
             if (e.KeyCode == Keys.Escape)
                 contextMenuProcesses.Visible = false;
+        }
+
+        private void toolStripMenuProcRemove_Click(object sender, EventArgs e)
+        {
+
+            if (processesControl1.SelectedNode == null || processesControl1.SelectedNode.Tag == null)
+            {
+                MessageBox.Show("Veuillez sélectionner un process.");
+                return;
+            }
+            var process = (IProcess)processesControl1.SelectedNode.Tag;
+            if (MessageBox.Show($"Êtes vous sûr de vouloir supprimer ce process {process.ToString()} ?", "Supprimer un process", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
+                return;
+
+            IProcess? selectedParentProcess = processesControl1.SelectedNode.Parent == null || processesControl1.SelectedNode.Parent.Tag == null ? null
+                                            : (IProcess)processesControl1.SelectedNode.Parent.Tag;
+            if (selectedParentProcess != null)
+                if (selectedParentProcess is IProcesses)
+                    (selectedParentProcess as IProcesses).Items.Remove(process);
+            process.Dispose();
+            ShowProperties([selectedParentProcess]);
         }
     }
 }

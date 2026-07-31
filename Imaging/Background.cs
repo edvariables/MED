@@ -80,9 +80,11 @@ namespace MED.Imaging
             base.Start();
 
             ProcessState = System.Threading.ThreadState.Running;
-
-            Thread thread = new(Ticker);
-            thread.Start();
+            if (FPSMax > 0)
+            {
+                Thread thread = new(Ticker);
+                thread.Start();
+            }
         }
         private void Ticker()
         {
@@ -94,10 +96,21 @@ namespace MED.Imaging
                     Stop();
                     return;
                 }
+                if (ProcessState == ThreadState.Suspended)
+                {
+                    Thread.Sleep(100);
+                    continue;
+                }
 
                 Performance.Resume($"------------------Tick. Sleep : {sleep}", true);//increment
 
                 ImageChanged(this, EventArgs.Empty);
+
+                if (IsDisposed || Disposing)
+                {
+                    Stop();
+                    return;
+                }
 
                 if (Performance.Average_msec < FPSMaxDuration)
                     sleep += 5;

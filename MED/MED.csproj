@@ -6,11 +6,11 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
-    <ApplicationIcon>EDV.ico</ApplicationIcon>
+    <ApplicationIcon>MED.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="EDV.ico" />
+    <Content Include="MED.ico" />
   </ItemGroup>
 
   <ItemGroup>

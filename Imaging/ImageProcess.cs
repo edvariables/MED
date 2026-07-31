@@ -8,7 +8,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
-namespace MED
+namespace MED.Imaging
 {
     public abstract class ImageProcess : Process, IImageConsumer, IImageProvider
     {
@@ -78,7 +78,7 @@ namespace MED
         public List<IProcess> FrameConsumers { get => GetConsumers("Frame"); }
 
 
-        public override bool AddConsumer(IConsumer consumer, string property = "ProcessState")=>base.AddConsumer(consumer, property);
+        public override bool AddConsumer(IConsumer consumer, string property = "ProcessState") => base.AddConsumer(consumer, property);
 
         public override Dictionary<string, object> ObjectsProperties
         {
@@ -153,15 +153,15 @@ namespace MED
         [Browsable(false)]
         public virtual void ImageChanged(IImageProvider sender, EventArgs e)
         {
-            string? from = sender == this ? "myself" : sender.ToString();
-            Performance.Debug($"ImageChanged from {from}");
+            //string? from = sender == this ? "myself" : sender.ToString();
+            //Performance.Debug($"ImageChanged from {from}");
             ImageProvider = sender; //Add
 
             if (ImageProviders.Count <= 1 || ImageProviders.Last() == sender)
             {
                 if (ResetOnImageChanged)
                 {
-                    Performance.Debug($"ResetOnImageChanged {sender} " + (_Image == null ? "<null>" : "Bitmap") + " => <null>");
+                    //Performance.Debug($"ResetOnImageChanged {sender} " + (_Image == null ? "<null>" : "Bitmap") + " => <null>");
                     Image = null;
                 }
                 if (IsAsynchrone)
@@ -277,8 +277,9 @@ namespace MED
         public override JsonObject SaveProcess(JsonObject node = null)
         {
             node = base.SaveProcess(node);
-            node.Add("ImageSizeMax", Parser.ObjectToString(ImageSizeMax));
-            node.Add("FPSMax", FPSMax);
+
+            node["ImageSizeMax"] = Parser.ObjectToString(ImageSizeMax);
+            node["FPSMax"]= FPSMax;
 
             var consumers = new JsonObject();
 

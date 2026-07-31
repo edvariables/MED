@@ -91,18 +91,37 @@ namespace MED.Imaging
                     return null;
             }
             Size itemSize;
-            if (Horizontal)
+            if (!Grid.IsEmpty && Grid.Width > 0 && Grid.Height > 0)
+            {
+                itemSize = new Size(size.Width / Grid.Width, size.Height / Grid.Height);
+            }
+            else if (Horizontal)
                 itemSize = new Size(size.Width / ImageProviders.Count, size.Height);
             else
                 itemSize = new Size(size.Width, size.Height / ImageProviders.Count);
             image = new Bitmap(size.Width, size.Height);
             Point Position = new Point(0, 0);
             Graphics graphics = Graphics.FromImage(image);
+            int nProvider = 0;
+            int col = 0;
+            int row = 0;
             foreach (var prov in ImageProviders)
             {
                 if (prov.Image != null)
                     graphics.DrawImage(prov.Image, Position.X, Position.Y, itemSize.Width, itemSize.Height);
-                if (Horizontal)
+                nProvider++;
+                if (!Grid.IsEmpty && Grid.Width > 0 && Grid.Height > 0)
+                {
+                    col++;
+                    if(col >= Grid.Width)
+                    {
+                        col = 0;
+                        row++;
+                    }
+                    Position.X = col * itemSize.Width;
+                    Position.Y = row * itemSize.Height;
+                }
+                else if (Horizontal)
                     Position.X += itemSize.Width;
                 else
                     Position.Y += itemSize.Height;

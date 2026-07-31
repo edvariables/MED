@@ -19,8 +19,10 @@ namespace MED
             {
                 msg = msg.Replace("{" + i.ToString() + "}", args[i].ToString());
             }
-
-            Buffer.AppendLine(msg);
+            lock (Buffer)
+            {
+                Buffer.AppendLine(msg);
+            }
         }
         public void Append(string msg, params object[] args)
         {
@@ -29,13 +31,20 @@ namespace MED
                 msg = msg.Replace("{" + i.ToString() + "}", args[i].ToString());
             }
 
-            Buffer.Append(msg);
+            lock (Buffer)
+            {
+                Buffer.Append(msg);
+            }
         }
 
         public string BufferString(bool clear = true)
         {
-            var s = Buffer.ToString();
-            if (clear) Buffer.Clear();
+            string s;
+            lock (Buffer)
+            {
+                s = Buffer.ToString();
+                if (clear) Buffer.Clear();
+            }
             return s;
         }
 
@@ -43,7 +52,10 @@ namespace MED
         {
             get
             {
-                return Buffer.Length;
+                lock (Buffer)
+                {
+                    return Buffer.Length;
+                }
             }
         }
 

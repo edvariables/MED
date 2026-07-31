@@ -11,7 +11,7 @@ using System.IO;
 using System.Text.Json.Nodes;
 using static libMotionDetection.MotionDetectionWithMotionHistory;
 
-namespace MED
+namespace MED.Imaging
 {
     public class EmguMoving : ImageProcess, IMatFrameConsumer, IMatFrameProvider
     {
@@ -300,7 +300,13 @@ namespace MED
                         CvInvoke.CvtColor(currentFrame, PreviousFrame, Emgu.CV.CvEnum.ColorConversion.Bgr2Gray);
                         //PreviousFrame = currentFrame.Clone();
                     }
-                    // Dense Optical Flow
+                    if (PreviousFrame == null || PreviousFrame.ElementSize != 1)
+                    {
+                        PreviousFrame = new();
+                        CvInvoke.CvtColor(currentFrame, PreviousFrame, Emgu.CV.CvEnum.ColorConversion.Bgr2Gray);
+                        return null;
+                    }
+
                     if (PreviousFrame != null
                         && !currentFrame.Size.IsEmpty && !PreviousFrame.Size.IsEmpty &&
                         currentFrame.Size == PreviousFrame.Size)
@@ -311,6 +317,12 @@ namespace MED
                         CvInvoke.CvtColor(currentFrame, grayCurrent, Emgu.CV.CvEnum.ColorConversion.Bgr2Gray);
 
                         CvInvoke.AbsDiff(PreviousFrame, grayCurrent, frameDiff);
+
+                        if (!FixedBackgroundNow)
+                        {
+                            PreviousFrame.Dispose();
+                            PreviousFrame = grayCurrent;
+                        }
 
                         CvInvoke.Subtract(frameDiff, _ThresholdMat, frameDiff);
                         CvInvoke.Blur(frameDiff, frameDiff, new Size(8, 8), new Point(-1, -1));

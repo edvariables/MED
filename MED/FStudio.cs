@@ -2,6 +2,7 @@
 using DynamicData;
 using Emgu.CV;
 using MED.Core;
+using MED.Imaging;
 using MED.EDJoystick;
 using MED.EDWebCam;
 using Microsoft.Win32;
@@ -31,7 +32,7 @@ namespace MED
             InitializeComponent();
 
             Project.Name = Name = "Studio";
-            Project.ProcessIcon = "EDV";
+            Project.ProcessIcon = "MED";
 
             ActiveProcessChanged(null);
 
@@ -174,7 +175,6 @@ namespace MED
 
             if (processForm.GetType() == typeof(ProcessForm) || processForm.Processes.Count == 0)
             {
-                processForm.Icon = Core.Settings.GetIcon(processForm.ProcessIcon);
 
                 ProcessControl controller = new();
                 controller.BackColor = System.Drawing.Color.Transparent;
@@ -192,6 +192,7 @@ namespace MED
             if (fileName != "")
             {
                 processForm.LoadSettings(null, fileName);
+                processForm.Text = processForm.Name = processForm.Project.Name;
             }
             else if(processForm.Processes.Count==0)
             {
@@ -211,6 +212,9 @@ namespace MED
                 processForm.Processes.Add(videoCapture);
 
             }
+
+            processForm.Icon = Core.Settings.GetIcon(processForm.ProcessIcon);
+
             processForm.Show();
 
             if (processForm.Processes.Count > 0 && processForm.Processes.First() is ImageProcess)
@@ -269,7 +273,7 @@ namespace MED
             SaveSettings();
             if (ActiveProcess is ProcessForm)
             {
-                if (((IProcess)ActiveProcess).ProcessSettings?.FileName == "")
+                if (String.IsNullOrEmpty(((IProcess)ActiveProcess).ProcessSettings?.FileName))
                 {
                     SaveAsToolStripMenuItem_Click(sender, e);
                     return;

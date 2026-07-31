@@ -11,7 +11,7 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace MED
+namespace MED.Imaging
 {
     //isAsynchrone = true
     public class EDVideoCapture(string name = "VideoCapture", Performance performance = null, Control invokeHandler = null, IImageConsumer imageConsumer = null, bool isAsynchrone = true)

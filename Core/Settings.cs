@@ -52,7 +52,7 @@ namespace MED.Core
                 if (_IconsImageList != null)
                     return _IconsImageList;
                 //First call initialize ResourceSet
-                if (EDIcons.ResourceManager.GetObject("EDV", System.Globalization.CultureInfo.InvariantCulture) == null)
+                if (EDIcons.ResourceManager.GetObject("MED", System.Globalization.CultureInfo.InvariantCulture) == null)
                     return null;
                 ImageList imageList = new();
                 foreach (var kvp in EDIcons.ResourceManager.GetResourceSet(System.Globalization.CultureInfo.InvariantCulture, false, false))
@@ -74,7 +74,7 @@ namespace MED.Core
                 if (_StatesImageList != null)
                     return _StatesImageList;
                 //First call initialize ResourceSet
-                if (EDIcons.ResourceManager.GetObject("EDV", System.Globalization.CultureInfo.InvariantCulture) == null)
+                if (EDIcons.ResourceManager.GetObject("MED", System.Globalization.CultureInfo.InvariantCulture) == null)
                     return null;
                 ImageList imageList = new();
 

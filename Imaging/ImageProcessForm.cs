@@ -9,14 +9,14 @@ namespace MED
 {
     public class ImageProcessForm : ProcessForm, IImageConsumer
     {
-        public ImageProcessForm()
+        public ImageProcessForm() : base()
         {
             ProcessIcon = "VisualTrue";
         }
 
 
         #region Image
-        public PictureBox RenderPictureBox { get; set; }
+        public PictureBox? RenderPictureBox { get; set; }
 
         /**
          * Image
@@ -29,7 +29,7 @@ namespace MED
             Performance.Debug($"ImageChanged from {sender.ToString()}");
 
             if (RenderPictureBox != null)
-                Render.RefreshRender(sender, RenderPictureBox, Performance, e);
+                Imaging.Render.RefreshRender(sender, RenderPictureBox, Performance, e);
         }
         #endregion
     }

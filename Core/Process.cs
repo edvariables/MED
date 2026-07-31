@@ -108,23 +108,6 @@ namespace MED
          * */
         protected List<string> GetProperties(string propertyName = "") => GetPropertiesDelegatesConsumers(propertyName).Keys.ToList();
 
-        //List<string> properties = new();
-        //foreach (var onChangedDelegate in GetOnChangedDelegates(propertyName))
-        //{
-        //    string delegateName = onChangedDelegate.GetMethodInfo().Name;
-        //    if (propertyName == ""
-        //        || delegateName == $"On{propertyName}Changed"
-        //        || delegateName == $"{propertyName}Changed")
-        //    {
-        //        properties.Add(delegateName);
-        //        if (propertyName != "")
-        //            break;
-        //    }
-
-        //}
-
-        //return properties;
-        //}
         /**
          * 
          * */
@@ -220,7 +203,7 @@ namespace MED
                 if (prop.StartsWith("On"))
                     prop = prop.Substring(2);
                 if (prop.EndsWith("Changed"))
-                    prop = prop.Substring(0,prop.Length - "Changed".Length);
+                    prop = prop.Substring(0, prop.Length - "Changed".Length);
 
                 List<IProcess> consumers;
                 if ((consumers = GetOnChangedConsumers(onChangedDelegate)) != null || evenEmpty)
@@ -255,68 +238,6 @@ namespace MED
         public bool IsInvokingPropertyChanged(Delegate delegateMethod) => ProcessStatic.IsInvokingPropertyChanged(this, delegateMethod);
 
         public virtual void InvokePropertyChanged(IProvider sender, Delegate delegateMethod, EventArgs e) => ProcessStatic.InvokePropertyChanged(this, sender, delegateMethod, e);
-        //    {
-        //        if (InvokeHandler == null || InvokeHandler.Disposing || InvokeHandler.IsDisposed)
-        //            return;
-        //        if (delegateMethod != null && IsRunning)
-        //        {
-        //            if (IsInvokingPropertyChanged(delegateMethod))
-        //            {
-        //                Performance.Alert($"IsInvokingPropertyChanged {delegateMethod.Method.Name}");
-        //                return;
-        //            }
-
-        //            //IsAsynchrone but if next Consumer is also asynchrone
-        //            try
-        //            {
-
-        //                _IsInvokingPropertyChanged.Add(delegateMethod);
-
-        //                foreach (var consumerDelegate in delegateMethod.GetInvocationList())
-        //                {
-        //                    var consumer = consumerDelegate.Target as IConsumer;
-        //bool invoke = IsAsynchrone && !consumer.IsAsynchrone;
-        //string invoke_str = invoke ? "Invoke" : "Call";
-
-        //                    if (invoke)
-        //                    {
-        //                        Performance.Debug($"-> PInvoke({consumer.GetType().Name}.{consumerDelegate.Method.Name}, {this is IProvider})");
-
-        //                        InvokeHandler.Invoke(consumerDelegate, this is IProvider? (IProvider)this : sender, e);
-
-        //Performance.Debug($"{invoke_str} done");
-        //}
-        //                    else
-        //                    {
-        //                        //delegateMethod.Method.Invoke(delegateMethod.Target, [this is IProvider ? (IProvider)this : sender]);
-        //                        //Performance.Step($"-> {invoke_str}({consumer.GetType().Name}.{consumerDelegate.Method.Name})");
-        //                        consumerDelegate.DynamicInvoke(/*delegateMethod.Target,*/ this is IProvider? (IProvider)this : sender, e);
-        //}
-
-        //}
-
-        //                    //if (invoke)
-        //                    //{
-        //                    //    Performance.Debug($"invokeHandler.Invoke({delegateMethod.Method.Name}, {this is IProvider});");
-        //                    //    invokeHandler.Invoke(delegateMethod, this is IProvider ? (IProvider)this : sender, e);
-        //                    //    Performance.Debug($"done");
-        //                    //}
-        //                    //else
-        //                    //{
-        //                    //    //delegateMethod.Method.Invoke(delegateMethod.Target, [this is IProvider ? (IProvider)this : sender]);
-        //                    //    delegateMethod.DynamicInvoke(/*delegateMethod.Target,*/ this is IProvider ? (IProvider)this : sender, e);
-        //                    //}
-        //                }
-        //                catch (Exception ex)
-        //                {
-        //                    Performance.Error("InvokePropertyChanged", ex);
-        //                }
-        //                finally
-        //                {
-        //    _IsInvokingPropertyChanged.Remove(delegateMethod);
-        //}
-        //            }
-        //        }
 
         public void AddHandler(string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
         {
@@ -330,6 +251,9 @@ namespace MED
             PropertiesConsumers_CacheReset();
         }
 
+        /**
+         * ObjectsProperties
+         * */
         public virtual Dictionary<string, object> ObjectsProperties
         {
             get
@@ -342,20 +266,17 @@ namespace MED
             }
         }
 
-        [ReadOnly(true)]
-        public bool IsAsynchrone { get; set; }
+        #region Properties & Settings
+        public virtual bool IsAsynchrone { get; set; }
 
-        [ReadOnly(true)]
-        public string Name { get; set; }
-        public string ProcessIcon { get; set; }
+        public virtual string Name { get; set; }
+        public virtual string ProcessIcon { get; set; }
 
         [Browsable(false)]
         public Control InvokeHandler { get; set; }
 
         [Browsable(true)]
-        public Performance Performance { get; set; }
-
-        #region Settings
+        public virtual Performance Performance { get; set; }
 
         [Browsable(true)]
         public ProcessSettings ProcessSettings { get; set; }
@@ -369,12 +290,14 @@ namespace MED
 
             LoadProcess(ProcessSettings.Root);
 
+            Name = (string)ProcessSettings.GetValue("Name", Name);
+            IsAsynchrone = (bool)ProcessSettings.GetValue("IsAsynchrone", IsAsynchrone);
+
             Performance.LoadSettings(ProcessSettings.ChildSettings("Perf"));
         }
 
         public virtual void LoadProcess(JsonNode node)
         {
-
         }
 
         public virtual void SaveSettings(ProcessSettings settings = null, string fileName = "")
@@ -399,10 +322,11 @@ namespace MED
             var type = this.GetType();
             var assembly = type.Assembly.Location;
             if (Directory.GetParent(assembly).FullName == Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName)
-                assembly = type.AssemblyQualifiedName;
+                assembly = "";// type.AssemblyQualifiedName;
 
             node["ProcessClass"] = type.FullName;
-            node["ProcessLib"] = assembly;
+            if (assembly != "")
+                node["ProcessLib"] = assembly;
             node["Name"] = Name;
             node["IsAsynchrone"] = IsAsynchrone;
 
@@ -414,7 +338,7 @@ namespace MED
 
 
         private bool _IsRunning;
-        public bool IsRunning
+        public virtual bool IsRunning
         {
             get
             {
