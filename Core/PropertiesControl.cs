@@ -67,7 +67,9 @@ namespace MED
         public void ShowProperties(object[] items, TreeNode rootNode = null, bool clear = false)
         {
             processesControl1.ShowProperties(items, rootNode, clear);
-            if (items.Length == 0)
+            if (processesControl1.SelectedNode != null)
+                ShowNodeProperties(processesControl1.SelectedNode);
+            else if (items.Length == 0)
                 ShowNodeProperties(null);
             else
                 ShowNodeProperties(items[0]);
@@ -85,9 +87,11 @@ namespace MED
             cboObjectsList.Items.Clear();
             if (node == null)
                 return;
-            cboObjectsList.Items.Add(node);
             if (node is IProcess)
                 cboObjectsList.Items.AddRange((node as IProcess).ObjectsProperties.Values.ToArray());
+
+            if(!cboObjectsList.Items.Contains(node))
+                cboObjectsList.Items.Insert(0, node);
 
             if (cboObjectsList.Items.Count > 0)
             {

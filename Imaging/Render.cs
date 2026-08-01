@@ -152,11 +152,11 @@ namespace MED.Imaging
                 if (sender.ClipRegion != null)
                 {
                     graphics.SetClip(sender.ClipRegion, CombineMode.Replace);
-                    graphics.DrawImageUnscaled(sender.Image, offset.X + sender.Location.X, offset.Y + sender.Location.Y);
+                    graphics.DrawImageUnscaled(sender.Image, offset.X + (int)sender.Location.X, offset.Y + (int)sender.Location.Y);
                     graphics.ResetClip();
                 }
                 else
-                    graphics.DrawImageUnscaled(source, offset.X + sender.Location.X, offset.Y + sender.Location.Y);
+                    graphics.DrawImageUnscaled(source, offset.X + (int)sender.Location.X, offset.Y + (int)sender.Location.Y);
 
                 graphics.Dispose();
             }

@@ -18,7 +18,9 @@ namespace MED
         
         System.Drawing.Region? ClipRegion { get; }
         
-        System.Drawing.Point Location { get; }
+        System.Drawing.PointF Location { get; }
+        
+        float Rotation { get; }
 
 
         List<IImageProvider> ImageProviders { get; set; }

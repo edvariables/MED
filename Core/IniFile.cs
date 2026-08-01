@@ -22,11 +22,11 @@ namespace MED.Core
         static IniFile()
         {
             _DefaultSection = Settings.Namespace;
-            string directory = System.IO.Path.Combine( Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), Settings.Namespace);
+            string directory = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), Settings.Namespace);
             if (!Directory.Exists(directory))
                 Directory.CreateDirectory(directory);
             _Path = System.IO.Path.Combine(directory, _DefaultSection + ".ini");
-            if (! File.Exists(_Path))
+            if (!File.Exists(_Path))
                 File.WriteAllText(_Path, "#" + _DefaultSection);
         }
 
@@ -76,8 +76,10 @@ namespace MED.Core
             WritePrivateProfileString(Section ?? _DefaultSection, Key, Value, _Path);
         }
 
-        public void Write(string Key, string Value, string? Section = null)
+        public void Write(string? Key, string? Value, string? Section = null)
         {
+            if (Key == null) Key = "";
+            if (Value == null) Value = "";
             WritePrivateProfileString(Section ?? DefaultSection, Key, Value, Path);
         }
 

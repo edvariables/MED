@@ -1,6 +1,7 @@
 ﻿using MED.Core;
 using System;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.Linq;
 using System.Runtime.InteropServices.JavaScript;
 using System.Text;
@@ -11,7 +12,7 @@ using System.Xml.Linq;
 
 namespace MED
 {
-    public class ProcessSettings
+    public class ProcessSettings:INullable
     {
         public ProcessSettings(string fileName, JsonNode? root = null)
         {
@@ -23,7 +24,10 @@ namespace MED
         }
 
         public string FileName { get; set; }
-        public JsonNode Root { get; set; }
+        public JsonNode? Root { get; set; }
+
+        public bool IsNull => false;
+
         public JsonNode ChildNode(string childName, bool createIfNone = false)
         {
             if (Root is JsonArray)

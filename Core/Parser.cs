@@ -11,12 +11,14 @@ namespace MED.Core
     public static class Parser
     {
 
-        public static string ObjectToString(object value)
+        public static string? ObjectToString(object value)
         {
             var str_value = value switch
             {
                 Point pt => $"{pt.X},{pt.Y}",
+                PointF pt => $"{DecimalDotSeparator(pt.X.ToString())},{DecimalDotSeparator(pt.Y.ToString())}",
                 Size sz => $"{sz.Width},{sz.Height}",
+                SizeF sz => $"{DecimalDotSeparator(sz.Width.ToString())},{DecimalDotSeparator(sz.Height.ToString())}",
                 KnownColor color => $"{color.ToString()}",
                 Color color => $"{color.ToString()}",
                 null => "<null>",
@@ -25,7 +27,7 @@ namespace MED.Core
             return str_value;
         }
 
-        public static object ObjectFromString(string str_value, object type_as)
+        public static object? ObjectFromString(string str_value, object type_as)
         {
             if (type_as == null)
                 return str_value;
@@ -38,18 +40,24 @@ namespace MED.Core
             else
                 out_type = type_as.GetType();
 
-            if (out_type.Equals(typeof(Point)))
+            if (out_type.Equals(typeof(Point))
+             || out_type.Equals(typeof(PointF)))
             {
                 if (str_value[0] == '{')
                     str_value = Regex.Replace(str_value, @"[\{\}a-zA-Z=]", "");
                 string[] coords = str_value.Split(',');
+                if(out_type.Equals(typeof(PointF)))
+                    return new PointF(float.Parse(DecimalSeparator(coords[0])), float.Parse(DecimalSeparator(coords[1])));
                 return new Point(int.Parse(coords[0]), int.Parse(coords[1]));
             }
-            if (out_type.Equals(typeof(Size)))
+            if (out_type.Equals(typeof(Size))
+             || out_type.Equals(typeof(SizeF)))
             {
                 if (str_value[0] == '{')
                     str_value = Regex.Replace(str_value, @"[\{\}a-zA-Z=]", "");
                 string[] coords = str_value.Split(',');
+                if (out_type.Equals(typeof(SizeF)))
+                    return new SizeF(float.Parse(DecimalSeparator(coords[0])), float.Parse(DecimalSeparator(coords[1])));
                 return new Size(int.Parse(coords[0]), int.Parse(coords[1]));
             }
             if (out_type.Equals(typeof(KnownColor)))
@@ -63,15 +71,28 @@ namespace MED.Core
             object value = type_as switch
             {
                 int => int.Parse(str_value),
-                bool => str_value=="" ? false : bool.Parse(str_value),
+                bool => str_value == "" ? false : bool.Parse(str_value),
                 long => long.Parse(str_value),
-                double => double.Parse(str_value),
+                float => float.Parse(DecimalSeparator(str_value)),
+                double => double.Parse(DecimalSeparator(str_value)),
+                decimal=> decimal.Parse(DecimalSeparator(str_value)),
                 _ => str_value
             };
             return value;
         }
 
-        public static object ObjectFromJsonNode(JsonNode node, object type_as)
+        static string _DecimalSeparator = (5.5F).ToString().Replace("5", "");
+        static string _DecimalNonSeparator = _DecimalSeparator=="." ? "," : ".";
+        public static string DecimalSeparator(string number)
+        {
+            return number.Replace(_DecimalNonSeparator, _DecimalSeparator);
+        }
+        public static string DecimalDotSeparator(string number)
+        {
+            return number.Replace(_DecimalSeparator, ".");
+        }
+
+        public static object? ObjectFromJsonNode(JsonNode node, object type_as)
         {
             if (type_as == null)
                 return node.GetValue<object>();
@@ -97,7 +118,7 @@ namespace MED.Core
             }
         }
 
-        public static string SizeToPretty(Size size) => ObjectToString(size).Replace(",", " x ");
+        public static string? SizeToPretty(Size size) => ObjectToString(size)?.Replace(",", " x ");
         public static Size SizeFromPretty(string size) => (Size)ObjectFromString(size.Replace("x", ","), typeof(Size));
     }
 }

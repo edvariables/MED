@@ -11,7 +11,7 @@ namespace MED
     {
 
         [Browsable(false)]
-        Control InvokeHandler { get; set; }
+        Control? InvokeHandler { get; set; }
 
         bool AddConsumer(IConsumer consumer, string property);
         void InvokePropertyChanged(IProvider sender, Delegate delegateMethod, EventArgs e);

@@ -12,7 +12,7 @@ namespace MED
 {
     public class Process : IProcess, IConsumer, IProvider
     {
-        public Process(string name, Performance performance = null, Control invokeHandler = null, IConsumer consumer = null, bool isAsynchrone = false)
+        public Process(string name, Performance? performance = null, Control? invokeHandler = null, IConsumer? consumer = null, bool isAsynchrone = false)
         {
             InvokeHandler = invokeHandler;
             IsAsynchrone = isAsynchrone;
@@ -88,7 +88,7 @@ namespace MED
         /**
          * 
          * */
-        protected MulticastDelegate GetOnChangedDelegate(string propertyName)
+        protected MulticastDelegate? GetOnChangedDelegate(string propertyName)
         {
             var onChangedDelegates = GetOnChangedDelegates(propertyName);
             if (onChangedDelegates.Count == 0)
@@ -99,9 +99,9 @@ namespace MED
         /**
          * 
          * */
-        protected List<IProcess> GetOnChangedConsumers(string propertyName = "") => ProcessStatic.GetOnChangedConsumers(GetOnChangedDelegate(propertyName));
+        protected List<IProcess>? GetOnChangedConsumers(string propertyName = "") => ProcessStatic.GetOnChangedConsumers(GetOnChangedDelegate(propertyName));
 
-        protected List<IProcess> GetOnChangedConsumers(MulticastDelegate onChangedDelegate) => ProcessStatic.GetOnChangedConsumers(onChangedDelegate);
+        protected List<IProcess>? GetOnChangedConsumers(MulticastDelegate onChangedDelegate) => ProcessStatic.GetOnChangedConsumers(onChangedDelegate);
 
         /**
          * 
@@ -116,7 +116,7 @@ namespace MED
         /**
          * _PropertiesDelegatesConsumers
          * */
-        private Dictionary<string, KeyValuePair<MulticastDelegate, List<IProcess>>> _PropertiesDelegatesConsumers;
+        private Dictionary<string, KeyValuePair<MulticastDelegate, List<IProcess>>>? _PropertiesDelegatesConsumers;
         protected void PropertiesConsumers_CacheReset(string propertyName = "")
         {
             if (_PropertiesDelegatesConsumers != null)
@@ -166,6 +166,9 @@ namespace MED
                 List<IProcess> processes = kvp.Value.Value;
                 foreach (var process in processes.ToArray())
                 {
+                    if (process == null)
+                        continue;
+#pragma warning disable CS8602 // Déréférencement d'une éventuelle référence null.
                     if ((process is Process) && (process as Process).IsDisposed
                         || (process is Control) && (process as Control).IsDisposed)
                     {
@@ -173,6 +176,7 @@ namespace MED
                         if (processes.Count == 0)
                             _PropertiesDelegatesConsumers.Remove(propertyName);
                     }
+#pragma warning restore CS8602 // Déréférencement d'une éventuelle référence null.
                 }
             }
         }
@@ -205,9 +209,11 @@ namespace MED
                 if (prop.EndsWith("Changed"))
                     prop = prop.Substring(0, prop.Length - "Changed".Length);
 
-                List<IProcess> consumers;
+                List<IProcess>? consumers;
                 if ((consumers = GetOnChangedConsumers(onChangedDelegate)) != null || evenEmpty)
                 {
+                    if (consumers == null)
+                        consumers = new();
                     KeyValuePair<MulticastDelegate, List<IProcess>> delegatesConsumers = new(onChangedDelegate, consumers);
                     propertiesDelegatesConsumers.Add(prop, delegatesConsumers);
                 }
@@ -260,7 +266,8 @@ namespace MED
             {
                 var dict = new Dictionary<string, object>();
                 dict.Add(this.Name, this);
-                dict.Add(this.Name + ".Performance", Performance);
+                if (Performance != null)
+                    dict.Add(this.Name + ".Performance", Performance);
 
                 return dict;
             }
@@ -273,30 +280,30 @@ namespace MED
         public virtual string ProcessIcon { get; set; }
 
         [Browsable(false)]
-        public Control InvokeHandler { get; set; }
+        public Control? InvokeHandler { get; set; }
 
         [Browsable(false)]
-        public IConsumer Consumer { get; set; }
+        public IConsumer? Consumer { get; set; }
 
         [Browsable(true)]
-        public virtual Performance Performance { get; set; }
+        public virtual Performance? Performance { get; set; }
 
         [Browsable(true)]
-        public ProcessSettings ProcessSettings { get; set; }
+        public ProcessSettings? ProcessSettings { get; set; }
 
-        public virtual void LoadSettings(ProcessSettings settings = null, string fileName = "")
+        public virtual void LoadSettings(ProcessSettings? settings = null, string fileName = "")
         {
             if (settings == null)
-                ProcessSettings = ProcessSettings.FromFile(fileName);
+                settings = ProcessSettings = ProcessSettings.FromFile(fileName);
             else
                 ProcessSettings = settings;
+            if (settings != null && settings.Root != null)
+                LoadProcess(settings.Root);
 
-            LoadProcess(ProcessSettings.Root);
+            Name = (string)settings.GetValue("Name", Name);
+            IsAsynchrone = (bool)settings.GetValue("IsAsynchrone", IsAsynchrone);
 
-            Name = (string)ProcessSettings.GetValue("Name", Name);
-            IsAsynchrone = (bool)ProcessSettings.GetValue("IsAsynchrone", IsAsynchrone);
-
-            Performance.LoadSettings(ProcessSettings.ChildSettings("Perf"));
+            Performance?.LoadSettings(settings.ChildSettings("Perf"));
         }
 
         public virtual void LoadProcess(JsonNode node)
@@ -324,8 +331,10 @@ namespace MED
                 node = new JsonObject();
             var type = this.GetType();
             var assembly = type.Assembly.Location;
+#pragma warning disable CS8602 // Déréférencement d'une éventuelle référence null.
             if (Directory.GetParent(assembly).FullName == Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName)
                 assembly = "";// type.AssemblyQualifiedName;
+#pragma warning restore CS8602 // Déréférencement d'une éventuelle référence null.
 
             node["ProcessClass"] = type.FullName;
             if (assembly != "")
@@ -420,7 +429,7 @@ namespace MED
             }
         }
 
-        public IProcess.ProcessStateChangedDelegate OnProcessStateChanged;
+        public IProcess.ProcessStateChangedDelegate? OnProcessStateChanged;
 
 
 

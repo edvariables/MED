@@ -129,7 +129,10 @@ namespace MED.Imaging
         public virtual System.Drawing.Region? ClipRegion { get; set; } = null;
 
         [Browsable(false)]
-        public System.Drawing.Point Location { get; set; } = System.Drawing.Point.Empty;
+        public virtual System.Drawing.PointF Location { get; set; } = System.Drawing.PointF.Empty;
+
+        [Browsable(false)]
+        public virtual float Rotation { get; set; }
 
         [Browsable(true)]
         public virtual int FPSMax { get; set; } = 25;

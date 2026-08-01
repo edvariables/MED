@@ -101,12 +101,7 @@ namespace MED.Imaging
          * */
         public override Dictionary<string, object> ObjectsProperties
         {
-            get
-            {
-                var dict = ImageProcesses.ObjectsProperties;
-                dict.Add(this.Name + "[Images]", this);
-                return dict;
-            }
+            get => ImageProcesses.ObjectsProperties;
         }
 
         public virtual List<IProcess> Items => ImageProcesses.Items;
@@ -148,16 +143,60 @@ namespace MED.Imaging
                 if (prov is not IImageProvider)
                     continue;
 
-                if ((prov as IImageProvider).Image != null)
+                Bitmap imageSrc = (prov as IImageProvider).Image;
+                if (imageSrc != null)
                 {
-                    if ((prov as IImageProvider).ClipRegion != null)
+                    var clipRegion = (prov as IImageProvider).ClipRegion;
+
+                    var location = (prov as IImageProvider).Location;
+
+                    if (clipRegion != null)
                     {
-                        graphics.SetClip((prov as IImageProvider).ClipRegion, CombineMode.Replace);
-                        graphics.DrawImage((prov as IImageProvider).Image, (prov as IImageProvider).Location.X, (prov as IImageProvider).Location.Y);
+                        if (!location.IsEmpty)
+                        {
+                            clipRegion = clipRegion.Clone();
+                        }
+
+                        if ((prov as IImageProvider).Rotation != 0F)
+                        {
+
+                            graphics.TranslateTransform(Position.X + location.X + imageSrc.Width / 2, Position.Y + location.Y + imageSrc.Height / 2);
+                            //rotate
+                            graphics.RotateTransform((prov as IImageProvider).Rotation, MatrixOrder.Prepend);
+
+                            clipRegion.Translate(-imageSrc.Width / 2, -imageSrc.Height/ 2);
+                            graphics.SetClip(clipRegion, CombineMode.Replace);
+
+                            graphics.DrawImage(imageSrc, -imageSrc.Width / 2, -imageSrc.Height / 2/*, imageSrc.Width, imageSrc.Height*/);
+                            //move image back
+                            //graphics.TranslateTransform(-(float)imageSrc.Width / 2, -(float)imageSrc.Height / 2);
+                            graphics.ResetTransform();
+                        }
+                        else
+                        {
+                            clipRegion.Translate(location.X, location.Y);
+                            graphics.SetClip(clipRegion, CombineMode.Replace);
+                            graphics.DrawImage(imageSrc, location.X, location.Y);
+                        }
                         graphics.ResetClip();
                     }
                     else
-                        graphics.DrawImage((prov as IImageProvider).Image, Position.X + (prov as IImageProvider).Location.X, Position.Y + (prov as IImageProvider).Location.Y, size.Width, size.Height);
+                    {
+
+                        if ((prov as IImageProvider).Rotation != 0F)
+                        {
+                            graphics.TranslateTransform(Position.X + location.X+ imageSrc.Width/ 2, Position.Y+ location.Y+ imageSrc.Height / 2);
+                            //rotate
+                            graphics.RotateTransform((prov as IImageProvider).Rotation,MatrixOrder.Prepend);
+                            graphics.DrawImage(imageSrc, -imageSrc.Width/2, -imageSrc.Height/2/*, imageSrc.Width, imageSrc.Height*/);
+                            //move image back
+                            //graphics.TranslateTransform(-(float)imageSrc.Width / 2, -(float)imageSrc.Height / 2);
+                            graphics.ResetTransform();
+                        }
+                        else
+
+                            graphics.DrawImage(imageSrc, Position.X + location.X, Position.Y + location.Y, imageSrc.Width, imageSrc.Height);
+                    }
                 }
                 nProvider++;
             }

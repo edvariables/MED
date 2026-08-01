@@ -80,12 +80,10 @@ namespace MED
 
             if (currentObject != null)
             {
-                foreach (TreeNode node in nodes)
-                    if (currentObject.Equals(node.Tag))
-                    {
-                        SelectedNode = node;
-                        break;
-                    }
+                if (ObjectsNodes.ContainsKey(currentObject.GetHashCode()))
+                {
+                    SelectedNode = ObjectsNodes[currentObject.GetHashCode()];
+                }
             }
             if (nodes.Count > 0 && SelectedNode == null)
                 SelectedNode = nodes[0];

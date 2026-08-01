@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data.SqlTypes;
 using System.Drawing;
 using System.Linq;
 using System.Reflection.Metadata.Ecma335;
@@ -10,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace MED
 {
-    public class Performance
+    public class Performance : INullable
     {
         public string Name;
         public string Icon;
@@ -21,7 +22,7 @@ namespace MED
         public long Ticks_Pause;
         public long Ticks_Stop;
         public long Ticks_Previous;
-        public Logger Logger;
+        public Logger? Logger;
         public bool Enabled { get; set; }
         public long IgnoreFirsts = 10L;
         public bool IgnoreFirsts_done;
@@ -74,9 +75,9 @@ namespace MED
         #region Subs
 
         [Browsable(true)]
-        public Dictionary<string, Performance> Subs { get; private set; }
+        public Dictionary<string, Performance>? Subs { get; private set; }
 
-        private Performance _Parent;
+        private Performance? _Parent = null;
 
         //Sub performance, auto instanciated
         public Performance Sub(string name = "", bool enabled = true, KnownColor color = KnownColor.Transparent)
@@ -178,7 +179,7 @@ namespace MED
          * Process
          * */
         #region Process
-        public System.Threading.ThreadState ProcessState => throw new NotImplementedException();
+        public System.Threading.ThreadState ProcessState => IsPaused ? ThreadState.Suspended : (IsRunning ? ThreadState.Running : ThreadState.Stopped);
 
         public string Start(string step = "Start", bool start_subs = true)
         {
@@ -340,11 +341,12 @@ namespace MED
             return Step("[ALERT] " + step);
         }
 
-        public string Error(string step, Exception ex = null)
+        public string Error(string step, Exception? ex = null)
         {
             return Step("[ERROR] " + step
-                + (ex == null ? "" : (" " + (ex.InnerException == null ? ex.Message : ex.InnerException.Message)
-                    + "\r\t\t" + ex.StackTrace.ReplaceLineEndings("\n\t\t"))
+                + (ex == null ? ""
+                    : (" " + (ex.InnerException == null ? ex.Message : ex.InnerException.Message)
+                        + "\r\t\t" + ex.StackTrace?.ReplaceLineEndings("\n\t\t"))
                 )
             );
         }
@@ -466,6 +468,8 @@ namespace MED
             }
         }
 
+        public bool IsNull => false;
+
         public long To_msec(long ticks)
         {
             return ticks / TimeSpan.TicksPerMillisecond;
@@ -508,7 +512,9 @@ namespace MED
         {
             if (settings == null) return;
             Enabled = (bool)settings.GetValue("Enabled", Enabled);
-            LoggerColor = (KnownColor)Enum.Parse(typeof(KnownColor), settings.GetValue("Color", LoggerColor).ToString());
+            var color = settings.GetValue("Color", LoggerColor);
+            if (color != null)
+                LoggerColor = (KnownColor)Enum.Parse(typeof(KnownColor), color.ToString());
         }
         /**
          * 
@@ -521,7 +527,7 @@ namespace MED
             settings.SetValue("Color", LoggerColor.ToString());
         }
 
-        public virtual JsonObject SaveNode(JsonObject node = null, bool evenIsEmpty = false)
+        public virtual JsonObject? SaveNode(JsonObject? node = null, bool evenIsEmpty = false)
         {
             if (IsEmpty && !evenIsEmpty)
                 return null;

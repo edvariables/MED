@@ -117,8 +117,10 @@ namespace MED
             }
             return onChangedDelegates;
         }
-        internal static List<IProcess> GetOnChangedConsumers(MulticastDelegate onChangedDelegate)
+        internal static List<IProcess>? GetOnChangedConsumers(MulticastDelegate? onChangedDelegate)
         {
+            if (onChangedDelegate == null)
+                return null;
             List<IProcess> consumers = new();
             foreach (var invocation in onChangedDelegate.GetInvocationList())
             {

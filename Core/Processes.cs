@@ -288,7 +288,8 @@ namespace MED
                 var dict = new Dictionary<string, object>();
                 if (this.IsDisposed)
                     return dict;
-                dict.Add(this.Name, this);
+                if(Consumer != null)
+                    dict.Add((Consumer as IProcess).Name, Consumer);
                 if (ProcessSettings != null)
                     dict.Add("Settings", ProcessSettings);
                 if (Performance != null && !Performance.IsEmpty)

@@ -18,9 +18,11 @@ namespace MED
             this.folderPath = folderPath;
         }
 
-        protected override Assembly Load(AssemblyName assemblyName)
+        protected override Assembly? Load(AssemblyName assemblyName)
         {
             var deps = DependencyContext.Default;
+            if (deps == null || assemblyName == null || assemblyName.Name == null)
+                return null;
             var res = deps.CompileLibraries.Where(d => d.Name.Contains(assemblyName.Name)).ToList();
             if (res.Count > 0)
             {
@@ -37,9 +39,9 @@ namespace MED
             return Assembly.Load(assemblyName);
         }
 
-        public static object CreateObjectInstance(string processLib, string processClass, object[] paramsObjects)
+        public static object? CreateObjectInstance(string processLib, string processClass, object[] paramsObjects)
         {
-            foreach(var ass in AppDomain.CurrentDomain.GetAssemblies())
+            foreach (var ass in AppDomain.CurrentDomain.GetAssemblies())
                 foreach (var type in ass.GetTypes())
                     if (type.FullName == processClass)
                     {
@@ -59,7 +61,7 @@ namespace MED
             var al = new AssemblyLoader(Directory.GetParent(processLib).FullName);
 
             Assembly assembly = al.LoadFromAssemblyPath(processLib);
-            
+
             return Activator.CreateInstance(assembly.GetName().Name, processClass, paramsObjects);
 
             //foreach (var type in assembly.GetExportedTypes())
