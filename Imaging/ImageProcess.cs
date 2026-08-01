@@ -300,7 +300,7 @@ namespace MED.Imaging
                 {
                     JsonObject item = new();
 
-                    item["ProcessClass"] = consumer.GetType().FullName;
+                    //item["ProcessClass"] = consumer.GetType().FullName;
                     item["Name"] = ProcessStatic.GetRelativePath(this, consumer);
 
                     jsonCons.Add(item);

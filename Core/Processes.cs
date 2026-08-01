@@ -12,7 +12,7 @@ namespace MED
 {
     public class Processes : Process, IProcesses
     {
-        public Processes(string name = "MED.Project", Performance performance = null, Control invokeHandler = null, IConsumer consumer = null, bool isAsynchrone = false)
+        public Processes(string name = "MED.Project", Performance? performance = null, Control? invokeHandler = null, IConsumer? consumer = null, bool isAsynchrone = false)
             : base(name == null || name == "" ? "MED.Project" : name, performance, invokeHandler, consumer, isAsynchrone)
         {
             Items = new();
@@ -23,7 +23,7 @@ namespace MED
             base.Dispose();
         }
 
-        private Logger _Logger { get; set; }
+        private Logger? _Logger { get; set; }
 
         [Browsable(false)]
         public Logger Logger
@@ -48,7 +48,7 @@ namespace MED
 
         #region Settings
 
-        public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
+        public override void LoadSettings(ProcessSettings? settings = null, string fileName = "")
         {
             base.LoadSettings(settings, fileName);
 
@@ -58,10 +58,11 @@ namespace MED
         {
             base.LoadProcess(node);
 
-            LoadProcesses(ProcessSettings);
+            if (ProcessSettings != null)
+                LoadProcesses(ProcessSettings);
         }
 
-        public virtual void SaveSettings(ProcessSettings settings = null, string fileName = "")
+        public override void SaveSettings(ProcessSettings? settings = null, string fileName = "")
         {
             if (settings == null)
                 settings = ProcessSettings;
@@ -77,6 +78,10 @@ namespace MED
         {
             //Create children nodes in order
             var childSettings = settings.ChildSettings("Processes");
+
+            if (childSettings.Root == null || settings.Root == null)
+                return;
+
             if (childSettings.Root is JsonArray)
             {
                 settings.Root["Processes"] = new JsonObject();
@@ -101,7 +106,7 @@ namespace MED
         #region Processes
 
         [Browsable(true)]
-        public virtual List<IProcess> Items { get; protected set; }
+        public virtual List<IProcess>? Items { get; protected set; }
         public virtual void DisposeProcesses()
         {
             if (Items != null)
@@ -136,6 +141,8 @@ namespace MED
             var itemsNodes = new Dictionary<IProcess, JsonNode>();
             foreach (var (nodeName, procNode) in nodes)
             {
+                if (procNode == null)
+                    continue;
                 try
                 {
                     IProcess item = ProcessStatic.CreateProcess(procNode, Performance, InvokeHandler);
@@ -288,7 +295,7 @@ namespace MED
                 var dict = new Dictionary<string, object>();
                 if (this.IsDisposed)
                     return dict;
-                if(Consumer != null)
+                if (Consumer != null)
                     dict.Add((Consumer as IProcess).Name, Consumer);
                 if (ProcessSettings != null)
                     dict.Add("Settings", ProcessSettings);

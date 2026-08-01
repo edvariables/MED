@@ -10,8 +10,8 @@ namespace MED
 {
     public interface IProcesses
     {
-        Logger Logger { get; set; }
+        Logger? Logger { get; set; }
 
-        List<IProcess> Items { get; }
+        List<IProcess>? Items { get; }
     }
 }

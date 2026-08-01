@@ -17,8 +17,10 @@ namespace MED
         {
             Text = Name = name;
 
+#pragma warning disable CS8622 // La nullabilité des types référence dans le type du paramètre ne correspond pas au délégué cible (probablement en raison des attributs de nullabilité).
             this.FormClosed += Form_FormClosed;
             this.DockChanged += ProcessForm_DockChanged;
+#pragma warning restore CS8622 // La nullabilité des types référence dans le type du paramètre ne correspond pas au délégué cible (probablement en raison des attributs de nullabilité).
 
             Project = new(name, null, this, this);
 
@@ -44,7 +46,7 @@ namespace MED
 
         #region Form
 
-        private Form _MdiParent;
+        private Form? _MdiParent;
         private void ProcessForm_WindowStateChanged(object sender, EventArgs e)
         {
             if (WindowState == FormWindowState.Maximized)
@@ -91,7 +93,7 @@ namespace MED
         [Browsable(true)]
         public ProcessSettings ProcessSettings { get => Project.ProcessSettings; set => Project.ProcessSettings = value; }
 
-        public virtual void LoadSettings(ProcessSettings processSettings = null, string fileName = "")
+        public virtual void LoadSettings(ProcessSettings? processSettings = null, string fileName = "")
         {
             Project.LoadSettings(processSettings, fileName);
 
@@ -102,9 +104,9 @@ namespace MED
         }
         public virtual void LoadProcess(JsonNode node) => Project.LoadProcess(node);
 
-        public virtual void SaveSettings(ProcessSettings settings = null, string fileName = "") => Project.SaveSettings(settings, fileName);
+        public virtual void SaveSettings(ProcessSettings? settings = null, string fileName = "") => Project.SaveSettings(settings, fileName);
 
-        public virtual JsonObject SaveProcess(JsonObject node = null)
+        public virtual JsonObject SaveProcess(JsonObject? node = null)
         {
             if (node == null)
                 node = new JsonObject();
@@ -173,7 +175,7 @@ namespace MED
         public bool IsRunning { get => Project.ProcessState == ThreadState.Running || Project.ProcessState == ThreadState.Suspended; }
 
 
-        public IProcess.ProcessStateChangedDelegate OnProcessStateChanged;
+        public IProcess.ProcessStateChangedDelegate? OnProcessStateChanged;
 
         public System.Threading.ThreadState ProcessState { get => Project.ProcessState; set => Project.ProcessState = value; }
 

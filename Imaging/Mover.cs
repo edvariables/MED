@@ -18,7 +18,7 @@ using System.Xml.Linq;
 
 namespace MED.Imaging
 {
-    public class Mover : Background, IImageProvider, IImageMove
+    public class Mover : Background, IImageProvider, IImageMove, IImageCollidable
     {
         public Mover(string name = "Mover", Performance performance = null, Control invokeHandler = null, IImageConsumer imageConsumer = null, bool isAsynchrone = true)
         : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
@@ -29,12 +29,13 @@ namespace MED.Imaging
         #region Properties
 
         public virtual float SpeedMax { get; set; }
-        public virtual float Density { get; set; }
+        public virtual float Density { get; set; } = 1F;
         public virtual SizeF Speed { get; set; }
         public virtual float RotationSpeed { get; set; }
 
         long _LocationTime = 0;
         System.Drawing.PointF _Location = System.Drawing.Point.Empty;
+        [Browsable(true)]
         public override System.Drawing.PointF Location
         {
             get

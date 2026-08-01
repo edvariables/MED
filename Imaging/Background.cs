@@ -77,6 +77,7 @@ namespace MED.Imaging
             return node;
         }
         #endregion
+
         #region Image
 
         /**
@@ -145,6 +146,12 @@ namespace MED.Imaging
                 {
                     grPath.AddPolygon(contours[i].ToArray());
                     grPath.CloseFigure();
+                }
+                if (grPath.PointCount == 4)
+                {
+                    var bounds = grPath.GetBounds();
+                    if (bounds.Width >= image.Width-1 && bounds.Height >= image.Height-1)
+                        return null;
                 }
                 return new Region(grPath);
             }

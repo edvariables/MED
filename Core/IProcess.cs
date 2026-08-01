@@ -13,16 +13,16 @@ namespace MED
     {
         string Name { get; set; }
         string ProcessIcon { get; }
-        Performance Performance { get; }
+        Performance? Performance { get; }
 
         #region Settings
-        ProcessSettings ProcessSettings { get; }
-        void LoadSettings(ProcessSettings settings = null, string fileName = "");
+        ProcessSettings? ProcessSettings { get; }
+        void LoadSettings(ProcessSettings? settings = null, string fileName = "");
         void LoadProcess(JsonNode node);
 
         //void LoadSettings(string fileName);
-        void SaveSettings(ProcessSettings settings = null, string fileName = "");
-        JsonObject SaveProcess(JsonObject node = null);
+        void SaveSettings(ProcessSettings? settings = null, string fileName = "");
+        JsonObject SaveProcess(JsonObject? node = null);
 
         [Browsable(false)]
         Dictionary<string, object> ObjectsProperties { get; }

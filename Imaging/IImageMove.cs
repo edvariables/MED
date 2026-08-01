@@ -8,8 +8,12 @@ namespace MED.Imaging
 {
     public interface IImageMove
     {
+
+        System.Drawing.Region? ClipRegion { get; }
+        System.Drawing.PointF Location { get; set; }
+        float Rotation { get; }
+
         float SpeedMax { get; }
-        float Density { get; }
         SizeF Speed { get; set; }
         float RotationSpeed { get; }
     }

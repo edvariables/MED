@@ -51,7 +51,7 @@ namespace MED
 
 
             var processType = Type.GetType(processClass);
-            if (processType != null)
+            if (processType != null && processType.Namespace != null)
                 return Activator.CreateInstance(processType.Namespace, processType.Name, paramsObjects);
 
             //TODO
@@ -62,7 +62,9 @@ namespace MED
 
             Assembly assembly = al.LoadFromAssemblyPath(processLib);
 
+#pragma warning disable CS8604 // Existence possible d'un argument de référence null.
             return Activator.CreateInstance(assembly.GetName().Name, processClass, paramsObjects);
+#pragma warning restore CS8604 // Existence possible d'un argument de référence null.
 
             //foreach (var type in assembly.GetExportedTypes())
             //    if (type.FullName == processClass)

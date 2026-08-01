@@ -310,12 +310,12 @@ namespace MED
         {
         }
 
-        public virtual void SaveSettings(ProcessSettings settings = null, string fileName = "")
+        public virtual void SaveSettings(ProcessSettings? settings = null, string fileName = "")
         {
             if (settings == null)
                 settings = ProcessSettings;
 
-            if (settings != null)
+            if (settings != null && settings.Root != null)
             {
                 SaveProcess(settings.Root.AsObject());
 
@@ -325,7 +325,7 @@ namespace MED
         }
 
 
-        public virtual JsonObject SaveProcess(JsonObject node = null)
+        public virtual JsonObject SaveProcess(JsonObject? node = null)
         {
             if (node == null)
                 node = new JsonObject();

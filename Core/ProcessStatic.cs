@@ -66,7 +66,7 @@ namespace MED
          * 
          * 
          * */
-        public static IProcess CreateProcess(JsonNode node, Performance performance, Control invokeHandler)
+        public static IProcess CreateProcess(JsonNode node, Performance? performance, Control? invokeHandler)
         {
             string processClass = node["ProcessClass"].GetValue<string>();
             string processLib = node["ProcessLib"]?.GetValue<string>();
@@ -80,7 +80,7 @@ namespace MED
          * 
          * 
          * */
-        public static IProcess CreateProcess(string processClass, string processLib, string name, bool isAsynchrone, Performance performance, Control invokeHandler)
+        public static IProcess CreateProcess(string processClass, string? processLib, string name, bool isAsynchrone, Performance? performance, Control? invokeHandler)
         {
 
             if (processClass == "")

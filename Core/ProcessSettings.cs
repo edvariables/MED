@@ -1,13 +1,16 @@
 ﻿using MED.Core;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Data.SqlTypes;
+using System.Drawing.Design;
 using System.Linq;
 using System.Runtime.InteropServices.JavaScript;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
+using System.Windows.Forms.Design;
 using System.Xml.Linq;
 
 namespace MED
@@ -18,13 +21,15 @@ namespace MED
         {
             FileName = fileName;
             if (root == null)
-                Root = JsonNode.Parse("{}");
+                Root = new JsonObject();// JsonNode.Parse("{}");
             else
                 Root = root;
         }
 
+        [EditorAttribute(typeof(FileNameEditor), typeof(UITypeEditor))]
         public string FileName { get; set; }
-        public JsonNode? Root { get; set; }
+
+        public JsonNode Root { get; set; }
 
         public bool IsNull => false;
 

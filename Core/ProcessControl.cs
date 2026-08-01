@@ -26,7 +26,7 @@ namespace MED
             ProcessStateChanged(null);
         }
 
-        private IProcess _ActiveProcess;
+        private IProcess? _ActiveProcess;
         public IProcess ActiveProcess
         {
             get
@@ -57,7 +57,7 @@ namespace MED
         }
 
         private bool _ProcessStateChanging;
-        private void ProcessStateChanged(IProcess sender, System.Threading.ThreadState state = System.Threading.ThreadState.Unstarted)
+        private void ProcessStateChanged(IProcess? sender, System.Threading.ThreadState state = System.Threading.ThreadState.Unstarted)
         {
             if (sender == null)
                 sender = ActiveProcess;

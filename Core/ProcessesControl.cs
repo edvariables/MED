@@ -53,7 +53,7 @@ namespace MED
             this.SelectedNode = null;
         }
 
-        public void ShowProperties(object[] items, TreeNode rootNode = null, bool clear = false)
+        public void ShowProperties(object[] items, TreeNode? rootNode = null, bool clear = false)
         {
             object currentObject = this.SelectedNode?.Tag;
             TreeNodeCollection nodes;

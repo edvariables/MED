@@ -3,6 +3,7 @@ using MED.Core;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Text;
@@ -114,6 +115,7 @@ namespace MED.Imaging
         public override Bitmap GetImage(IImageProvider provider = null)
         {
             Performance.Resume($"Make Image from {Items.Count}", true);
+
             Bitmap image;
             Size size = ImageSizeMax;
             if (size.IsEmpty)
@@ -134,7 +136,11 @@ namespace MED.Imaging
                 if (size.IsEmpty)
                     return null;
             }
+
             image = new Bitmap(size.Width, size.Height);
+
+            Collider(image);
+
             Point Position = new Point(0, 0);
             Graphics graphics = Graphics.FromImage(image);
             int nProvider = 0;
@@ -164,7 +170,7 @@ namespace MED.Imaging
                             //rotate
                             graphics.RotateTransform((prov as IImageProvider).Rotation, MatrixOrder.Prepend);
 
-                            clipRegion.Translate(-imageSrc.Width / 2, -imageSrc.Height/ 2);
+                            clipRegion.Translate(-imageSrc.Width / 2, -imageSrc.Height / 2);
                             graphics.SetClip(clipRegion, CombineMode.Replace);
 
                             graphics.DrawImage(imageSrc, -imageSrc.Width / 2, -imageSrc.Height / 2/*, imageSrc.Width, imageSrc.Height*/);
@@ -185,10 +191,10 @@ namespace MED.Imaging
 
                         if ((prov as IImageProvider).Rotation != 0F)
                         {
-                            graphics.TranslateTransform(Position.X + location.X+ imageSrc.Width/ 2, Position.Y+ location.Y+ imageSrc.Height / 2);
+                            graphics.TranslateTransform(Position.X + location.X + imageSrc.Width / 2, Position.Y + location.Y + imageSrc.Height / 2);
                             //rotate
-                            graphics.RotateTransform((prov as IImageProvider).Rotation,MatrixOrder.Prepend);
-                            graphics.DrawImage(imageSrc, -imageSrc.Width/2, -imageSrc.Height/2/*, imageSrc.Width, imageSrc.Height*/);
+                            graphics.RotateTransform((prov as IImageProvider).Rotation, MatrixOrder.Prepend);
+                            graphics.DrawImage(imageSrc, -imageSrc.Width / 2, -imageSrc.Height / 2/*, imageSrc.Width, imageSrc.Height*/);
                             //move image back
                             //graphics.TranslateTransform(-(float)imageSrc.Width / 2, -(float)imageSrc.Height / 2);
                             graphics.ResetTransform();
@@ -203,6 +209,152 @@ namespace MED.Imaging
             graphics.Dispose();
             Performance.Pause($"Get Image done => " + (image == null ? "<null>" : "Bitmap"));
             return image;
+        }
+
+        /**
+         * GetImage
+         * 
+         * */
+        public void Collider(Bitmap image)
+        {
+            if (Items.Count < 2) return;
+
+            Performance.Sub(".Collider").Resume($"{Items.Count} Items", true);
+
+            Dictionary<IImageCollidable, Region> itemsRegions = new();
+
+            Graphics gr = Graphics.FromImage(image);
+            foreach (var prov in Items)
+            {
+                if (prov is not IImageCollidable)
+                    continue;
+
+                var clipRegion = (prov as IImageCollidable).ClipRegion;
+
+                var location = (prov as IImageCollidable).Location;
+
+                var speed = (prov as IImageCollidable).Speed;
+
+                if (clipRegion != null)
+                {
+                    if (!location.IsEmpty)
+                    {
+                        clipRegion = clipRegion.Clone();
+                        clipRegion.Translate(location.X, location.Y);
+
+                        var bounds = clipRegion.GetBounds(gr);
+                        bool changed = false;
+                        if (bounds.Top < 0)
+                        {
+                            location.Y = 0;
+                            if (speed.Height < 0)
+                                speed.Height *= -1;
+                            changed = true;
+                        }
+                        if (bounds.Left < 0)
+                        {
+                            location.X = 0;
+                            if (speed.Width < 0)
+                                speed.Width *= -1;
+                            changed = true;
+                        }
+                        if (bounds.Bottom > image.Height)
+                        {
+                            location.Y = image.Height - bounds.Height;
+                            if (speed.Height > 0)
+                                speed.Height *= -1;
+                            changed = true;
+                        }
+                        if (bounds.Right > image.Width)
+                        {
+                                location.X = image.Width - bounds.Width;
+                            if (speed.Width > 0)
+                                speed.Width *= -1;
+                            changed = true;
+                        }
+                        if (changed)
+                        {
+                            (prov as IImageCollidable).Location = location;
+
+                            (prov as IImageCollidable).Speed = speed;
+
+                            clipRegion = (prov as IImageCollidable).ClipRegion.Clone();
+                            clipRegion.Translate(location.X, location.Y);
+                        }
+                    }
+
+                    if ((prov as IImageCollidable).Density == 0F)
+                        continue;
+                    itemsRegions.Add((IImageCollidable)prov, clipRegion);
+                }
+            }
+            if (itemsRegions.Count > 1)
+            {
+                var items = itemsRegions.Keys.ToArray();
+                for (var i1 = 0; i1 < items.Length - 1; i1++)
+                {
+                    var item1 = items[i1];
+                    var region1 = itemsRegions[item1];
+                    for (var i2 = i1 + 1; i2 < items.Length; i2++)
+                    {
+                        var item2 = items[i2];
+                        var region2 = itemsRegions[item2];
+
+                        var intersect = region1.Clone();
+                        intersect.Intersect(region2);
+                        if (!intersect.IsEmpty(gr))
+                        {
+                            var intersectBounds = intersect.GetBounds(gr);
+                            var intersectBoundsCenter = new PointF((intersectBounds.Right - intersectBounds.Left) / 2, (intersectBounds.Bottom - intersectBounds.Top) / 2);
+
+                            var itemBounds = region1.GetBounds(gr);
+                            var itemBoundsCenter = new PointF((itemBounds.Right - itemBounds.Left) / 2, (itemBounds.Bottom - itemBounds.Top) / 2);
+                            var speed = item1.Speed;
+                            var changed = false;
+                            if (!item1.Location.IsEmpty)
+                            {
+                                if (Math.Abs(itemBoundsCenter.X - intersectBounds.X) > 1)
+                                {
+                                    speed.Width *= -1 * item1.Density;
+                                    changed = true;
+                                }
+                                if (Math.Abs(itemBoundsCenter.Y - intersectBounds.Y) > 1)
+                                {
+                                    speed.Height *= -1 * item1.Density;
+                                    changed = true;
+                                }
+                                if (changed)
+                                    item1.Speed = speed;
+                            }
+
+                            if (item2.Location.IsEmpty == false)
+                            {
+                                itemBounds = region2.GetBounds(gr);
+                                itemBoundsCenter = new PointF((itemBounds.Right - itemBounds.Left) / 2, (itemBounds.Bottom - itemBounds.Top) / 2);
+                                speed = item2.Speed;
+                                changed = false;
+                                if (Math.Abs(itemBoundsCenter.X - intersectBounds.X) > 1)
+                                {
+                                    speed.Width *= -1 * item2.Density;
+                                    changed = true;
+                                }
+                                if (Math.Abs(itemBoundsCenter.Y - intersectBounds.Y) > 1)
+                                {
+                                    speed.Height *= -1 * item2.Density;
+                                    changed = true;
+                                }
+                                if (changed)
+                                    item2.Speed = speed;
+                            }
+
+                        }
+                    }
+                }
+
+            }
+
+            gr.Dispose();
+            Performance.Sub(".Collider").Pause($"Collider done {itemsRegions.Count}");
         }
     }
 }

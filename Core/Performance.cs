@@ -514,7 +514,9 @@ namespace MED
             Enabled = (bool)settings.GetValue("Enabled", Enabled);
             var color = settings.GetValue("Color", LoggerColor);
             if (color != null)
+#pragma warning disable CS8604 // Existence possible d'un argument de référence null.
                 LoggerColor = (KnownColor)Enum.Parse(typeof(KnownColor), color.ToString());
+#pragma warning restore CS8604 // Existence possible d'un argument de référence null.
         }
         /**
          * 

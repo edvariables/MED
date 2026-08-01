@@ -13,7 +13,7 @@ using static libMotionDetection.MotionDetectionWithMotionHistory;
 
 namespace MED.Imaging
 {
-    public class EmguMoving : ImageProcess, IMatFrameConsumer, IMatFrameProvider
+    public class EmguMoving : ImageProcess, IMatFrameConsumer, IMatFrameProvider, IImageCollidable
     {
         //isAsynchrone = true
         public EmguMoving(string name = "EmguMoving", Performance performance = null, Control invokeHandler = null, IImageConsumer imageConsumer = null, bool isAsynchrone = true)
@@ -152,6 +152,11 @@ namespace MED.Imaging
          * */
         [Browsable(true)]
         public int DetectionLimit { get; set; } = 1;
+
+        public virtual float SpeedMax { get; set; }
+        public virtual float Density { get; set; } = 1F;
+        public virtual SizeF Speed { get; set; }
+        public virtual float RotationSpeed { get; set; }
 
         public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
         {
@@ -639,6 +644,7 @@ namespace MED.Imaging
                 return (ImageProvider as IMatFrameProvider).Capture;
             }
         }
+
 
         private MotionDetectionWithDenseOpticalFlow motionDetectionWithDenseOpticalFlow;
         private MotionDetectionWithMotionHistory motionDetectionWithMotionHistory;
