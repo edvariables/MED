@@ -125,6 +125,12 @@ namespace MED.Imaging
         [Browsable(false)]
         public virtual Size ImageSizeMax { get; set; }
 
+        [Browsable(false)]
+        public virtual System.Drawing.Region? ClipRegion { get; set; } = null;
+
+        [Browsable(false)]
+        public System.Drawing.Point Location { get; set; } = System.Drawing.Point.Empty;
+
         [Browsable(true)]
         public virtual int FPSMax { get; set; } = 25;
         protected int FPSMaxDuration
@@ -279,7 +285,7 @@ namespace MED.Imaging
             node = base.SaveProcess(node);
 
             node["ImageSizeMax"] = Parser.ObjectToString(ImageSizeMax);
-            node["FPSMax"]= FPSMax;
+            node["FPSMax"] = FPSMax;
 
             var consumers = new JsonObject();
 
@@ -292,7 +298,7 @@ namespace MED.Imaging
                     JsonObject item = new();
 
                     item["ProcessClass"] = consumer.GetType().FullName;
-                    item["Name"] = consumer.Name;
+                    item["Name"] = ProcessStatic.GetRelativePath(this, consumer);
 
                     jsonCons.Add(item);
                 }

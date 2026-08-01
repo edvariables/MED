@@ -20,7 +20,7 @@ namespace MED
             this.FormClosed += Form_FormClosed;
             this.DockChanged += ProcessForm_DockChanged;
 
-            Project = new(name, null, this);
+            Project = new(name, null, this, this);
 
             ProcessIcon = Project.ProcessIcon;
 

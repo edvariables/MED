@@ -16,7 +16,7 @@ namespace MED
         {
             InvokeHandler = invokeHandler;
             IsAsynchrone = isAsynchrone;
-            //Consumer = consumer;
+            Consumer = consumer;
 
             if (name == "")
                 name = this.GetType().Name;
@@ -40,7 +40,7 @@ namespace MED
             RemovePropertyDelegateConsumers();
 
             Performance = null;
-            //_Consumer = null;
+            Consumer = null;
             InvokeHandler = null;
 
             if (Disposing)
@@ -274,6 +274,9 @@ namespace MED
 
         [Browsable(false)]
         public Control InvokeHandler { get; set; }
+
+        [Browsable(false)]
+        public IConsumer Consumer { get; set; }
 
         [Browsable(true)]
         public virtual Performance Performance { get; set; }

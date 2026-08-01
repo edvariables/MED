@@ -1,9 +1,11 @@
 ﻿using DirectShowLib;
+using DirectShowLib.DES;
 using Emgu.CV;
 using MED.Core;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -24,7 +26,7 @@ namespace MED.Imaging
             if (invokeHandler is PictureBox)
                 RenderImageControl = (PictureBox)invokeHandler;
 
-            if(imageConsumer == null)
+            if (imageConsumer == null)
                 RenderImageControl = (Control)invokeHandler;
         }
 
@@ -109,7 +111,7 @@ namespace MED.Imaging
                 performance.Resume("RefreshRender", true);
                 try
                 {
-                    if(renderImageControl is PictureBox)
+                    if (renderImageControl is PictureBox)
                         (renderImageControl as PictureBox).Image = ResizeImage(sender);
                     else
                         renderImageControl.BackgroundImage = ResizeImage(sender);
@@ -146,8 +148,15 @@ namespace MED.Imaging
                 var source = image;
                 image = new Bitmap(render.RenderImageControl.Size.Width, render.RenderImageControl.Size.Height, image.PixelFormat);
                 Graphics graphics = Graphics.FromImage(image);
-
-                graphics.DrawImageUnscaled(source, (image.Width - source.Width) / 2, (image.Height - source.Height) / 2);
+                Point offset = new Point((image.Width - source.Width) / 2, (image.Height - source.Height) / 2);
+                if (sender.ClipRegion != null)
+                {
+                    graphics.SetClip(sender.ClipRegion, CombineMode.Replace);
+                    graphics.DrawImageUnscaled(sender.Image, offset.X + sender.Location.X, offset.Y + sender.Location.Y);
+                    graphics.ResetClip();
+                }
+                else
+                    graphics.DrawImageUnscaled(source, offset.X + sender.Location.X, offset.Y + sender.Location.Y);
 
                 graphics.Dispose();
             }

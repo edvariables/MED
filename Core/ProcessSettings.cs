@@ -109,7 +109,8 @@ namespace MED
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.ToString(), $"Ouverture de ...{fileName.Substring(-16)}", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                string src = fileName.Length > 24 ? "..." + fileName.Substring(fileName.Length - 24) : fileName;
+                MessageBox.Show(ex.ToString(), $"Ouverture de {src}", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             return false;
         }

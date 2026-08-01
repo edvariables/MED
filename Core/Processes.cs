@@ -139,6 +139,8 @@ namespace MED
                 try
                 {
                     IProcess item = ProcessStatic.CreateProcess(procNode, Performance, InvokeHandler);
+                    if (item is Process)
+                        (item as Process).Consumer = this.Consumer ?? this;
                     item.LoadSettings(processesSettings.ChildSettings(item.Name));
 
                     Items.Add(item);
@@ -171,22 +173,13 @@ namespace MED
         }
         public virtual void LoadConsumer(IProcess process, JsonObject consumerNode, string propertyName)
         {
-            string consumerName = consumerNode["Name"].ToString();
-
-            IProcess consumerProcess = null;
-            foreach (var item in Items)
-                if (item.Name == consumerName)
-                {
-                    consumerProcess = item;
-                    break;
-                }
-
+            string consumerPath = consumerNode["Name"].ToString();
+            IProcess consumerProcess = ProcessStatic.FindItem(this, consumerPath);
             if (consumerProcess == null)
                 return;
 
             ProcessStatic.AddConsumer((IProvider)process, (IConsumer)consumerProcess, propertyName);
         }
-
 
         public virtual void InitializeProcesses(bool resetAll = false)
         {

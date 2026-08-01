@@ -147,13 +147,17 @@ namespace MED.Imaging
         [Browsable(true)]
         public List<CvInvokeTransformers> Transformers { get; set; }
 
+        /**
+         * DetectionLimit = 1 to 255
+         * */
         [Browsable(true)]
-        public int DetectionLimit { get; set; }
+        public int DetectionLimit { get; set; } = 1;
 
         public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
         {
             base.LoadSettings(settings, fileName);
 
+            DetectionLimit = (int)ProcessSettings.GetValue("DetectionLimit", DetectionLimit);
             CvInvokeTransformers a;
             if (Enum.TryParse<CvInvokeTransformers>(ProcessSettings.GetValue("Transformer", Transformer).ToString(), out a))
                 Transformer = a;
@@ -162,6 +166,7 @@ namespace MED.Imaging
         {
             node = base.SaveProcess(node);
             node.Add("Transformer", Transformer.ToString());
+            node.Add("DetectionLimit", DetectionLimit);
             return node;
         }
         //public override void SaveSettings(bool saveChildren = true)
@@ -180,7 +185,9 @@ namespace MED.Imaging
 
             if (PreviousFrame == null)
             {
-                InitializeMotionDetection(Frame);
+                if (currentFrame == null)
+                    return null;
+                InitializeMotionDetection(currentFrame);
                 if (ImageSizeMax.IsEmpty)
                     return null;
                 else
@@ -334,17 +341,19 @@ namespace MED.Imaging
                             grPath.AddPolygon(pts);
                             grPath.CloseFigure();
                         }
-                        Region grRegion = new Region(grPath);
+                        ClipRegion = new Region(grPath);
 
-                        var bmpSource = currentFrame.ToBitmap();
+                        return currentFrame.ToBitmap();
 
-                        Bitmap newBmp = new Bitmap(frameDiff.Width, frameDiff.Height);
+                        //var bmpSource = currentFrame.ToBitmap();
 
-                        Graphics grBmp = Graphics.FromImage(newBmp);
-                        grBmp.SetClip(grRegion, CombineMode.Replace);
-                        grBmp.DrawImage(bmpSource, 0, 0);
-                        grBmp.Dispose();
-                        return newBmp;
+                        //Bitmap newBmp = new Bitmap(frameDiff.Width, frameDiff.Height);
+
+                        //Graphics grBmp = Graphics.FromImage(newBmp);
+                        //grBmp.SetClip(grRegion, CombineMode.Replace);
+                        //grBmp.DrawImage(bmpSource, 0, 0);
+                        //grBmp.Dispose();
+                        //return newBmp;
                     }
                     break;
 

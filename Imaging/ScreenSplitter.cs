@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Configuration.Provider;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Security.Cryptography.Xml;
 using System.Text;
@@ -108,12 +109,21 @@ namespace MED.Imaging
             foreach (var prov in ImageProviders)
             {
                 if (prov.Image != null)
-                    graphics.DrawImage(prov.Image, Position.X, Position.Y, itemSize.Width, itemSize.Height);
+                {
+                    if (prov.ClipRegion != null)
+                    {
+                        graphics.SetClip(prov.ClipRegion, CombineMode.Replace);
+                        graphics.DrawImage(prov.Image, prov.Location.X, prov.Location.Y);
+                        graphics.ResetClip();
+                    }
+                    else
+                        graphics.DrawImage(prov.Image, Position.X + prov.Location.X, Position.Y + prov.Location.Y, itemSize.Width, itemSize.Height);
+                }
                 nProvider++;
                 if (!Grid.IsEmpty && Grid.Width > 0 && Grid.Height > 0)
                 {
                     col++;
-                    if(col >= Grid.Width)
+                    if (col >= Grid.Width)
                     {
                         col = 0;
                         row++;

@@ -3,6 +3,7 @@ using MED.Core;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -17,9 +18,11 @@ namespace MED.Imaging
         {
             ProcessIcon = "Image";
 
+            ResetOnImageChanged = true;
+
             ImageProviders = new();
 
-            ImageProcesses = new(name, performance, invokeHandler, imageConsumer, isAsynchrone);
+            ImageProcesses = new(name, performance, invokeHandler, this, isAsynchrone);
 
             ImageProcesses.OnProcessStateChanged += Invoke_ProcessStateChanged;
 
@@ -67,11 +70,6 @@ namespace MED.Imaging
             base.SaveSettings(settings, fileName);
         }
 
-        public override JsonObject SaveProcess(JsonObject node = null)
-        {
-            node = base.SaveProcess(node);
-            return node;
-        }
         #endregion
 
         public override Performance Performance { get => ImageProcesses.Performance; }
@@ -112,5 +110,60 @@ namespace MED.Imaging
         }
 
         public virtual List<IProcess> Items => ImageProcesses.Items;
+
+
+        /**
+         * GetImage
+         * 
+         * */
+        public override Bitmap GetImage(IImageProvider provider = null)
+        {
+            Performance.Resume($"Make Image from {Items.Count}", true);
+            Bitmap image;
+            Size size = ImageSizeMax;
+            if (size.IsEmpty)
+            {
+                foreach (var prov in Items)
+                {
+                    if (prov is not IImageProvider)
+                        continue;
+                    image = (prov as IImageProvider).Image;
+                    if (image == null)
+                        continue;
+                    size = image.Size;
+                    if (size.IsEmpty)
+                        continue;
+                    //TODO Chercher le + grand
+                    break;
+                }
+                if (size.IsEmpty)
+                    return null;
+            }
+            image = new Bitmap(size.Width, size.Height);
+            Point Position = new Point(0, 0);
+            Graphics graphics = Graphics.FromImage(image);
+            int nProvider = 0;
+            foreach (var prov in Items)
+            {
+                if (prov is not IImageProvider)
+                    continue;
+
+                if ((prov as IImageProvider).Image != null)
+                {
+                    if ((prov as IImageProvider).ClipRegion != null)
+                    {
+                        graphics.SetClip((prov as IImageProvider).ClipRegion, CombineMode.Replace);
+                        graphics.DrawImage((prov as IImageProvider).Image, (prov as IImageProvider).Location.X, (prov as IImageProvider).Location.Y);
+                        graphics.ResetClip();
+                    }
+                    else
+                        graphics.DrawImage((prov as IImageProvider).Image, Position.X + (prov as IImageProvider).Location.X, Position.Y + (prov as IImageProvider).Location.Y, size.Width, size.Height);
+                }
+                nProvider++;
+            }
+            graphics.Dispose();
+            Performance.Pause($"Get Image done => " + (image == null ? "<null>" : "Bitmap"));
+            return image;
+        }
     }
 }

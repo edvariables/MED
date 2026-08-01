@@ -131,10 +131,10 @@ namespace MED
 
         private Dictionary<int, TreeNode> ObjectsNodes = new Dictionary<int, TreeNode>();
 
-        public void AddItems(object[] items, TreeNodeCollection nodes)
+        public void AddItems(object[] items, TreeNodeCollection nodes, bool addChildren = true)
         {
             foreach (var item in items)
-                AddItem(item, nodes);
+                AddItem(item, nodes, addChildren);
         }
 
         public TreeNode AddItem(object item, TreeNodeCollection nodes, bool addChildren = true)
@@ -185,7 +185,7 @@ namespace MED
                 }
                 else if (n.Parent != null && n.Parent.Nodes == nodes)
                     return n;
-                else
+                else if (addChildren)
                     addChildren = !(n.Parent == null || n.Parent.Parent == null);
 
                 //Priority to root
@@ -237,8 +237,14 @@ namespace MED
                         {
                             var subNode = node.Nodes.Add(kvp.Key);
                             subNode.SelectedImageKey = subNode.ImageKey = "next_blue";
-                            AddItems((kvp.Value as List<IProcess>).ToArray(), subNode.Nodes);
+                            AddItems((kvp.Value as List<IProcess>).ToArray(), subNode.Nodes, false);
                         }
+                        //else if (kvp.Value is IConsumer)
+                        //{
+                        //    var subNode = node.Nodes.Add("Consumer");
+                        //    subNode.SelectedImageKey = subNode.ImageKey = "next_blue";
+                        //    AddItems([kvp.Value], subNode.Nodes, false);
+                        //}
                     }
                 }
 

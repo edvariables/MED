@@ -217,5 +217,50 @@ namespace MED
                 }
             }
         }
+
+
+        public static IProcess FindItem(IProcess processRef, string relativePath)
+        {
+            IProcess processItem = processRef;
+            foreach (var itemName in relativePath.Split('/'))
+            {
+                if (itemName == "..")
+                {
+                    if (processItem is Process)
+                        processItem = (IProcess)(processItem as Process).Consumer;
+                    else
+                        throw new Exception("Impossible de trouver le process parent");
+                    continue;
+                }
+                bool found = false;
+                if (processItem is IProcesses)
+                    foreach (var item in (processItem as IProcesses).Items)
+                        if (item.Name == itemName)
+                        {
+                            found = true;
+                            processItem = item;
+                            break;
+                        }
+                if (!found)
+                    return null;
+            }
+            return processItem;
+        }
+        public static string GetRelativePath(IProcess processRef, IProcess processTo)
+        {
+            if (processRef == processTo)
+                return ".";
+
+            if (processRef is Process)
+                if ((processRef as Process).Consumer == processTo)
+                    return "..";
+                else if (processTo is Process)
+                    if ((processRef as Process).Consumer == (processTo as Process).Consumer)
+                        return processTo.Name;
+                    else if ((processTo as Process).Consumer is Process)
+                        if ((processRef as Process).Consumer == ((processTo as Process).Consumer as Process).Consumer)
+                            return ((processTo as Process).Consumer as Process).Name + "/"  + processTo.Name;
+            return processTo.Name;
+        }
     }
 }

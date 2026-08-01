@@ -15,6 +15,10 @@ namespace MED
         Size ImageSizeMax { get; }
 
         Bitmap Image { get; }
+        
+        System.Drawing.Region? ClipRegion { get; }
+        
+        System.Drawing.Point Location { get; }
 
 
         List<IImageProvider> ImageProviders { get; set; }
