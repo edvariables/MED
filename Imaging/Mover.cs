@@ -24,42 +24,70 @@ namespace MED.Imaging
         : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
         {
             FPSMax = 0;
+            if( DateTime.Now.Ticks%2==0)
+                Direction = new(1, 0);
+            else
+                Direction = new(0, 1);
         }
 
         #region Properties
 
+        public virtual float Speed { get; set; } = 0F;
         public virtual float SpeedMax { get; set; }
         public virtual float Density { get; set; } = 1F;
-        public virtual SizeF Speed { get; set; }
+        public virtual PointF Direction { get; set; }
         public virtual float RotationSpeed { get; set; }
 
         long _LocationTime = 0;
-        System.Drawing.PointF _Location = System.Drawing.Point.Empty;
         [Browsable(true)]
         public override System.Drawing.PointF Location
         {
             get
             {
+                var location = base.Location;
                 if (ProcessState != ThreadState.Running
-                    || Speed.IsEmpty)
-                    return _Location;
+                    || Speed == 0)
+                    return location;
                 long now = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
                 long duration = now - _LocationTime;
                 _LocationTime = now;
                 if (duration > 1000 || duration == 0)
-                    return _Location;
+                    return location;
 
-                _Location.X += Speed.Width * duration;
-                _Location.Y += Speed.Height * duration;
+                location.X += Direction.X * Speed * duration;
+                location.Y += Direction.Y * Speed * duration;
 
                 if (RotationSpeed != 0F)
                     Rotation += RotationSpeed * duration;
 
-                return _Location;
+                return base.Location = location;
             }
-            set => _Location = value;
+            set
+            {
+                base.Location = value;
+                _ClipRegionTranslated = null;
+            }
         }
 
+        Region? _ClipRegionTranslated;
+        /**
+         * 
+         * Returns ClipRegion.Clone().Translate(Location.X, Location.Y);
+        */
+        public virtual Region? ClipRegionTranslated
+        {
+            get
+            {
+                //That does not work...
+                //if (_ClipRegionTranslated != null)
+                //    return _ClipRegionTranslated;
+                return _ClipRegionTranslated = ImagesCollider.ClipRegionTranslated(ClipRegion, Location);
+            }
+        }
+
+        #endregion
+
+        #region Process
         public override void Start()
         {
             Location = PointF.Empty;
@@ -67,12 +95,14 @@ namespace MED.Imaging
 
             base.Start();
         }
+        #endregion
 
+        #region Settings
         public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
         {
             base.LoadSettings(settings, fileName);
 
-            Speed = (SizeF)settings.GetValue("Speed", Speed);
+            Speed = (float)settings.GetValue("Speed", Speed);
             SpeedMax = (float)settings.GetValue("SpeedMax", SpeedMax);
             Density = (float)settings.GetValue("Density", Density);
             RotationSpeed = (float)settings.GetValue("RotationSpeed", RotationSpeed);
@@ -80,7 +110,7 @@ namespace MED.Imaging
         public override JsonObject SaveProcess(JsonObject node = null)
         {
             node = base.SaveProcess(node);
-            node.Add("Speed", Parser.ObjectToString(Speed));
+            node.Add("Speed", Speed);
             node.Add("SpeedMax", SpeedMax);
             node.Add("Density", Density);
             node.Add("RotationSpeed", RotationSpeed);

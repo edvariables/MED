@@ -28,6 +28,8 @@ namespace MED.Imaging
             ImageProcesses.OnProcessStateChanged += Invoke_ProcessStateChanged;
 
             //ImageConsumer = imageConsumer;
+
+            Collider = new(this);
         }
 
         public Processes ImageProcesses { get; set; }
@@ -87,7 +89,12 @@ namespace MED.Imaging
          */
         #region Process
 
-        public override void Start() => ImageProcesses.Start();
+        public override void Start()
+        {
+            ImageProcesses.Start();
+
+            Collider.CollidersRegions = null;
+        }
 
         public override void Stop() => ImageProcesses.Stop();
 
@@ -107,6 +114,7 @@ namespace MED.Imaging
 
         public virtual List<IProcess> Items => ImageProcesses.Items;
 
+        protected ImagesCollider Collider { get; set; }
 
         /**
          * GetImage
@@ -139,10 +147,11 @@ namespace MED.Imaging
 
             image = new Bitmap(size.Width, size.Height);
 
-            Collider(image);
-
             Point Position = new Point(0, 0);
             Graphics graphics = Graphics.FromImage(image);
+
+            Collider.Collide(image, graphics);
+
             int nProvider = 0;
             foreach (var prov in Items)
             {
@@ -210,12 +219,11 @@ namespace MED.Imaging
             Performance.Pause($"Get Image done => " + (image == null ? "<null>" : "Bitmap"));
             return image;
         }
-
         /**
          * GetImage
          * 
          * */
-        public void Collider(Bitmap image)
+        public void Collide(Bitmap image)
         {
             if (Items.Count < 2) return;
 
@@ -233,7 +241,7 @@ namespace MED.Imaging
 
                 var location = (prov as IImageCollidable).Location;
 
-                var speed = (prov as IImageCollidable).Speed;
+                var velocity = (prov as IImageCollidable).Direction;
 
                 if (clipRegion != null)
                 {
@@ -247,36 +255,36 @@ namespace MED.Imaging
                         if (bounds.Top < 0)
                         {
                             location.Y = 0;
-                            if (speed.Height < 0)
-                                speed.Height *= -1;
+                            if (velocity.X < 0)
+                                velocity.Y *= -1;
                             changed = true;
                         }
                         if (bounds.Left < 0)
                         {
                             location.X = 0;
-                            if (speed.Width < 0)
-                                speed.Width *= -1;
+                            if (velocity.X < 0)
+                                velocity.X *= -1;
                             changed = true;
                         }
                         if (bounds.Bottom > image.Height)
                         {
                             location.Y = image.Height - bounds.Height;
-                            if (speed.Height > 0)
-                                speed.Height *= -1;
+                            if (velocity.Y > 0)
+                                velocity.Y *= -1;
                             changed = true;
                         }
                         if (bounds.Right > image.Width)
                         {
-                                location.X = image.Width - bounds.Width;
-                            if (speed.Width > 0)
-                                speed.Width *= -1;
+                            location.X = image.Width - bounds.Width;
+                            if (velocity.X > 0)
+                                velocity.X *= -1;
                             changed = true;
                         }
                         if (changed)
                         {
                             (prov as IImageCollidable).Location = location;
 
-                            (prov as IImageCollidable).Speed = speed;
+                            (prov as IImageCollidable).Direction = velocity;
 
                             clipRegion = (prov as IImageCollidable).ClipRegion.Clone();
                             clipRegion.Translate(location.X, location.Y);
@@ -309,42 +317,42 @@ namespace MED.Imaging
 
                             var itemBounds = region1.GetBounds(gr);
                             var itemBoundsCenter = new PointF((itemBounds.Right - itemBounds.Left) / 2, (itemBounds.Bottom - itemBounds.Top) / 2);
-                            var speed = item1.Speed;
+                            var speed = item1.Direction;
                             var changed = false;
                             if (!item1.Location.IsEmpty)
                             {
                                 if (Math.Abs(itemBoundsCenter.X - intersectBounds.X) > 1)
                                 {
-                                    speed.Width *= -1 * item1.Density;
+                                    speed.X *= -1 * item1.Density;
                                     changed = true;
                                 }
                                 if (Math.Abs(itemBoundsCenter.Y - intersectBounds.Y) > 1)
                                 {
-                                    speed.Height *= -1 * item1.Density;
+                                    speed.Y *= -1 * item1.Density;
                                     changed = true;
                                 }
                                 if (changed)
-                                    item1.Speed = speed;
+                                    item1.Direction = speed;
                             }
 
                             if (item2.Location.IsEmpty == false)
                             {
                                 itemBounds = region2.GetBounds(gr);
                                 itemBoundsCenter = new PointF((itemBounds.Right - itemBounds.Left) / 2, (itemBounds.Bottom - itemBounds.Top) / 2);
-                                speed = item2.Speed;
+                                speed = item2.Direction;
                                 changed = false;
                                 if (Math.Abs(itemBoundsCenter.X - intersectBounds.X) > 1)
                                 {
-                                    speed.Width *= -1 * item2.Density;
+                                    speed.X *= -1 * item2.Density;
                                     changed = true;
                                 }
                                 if (Math.Abs(itemBoundsCenter.Y - intersectBounds.Y) > 1)
                                 {
-                                    speed.Height *= -1 * item2.Density;
+                                    speed.Y *= -1 * item2.Density;
                                     changed = true;
                                 }
                                 if (changed)
-                                    item2.Speed = speed;
+                                    item2.Direction = speed;
                             }
 
                         }
@@ -358,3 +366,4 @@ namespace MED.Imaging
         }
     }
 }
+

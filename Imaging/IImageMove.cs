@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -10,11 +11,13 @@ namespace MED.Imaging
     {
 
         System.Drawing.Region? ClipRegion { get; }
+        System.Drawing.Region? ClipRegionTranslated { get; }
         System.Drawing.PointF Location { get; set; }
         float Rotation { get; }
 
         float SpeedMax { get; }
-        SizeF Speed { get; set; }
+        float Speed { get; set; }
+        PointF Direction { get; set; }
         float RotationSpeed { get; }
     }
 }

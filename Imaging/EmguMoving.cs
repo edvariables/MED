@@ -8,6 +8,7 @@ using MED.Imaging;
 using System.ComponentModel;
 using System.Drawing.Drawing2D;
 using System.IO;
+using System.Numerics;
 using System.Text.Json.Nodes;
 using static libMotionDetection.MotionDetectionWithMotionHistory;
 
@@ -155,8 +156,10 @@ namespace MED.Imaging
 
         public virtual float SpeedMax { get; set; }
         public virtual float Density { get; set; } = 1F;
-        public virtual SizeF Speed { get; set; }
+        public virtual PointF Direction { get; set; }
         public virtual float RotationSpeed { get; set; }
+        public virtual float Speed { get; set; }
+        
 
         public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
         {
@@ -166,12 +169,14 @@ namespace MED.Imaging
             CvInvokeTransformers a;
             if (Enum.TryParse<CvInvokeTransformers>(ProcessSettings.GetValue("Transformer", Transformer).ToString(), out a))
                 Transformer = a;
+            Density = (float)settings.GetValue("Density", Density);
         }
         public override JsonObject SaveProcess(JsonObject node = null)
         {
             node = base.SaveProcess(node);
             node.Add("Transformer", Transformer.ToString());
             node.Add("DetectionLimit", DetectionLimit);
+            node.Add("Density", Density);
             return node;
         }
         //public override void SaveSettings(bool saveChildren = true)
@@ -677,5 +682,19 @@ namespace MED.Imaging
 
         }
 
+        Region? _ClipRegionTranslated;
+        /**
+         * 
+         * Returns ClipRegion.Clone().Translate(Location.X, Location.Y);
+        */
+        public virtual Region? ClipRegionTranslated
+        {
+            get
+            {
+                if (_ClipRegionTranslated != null)
+                    return _ClipRegionTranslated;
+                return _ClipRegionTranslated = ImagesCollider.ClipRegionTranslated(ClipRegion, Location);
+            }
+        }
     }
 }
