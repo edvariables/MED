@@ -218,6 +218,10 @@ namespace MED
 
                     }
                 }
+                catch (ObjectDisposedException ex)
+                {
+                    process.Performance?.Error("ObjectDisposedException", ex);
+                }
                 catch (Exception ex)
                 {
                     process.Performance?.Error("InvokePropertyChanged", ex);

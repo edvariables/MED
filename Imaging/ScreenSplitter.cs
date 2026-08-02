@@ -75,7 +75,7 @@ namespace MED.Imaging
         {
             Performance.Resume($"Make Image from {ImageProviders.Count}", true);
             Bitmap image;
-            Size size = ImageSizeMax;
+            Size size = ImageSizeMin;
             if (size.IsEmpty)
             {
                 foreach (var prov in ImageProviders)

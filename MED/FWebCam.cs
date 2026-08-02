@@ -60,11 +60,11 @@ namespace MED.EDWebCam
                 chkRenderLogger.Checked = Render.Performance.Enabled;
                 chkVideoCaptureLogger.Checked = ImageSource.Performance.Enabled;
             }
-            var value = ImageSource.ImageSizeMax;
-            if (ImageSource.ImageSizeMax.IsEmpty)
+            var value = ImageSource.ImageSizeMin;
+            if (ImageSource.ImageSizeMin.IsEmpty)
                 cboCaptureSize.Text = "";
             else
-                cboCaptureSize.Text = Core.Parser.SizeToPretty(ImageSource.ImageSizeMax);
+                cboCaptureSize.Text = Core.Parser.SizeToPretty(ImageSource.ImageSizeMin);
         }
         #endregion
 
@@ -184,14 +184,14 @@ namespace MED.EDWebCam
             Render.OnImageChanged = null;
             //Render.OnImageChanged += this.ImageChanged;
 
-            //WebCam.ImageSizeMax
+            //WebCam.ImageSizeMin
             if (cboCaptureSize.Text == "")
             {
-                if (!ImageSource.ImageSizeMax.IsEmpty)
-                    cboCaptureSize.Text = Core.Parser.SizeToPretty(ImageSource.ImageSizeMax);
+                if (!ImageSource.ImageSizeMin.IsEmpty)
+                    cboCaptureSize.Text = Core.Parser.SizeToPretty(ImageSource.ImageSizeMin);
             }
             else
-                ImageSource.ImageSizeMax = Core.Parser.SizeFromPretty(cboCaptureSize.Text);
+                ImageSource.ImageSizeMin = Core.Parser.SizeFromPretty(cboCaptureSize.Text);
             //Add process
             Processes.Add(ImageSource);
         }
@@ -276,9 +276,9 @@ namespace MED.EDWebCam
         private void cboCaptureSize_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (cboCaptureSize.Text == "")
-                ImageSource.ImageSizeMax = Size.Empty;
+                ImageSource.ImageSizeMin = Size.Empty;
             else
-                ImageSource.ImageSizeMax = Core.Parser.SizeFromPretty(cboCaptureSize.Text);
+                ImageSource.ImageSizeMin = Core.Parser.SizeFromPretty(cboCaptureSize.Text);
         }
     }
 }

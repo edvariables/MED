@@ -611,8 +611,8 @@ namespace MED
         private void FormChild_SizeChanged(object? sender, EventArgs e)
         {
             Rectangle bounds = this.ClientRectangle;
-            bounds.Width -= (int)this.AutoScaleDimensions.Width;
-            bounds.Height -= (int)this.AutoScaleDimensions.Height;
+            bounds.Width -= (int)this.AutoScaleDimensions.Width;// - this.DefaultMargin.Left - this.DefaultMargin.Right;
+            bounds.Height -= (int)this.AutoScaleDimensions.Height;// - this.DefaultMargin.Top - -this.DefaultMargin.Bottom;
             if (statusStrip.Visible)
                 bounds.Height -= statusStrip.Height;
             if (toolsMenu.Visible)

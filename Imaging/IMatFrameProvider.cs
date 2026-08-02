@@ -13,10 +13,13 @@ namespace MED
     {
 
         [Browsable(false)]
-        Size ImageSizeMax { get; set; }
+        Size ImageSizeMax { get; }
+
+        [Browsable(false)]
+        Size ImageSizeMin { get; }
 
         [Browsable(true)]
-        VideoCapture Capture { get;}
+        VideoCapture? Capture { get;}
 
         Mat Frame { get; }
 

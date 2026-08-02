@@ -14,6 +14,9 @@ namespace MED
         [Browsable(false)]
         Size ImageSizeMax { get; }
 
+        [Browsable(false)]
+        Size ImageSizeMin { get; }
+
         Bitmap Image { get; }
         
         System.Drawing.Region? ClipRegion { get; }

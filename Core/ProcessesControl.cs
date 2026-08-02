@@ -67,7 +67,9 @@ namespace MED
             {
                 TreeNode node;
                 foreach (var item in items)
-                    if (ObjectsNodes.ContainsKey(item.GetHashCode()))
+                    if (item == null)
+                        continue;
+                    else if (ObjectsNodes.ContainsKey(item.GetHashCode()))
                     {
                         ObjectsNodes.Remove(item.GetHashCode(), out node);
                         if (node.Parent == rootNode)
@@ -132,7 +134,8 @@ namespace MED
         public void AddItems(object[] items, TreeNodeCollection nodes, bool addChildren = true)
         {
             foreach (var item in items)
-                AddItem(item, nodes, addChildren);
+                if (item != null)
+                    AddItem(item, nodes, addChildren);
         }
 
         public TreeNode AddItem(object item, TreeNodeCollection nodes, bool addChildren = true)

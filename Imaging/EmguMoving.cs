@@ -249,10 +249,10 @@ namespace MED.Imaging
                 if (currentFrame == null)
                     return null;
                 InitializeMotionDetection(currentFrame);
-                if (ImageSizeMax.IsEmpty)
+                if (ImageSizeMin.IsEmpty)
                     return null;
                 else
-                    return new Bitmap(ImageSizeMax.Width, ImageSizeMax.Height);
+                    return EmptyImage;
             }
 
             if (currentFrame == null)
@@ -395,14 +395,26 @@ namespace MED.Imaging
                         CvInvoke.Subtract(frameDiff, _ThresholdMat, frameDiff);
                         CvInvoke.Blur(frameDiff, frameDiff, new Size(8, 8), new Point(-1, -1));
                         //frameDiff.ConvertTo(grayDiff, Emgu.CV.CvEnum.DepthType.Cv8S);
-
-                        GraphicsPath grPath = new GraphicsPath();
-                        foreach (var pts in motionDetectionWithFixedBackgroundSubtraction.GetContours(0.01, frameDiff))
+                        Region region = GetContourRegion(frameDiff);
+                        //GraphicsPath grPath = new GraphicsPath();
+                        //foreach (var pts in motionDetectionWithFixedBackgroundSubtraction.GetContours(0.01, frameDiff))
+                        //{
+                        //    grPath.AddPolygon(pts);
+                        //    grPath.CloseFigure();
+                        //}
+                        if (!ImageSizeMin.IsEmpty && currentFrame.Size != ImageSizeMin)
                         {
-                            grPath.AddPolygon(pts);
-                            grPath.CloseFigure();
+                            Mat resized = new();
+                            CvInvoke.Resize(currentFrame, resized, ImageSizeMin);
+
+                            Matrix transformMatrix = new Matrix();
+                            transformMatrix.Scale((float)resized.Width / currentFrame.Width, (float)resized.Height / currentFrame.Height);
+                            //grPath.Transform(transformMatrix);
+                            region.Transform(transformMatrix);
+                            currentFrame = resized;
                         }
-                        ClipRegion = new Region(grPath);
+                        ClipRegion = region;
+                        //ClipRegion = new Region(grPath);
 
                         return currentFrame.ToBitmap();
 

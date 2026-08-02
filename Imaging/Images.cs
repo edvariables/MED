@@ -133,22 +133,26 @@ namespace MED.Imaging
             Performance.Resume($"Make Image from {Items.Count}", true);
 
             Bitmap image;
-            Size size = ImageSizeMax;
+            Size size = ImageSizeMin;
             if (size.IsEmpty)
             {
-                foreach (var prov in Items)
-                {
-                    if (prov is not IImageProvider)
-                        continue;
-                    image = (prov as IImageProvider).Image;
-                    if (image == null)
-                        continue;
-                    size = image.Size;
-                    if (size.IsEmpty)
-                        continue;
-                    //TODO Chercher le + grand
-                    break;
-                }
+                if (Consumer is IImageConsumer)
+                    size = (Consumer as IImageConsumer).ImageSizeMin;
+
+                if (size.IsEmpty)
+                    foreach (var prov in Items)
+                    {
+                        if (prov is not IImageProvider)
+                            continue;
+                        image = (prov as IImageProvider).Image;
+                        if (image == null)
+                            continue;
+                        size = image.Size;
+                        if (size.IsEmpty)
+                            continue;
+                        //TODO Chercher le + grand
+                        break;
+                    }
                 if (size.IsEmpty)
                     return null;
             }
@@ -190,20 +194,23 @@ namespace MED.Imaging
                             clipRegion.Translate(-imageSrc.Width / 2, -imageSrc.Height / 2);
                             graphics.SetClip(clipRegion, CombineMode.Replace);
 
-                            graphics.DrawImage(imageSrc, -imageSrc.Width / 2, -imageSrc.Height / 2/*, imageSrc.Width, imageSrc.Height*/);
-                            //move image back
-                            //graphics.TranslateTransform(-(float)imageSrc.Width / 2, -(float)imageSrc.Height / 2);
+                            graphics.DrawImageUnscaled(imageSrc, -imageSrc.Width / 2, -imageSrc.Height / 2/*, imageSrc.Width, imageSrc.Height*/);
+                            
                             graphics.ResetTransform();
                         }
                         else
                         {
-                            clipRegion.Translate(location.X, location.Y);
+                            if (!location.IsEmpty)
+                                clipRegion.Translate(location.X, location.Y);
                             graphics.SetClip(clipRegion, CombineMode.Replace);
-                            graphics.DrawImage(imageSrc, location.X, location.Y);
+                            if (location.IsEmpty && imageSrc.Size != size && (prov as IImageProvider).ImageSizeMin.IsEmpty)
+                                graphics.DrawImage(imageSrc, 0, 0, size.Width, size.Height);
+                            else
+                                graphics.DrawImageUnscaled(imageSrc, 0, 0);
+                            //var bounds = clipRegion.GetBounds(graphics);
                         }
                         graphics.ResetClip();
-
-
+                        
                         if (!location.IsEmpty && prov is IImageCollidable)
                             Collider.UpdateColliderRegion(graphics, (IImageCollidable)prov);
 
@@ -228,8 +235,9 @@ namespace MED.Imaging
                             graphics.ResetTransform();
                         }
                         else
-
+                        {
                             graphics.DrawImage(imageSrc, Position.X + location.X, Position.Y + location.Y, imageSrc.Width, imageSrc.Height);
+                        }
                     }
                 }
                 nProvider++;

@@ -271,7 +271,8 @@ namespace MED
                 if (selectedParentProcess is IProcesses)
                     (selectedParentProcess as IProcesses).Items.Remove(process);
             process.Dispose();
-            ShowProperties([selectedParentProcess]);
+            if (selectedParentProcess != null)
+                ShowProperties([selectedParentProcess]);
         }
     }
 }

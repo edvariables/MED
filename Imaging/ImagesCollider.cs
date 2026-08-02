@@ -145,6 +145,8 @@ namespace MED.Imaging
             foreach ((IImageCollidable item1, Region _region1) in colliders.ToArray())
             {
                 var region1 = _region1 == null ? item1.ClipRegionTranslated : _region1;
+                if (region1 == null)
+                    continue;
                 //var location = item1.Location;
                 //region1.Translate(location.X, location.Y);
 
@@ -209,7 +211,7 @@ namespace MED.Imaging
                 //speed.X = Math.Abs(speed.X /** move.X*/) * item.Density;
                 //location.X += speedValue * vector.X;
                 //location.Y += speedValue * vector.Y;
-                //location.X += intersectBounds.Width / 2;
+                location.X += intersectBounds.Width / 2;
                 changed = true;
             }
             else if (move.X < 0)
@@ -217,7 +219,7 @@ namespace MED.Imaging
                 //speed.X = -1 * Math.Abs(speed.X/* * move.X*/) * item.Density;
                 //location.X += speedValue * vector.X;
                 //location.Y += speedValue * vector.Y;
-                //location.X -= intersectBounds.Width / 2;
+                location.X -= intersectBounds.Width / 2;
                 changed = true;
             }
             if (move.Y > 0)
@@ -225,7 +227,7 @@ namespace MED.Imaging
                 //speed.Y = Math.Abs(speed.Y/** move.Y*/) * item.Density;
                 //location.X += speedValue * vector.X;
                 //location.Y += speedValue * vector.Y;
-                //location.Y += intersectBounds.Height / 2;
+                location.Y += intersectBounds.Height / 2;
                 changed = true;
             }
             else if (move.Y < 0)
@@ -233,7 +235,7 @@ namespace MED.Imaging
                 //speed.Y = -1 * Math.Abs(speed.Y /** move.Y*/) * item.Density;
                 //location.X += speedValue * vector.X;
                 //location.Y += speedValue * vector.Y;
-                //location.Y -= intersectBounds.Height / 2;
+                location.Y -= intersectBounds.Height / 2;
                 changed = true;
             }
             if (changed)

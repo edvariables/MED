@@ -28,7 +28,7 @@ namespace MED.Imaging
         #region Properties
 
         [Browsable(true)]
-        public override Size ImageSizeMax { get; set; }
+        public override Size ImageSizeMin { get; set; }
 
 
         [Browsable(true)]
@@ -167,7 +167,15 @@ namespace MED.Imaging
             return null;
         }
 
-        public Bitmap FrameToImage(IMatFrameProvider sender, Mat currentFrame = null) => currentFrame?.ToBitmap();
+        public Bitmap FrameToImage(IMatFrameProvider sender, Mat currentFrame = null)
+        {
+            if (ImageSizeMin.IsEmpty || currentFrame ==null || currentFrame.Size == ImageSizeMin)
+                return currentFrame?.ToBitmap();
+            
+            Mat resized = new();
+            CvInvoke.Resize(currentFrame, resized, ImageSizeMin);
+            return resized.ToBitmap();
+        }
 
         #endregion
 
@@ -176,7 +184,7 @@ namespace MED.Imaging
          * 
          */
         [Browsable(true)]
-        public VideoCapture Capture { get; protected set; }
+        public VideoCapture? Capture { get; protected set; }
 
         public bool Initialize_Capture()
         {
@@ -185,12 +193,12 @@ namespace MED.Imaging
             Capture = new(CameraIndex);
             Capture.ImageGrabbed += Capture_ImageGrabbed;
 
-            if (!ImageSizeMax.IsEmpty)
+            if (!ImageSizeMin.IsEmpty)
             {
-                Performance.Step($"ImageSizeMax From {Capture.Get(Emgu.CV.CvEnum.CapProp.FrameWidth)} x {Capture.Get(Emgu.CV.CvEnum.CapProp.FrameHeight)}");
-                Capture.Set(Emgu.CV.CvEnum.CapProp.FrameWidth, ImageSizeMax.Width);
-                Capture.Set(Emgu.CV.CvEnum.CapProp.FrameHeight, ImageSizeMax.Height);
-                Performance.Step($"To {Capture.Get(Emgu.CV.CvEnum.CapProp.FrameWidth)} x {Capture.Get(Emgu.CV.CvEnum.CapProp.FrameHeight)}");
+                Performance?.Step($"ImageSizeMin From {Capture.Get(Emgu.CV.CvEnum.CapProp.FrameWidth)} x {Capture.Get(Emgu.CV.CvEnum.CapProp.FrameHeight)}");
+                Capture.Set(Emgu.CV.CvEnum.CapProp.FrameWidth, ImageSizeMin.Width);
+                Capture.Set(Emgu.CV.CvEnum.CapProp.FrameHeight, ImageSizeMin.Height);
+                Performance?.Step($"To {Capture.Get(Emgu.CV.CvEnum.CapProp.FrameWidth)} x {Capture.Get(Emgu.CV.CvEnum.CapProp.FrameHeight)}");
             }
 
             return true;
@@ -221,9 +229,9 @@ namespace MED.Imaging
 
             base.Start();
 
-            Capture.Start();
+            Capture?.Start();
 
-            Performance.Step($"Connected {Capture.Get(Emgu.CV.CvEnum.CapProp.Fps)}");
+            Performance?.Step($"Connected fps={Capture?.Get(Emgu.CV.CvEnum.CapProp.Fps)}");
 
             ProcessState = System.Threading.ThreadState.Running;
         }

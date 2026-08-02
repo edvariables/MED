@@ -59,7 +59,14 @@ namespace MED
             }
             else if (_MdiParent != null && MdiParent == null)
             {
-                MdiParent = _MdiParent;
+                try
+                {
+                    MdiParent = _MdiParent;
+                }
+                catch (Exception ex)
+                {
+                    Performance.Error("ProcessForm_WindowStateChanged", ex);
+                }
                 if (WindowState == FormWindowState.Normal)
                 {
                     Dock = DockStyle.Fill;
@@ -107,6 +114,7 @@ namespace MED
 
             Size = (Size)ProcessSettings.GetValue("Size", Size);
             Location = (Point)ProcessSettings.GetValue("Location", Location);
+            StartFullScreen = (bool)ProcessSettings.GetValue("StartFullScreen", StartFullScreen);
 
             ProcessIcon = Project.ProcessIcon;
         }
@@ -121,6 +129,7 @@ namespace MED
             node["ProcessClass"] = this.GetType().FullName;
             node["Name"] = Name;
             node["IsAsynchrone"] = IsAsynchrone;
+            node["StartFullScreen"] = StartFullScreen;
             if (Visible)
             {
                 node["Size"] = Parser.ObjectToString(Size);
@@ -195,17 +204,42 @@ namespace MED
          * 
          * 
          */
-        public virtual void Start() => Project.Start();
+        public virtual void Start()
+        {
+            if (StartFullScreen)
+            {
+                StartFullScreen_WindowState = this.WindowState;
+                this.WindowState = FormWindowState.Maximized;
+                StartFullScreen_BorderStyle = this.FormBorderStyle;
+                this.FormBorderStyle = FormBorderStyle.None;
+            }
+            Project.Start();
+        }
 
         /**
          * 
          * 
          */
-        public virtual void Stop() => Project.Stop();
+        public virtual void Stop()
+        {
+            Project.Stop();
+            if (StartFullScreen)
+            {
+                this.FormBorderStyle = StartFullScreen_BorderStyle;
+                this.WindowState = StartFullScreen_WindowState;
+            }
+        }
 
         public virtual void Resume() => Project.Resume();
 
         public virtual void Pause() => Project.Pause();
+
+
+        [Browsable(true)]
+        public bool StartFullScreen { get; set; }
+
+        private FormWindowState StartFullScreen_WindowState;
+        private FormBorderStyle StartFullScreen_BorderStyle;
 
         #endregion
 

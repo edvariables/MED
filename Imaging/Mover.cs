@@ -119,6 +119,7 @@ namespace MED.Imaging
         {
             Location = PointF.Empty;
             Rotation = 0F;
+            Image = null;
 
             base.Start();
         }

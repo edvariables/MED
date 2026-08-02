@@ -1,9 +1,14 @@
-﻿using MED.Core;
+﻿using Emgu.CV;
+using Emgu.CV.CvEnum;
+using Emgu.CV.Util;
+using MED.Core;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
@@ -110,9 +115,9 @@ namespace MED.Imaging
         {
 
             base.Start();
-            Performance.Log($"isAsynchrone = {IsAsynchrone}");
-            Performance.Log($"ResetOnImageChanged = {ResetOnImageChanged}");
-            Performance.Log($"ImageIsProvided = {ImageIsProvided}");
+            Performance?.Log($"isAsynchrone = {IsAsynchrone}");
+            Performance?.Log($"ResetOnImageChanged = {ResetOnImageChanged}");
+            Performance?.Log($"ImageIsProvided = {ImageIsProvided}");
 
         }
 
@@ -124,6 +129,9 @@ namespace MED.Imaging
 
         [Browsable(false)]
         public virtual Size ImageSizeMax { get; set; }
+
+        [Browsable(true)]
+        public virtual Size ImageSizeMin { get; set; }
 
         [Browsable(false)]
         public virtual System.Drawing.Region? ClipRegion { get; set; } = null;
@@ -253,23 +261,6 @@ namespace MED.Imaging
          * 
          * */
         #region Settings
-        //public override void LoadSettings(bool loadChildren = true)
-        //{
-        //    base.LoadSettings(loadChildren);
-
-        //    var value = Core.Settings.GetValue("ImageSizeMax", Name, ImageSizeMax);
-        //    if (value is Size)
-        //        ImageSizeMax = (Size)value;
-        //    else
-        //        ImageSizeMax = Size.Empty;
-        //}
-        //public override void SaveSettings(bool saveChildren = false)
-        //{
-
-        //    Core.Settings.SetValue("ImageSizeMax", Name, ImageSizeMax.IsEmpty ? "" : ImageSizeMax);
-
-        //    base.SaveSettings(saveChildren);
-        //}
 
         public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
         {
@@ -282,12 +273,18 @@ namespace MED.Imaging
                 ImageSizeMax = (Size)value;
             else
                 ImageSizeMax = Size.Empty;
+            value = ProcessSettings.GetValue("ImageSizeMin", ImageSizeMin);
+            if (value is Size)
+                ImageSizeMin = (Size)value;
+            else
+                ImageSizeMin = Size.Empty;
         }
         public override JsonObject SaveProcess(JsonObject node = null)
         {
             node = base.SaveProcess(node);
 
             node["ImageSizeMax"] = Parser.ObjectToString(ImageSizeMax);
+            node["ImageSizeMin"] = Parser.ObjectToString(ImageSizeMin);
             node["FPSMax"] = FPSMax;
 
             var consumers = new JsonObject();
@@ -315,6 +312,100 @@ namespace MED.Imaging
 
         #endregion
 
+        #region Contours Region
+
+        public Region GetContourRegion(Bitmap image)
+        {
+            //Mat mat = Emgu.CV.BitmapExtension.ToMat(image);
+            //Mat grayCurrent = new();
+            //CvInvoke.CvtColor(mat, grayCurrent, Emgu.CV.CvEnum.ColorConversion.Bgra2Gray);
+            Mat grayCurrent = ConvertRgbA2AlphaGray(image, Color.Transparent);
+            var clipRegion = GetContourRegion(grayCurrent);
+            if (clipRegion == null)
+            {
+                Mat white = Mat.Ones(grayCurrent.Rows, grayCurrent.Cols, grayCurrent.Depth, grayCurrent.NumberOfChannels);
+                Mat dst = white - grayCurrent;
+                clipRegion = GetContourRegion(dst);
+                if (clipRegion != null)
+                {
+                    Region regionNot = new(new RectangleF(0, 0, image.Width, image.Height));
+                    regionNot.Exclude(clipRegion);
+                    Graphics gr = Graphics.FromImage(image);
+                    var bounds = regionNot.GetBounds(gr);
+                    gr.Dispose();
+
+                    return regionNot;
+                }
+            }
+            return clipRegion;
+        }
+
+        public Region GetContourRegion(Mat grayCurrent)
+        {
+            try
+            {
+                using (GraphicsPath grPath = new GraphicsPath())
+                using (VectorOfVectorOfPoint contours = new VectorOfVectorOfPoint())
+                using (Mat hierarchy = new Mat())
+                {
+                    CvInvoke.FindContours(grayCurrent, contours, hierarchy, RetrType.List, ChainApproxMethod.ChainApproxSimple);
+
+                    for (int i = 0; i < contours.Size; i++)
+                    {
+                        var contour = contours[i].ToArray();
+                        if (contour.Length < 3)
+                            continue;
+                        grPath.AddPolygon(contour);
+                    }
+
+                    grPath.CloseFigure();
+                    var bounds = grPath.GetBounds();
+                    //Region region;
+                    if (bounds.Width >= grayCurrent.Width - 1 && bounds.Height >= grayCurrent.Height - 1)
+                    {
+                        if (grPath.PathPoints.Length <= 8)
+                            //region = new Region(grPath);
+                            //if (region.GetRegionData().Data.Length <= 4)
+                            return null;
+                    }
+                    //else
+                    //    region = new Region(grPath);
+                    return new Region(grPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Performance?.Error("GetContourRegion", ex);
+                return null;
+            }
+        }
+
+        public Mat ConvertRgbA2AlphaGray(Bitmap image) => ConvertRgbA2AlphaGray(image, Color.Transparent);
+
+        public Mat ConvertRgbA2AlphaGray(Bitmap image, Color transparentColor)
+        {
+            Mat matSrc = Emgu.CV.BitmapExtension.ToMat(image);
+            byte[,,] bytesSrc = (byte[,,])matSrc.GetData();
+
+            Mat grayCurrent = new(image.Size, DepthType.Cv8U, 1);
+
+            CvInvoke.CvtColor(matSrc, grayCurrent, Emgu.CV.CvEnum.ColorConversion.Bgra2Gray);
+            byte[] bytes = new byte[image.Size.Width * image.Size.Height];
+            int rows = image.Height;
+            int cols = image.Width;
+            int pixel = 0;
+            for (int y = 0; y < rows; ++y)
+                for (int x = 0; x < cols; ++x)
+                {
+                    bytes[pixel] = bytesSrc[y, x, 3];
+
+                    ++pixel;
+                }
+            Marshal.Copy(bytes, 0, grayCurrent.DataPointer, bytes.Length);
+
+            return grayCurrent;
+        }
+#endregion
 
         Bitmap _EmptyImage;
         [Browsable(false)]
@@ -327,7 +418,7 @@ namespace MED.Imaging
 
                 _EmptyImage = ImageProvider?.Image;
 
-                Size size = ImageSizeMax;
+                Size size = ImageSizeMin;
                 if (size.IsEmpty)
                 {
                     if (_EmptyImage != null)
@@ -354,7 +445,7 @@ namespace MED.Imaging
 
                 _WaitingImage = ImageProvider?.Image;
 
-                Size size = ImageSizeMax;
+                Size size = ImageSizeMin;
                 if (size.IsEmpty)
                 {
                     if (_WaitingImage != null)
