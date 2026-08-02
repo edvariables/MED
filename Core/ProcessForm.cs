@@ -61,7 +61,15 @@ namespace MED
             {
                 MdiParent = _MdiParent;
                 if (WindowState == FormWindowState.Normal)
+                {
                     Dock = DockStyle.Fill;
+
+                    Size size = this.Size;
+                    Point location = this.Location;
+                    this.Dock = DockStyle.None;
+                    this.Location = location;
+                    this.Size = size;
+                }
             }
         }
 

@@ -133,13 +133,34 @@ namespace MED
         private static Dictionary<IProcess, List<Delegate>> _IsInvokingPropertyChanged = new();
         public static bool IsInvokingPropertyChanged(IProcess process, Delegate delegateMethod)
         {
-
             lock (_IsInvokingPropertyChanged)
             {
                 return _IsInvokingPropertyChanged.ContainsKey(process)
                 && _IsInvokingPropertyChanged[process].Contains(delegateMethod);
             }
         }
+        public static void InvokePropertyChangedReset(IProcess? process=null)
+        {
+            lock (_IsInvokingPropertyChanged)
+            {
+
+                if (process == null)
+                    _IsInvokingPropertyChanged.Clear();
+                else if (_IsInvokingPropertyChanged.ContainsKey(process))
+                    _IsInvokingPropertyChanged.Remove(process);
+                
+                //Clean disposed
+                foreach(KeyValuePair<IProcess, List<Delegate>> item in _IsInvokingPropertyChanged.ToArray())
+                    if(!item.Key.IsRunning
+                        || item.Key.IsDisposed
+                        || item.Value == null
+                        || item.Value.Count==0)
+                    {
+                        _IsInvokingPropertyChanged.Remove(item.Key);
+                    }
+            }
+        }
+
         public static void InvokePropertyChanged(IProcess process, IProvider sender, Delegate delegateMethod, EventArgs e)
         {
             if ((process as IProvider).InvokeHandler == null || (process as IProvider).InvokeHandler.Disposing || (process as IProvider).InvokeHandler.IsDisposed)
@@ -170,6 +191,17 @@ namespace MED
                         bool invoke = (process as IConsumer).IsAsynchrone && !consumer.IsAsynchrone;
                         string invoke_str = invoke ? "Invoke" : "Call";
 
+                        if ((process as IProvider).InvokeHandler.Disposing || (process as IProvider).InvokeHandler.IsDisposed
+                            || (consumerDelegate.Target is Control && (consumerDelegate.Target as Control).IsDisposed)
+                            || (consumerDelegate.Target is IProcess && (consumerDelegate.Target as IProcess).IsDisposed)
+                            )
+                        {
+                            process.Performance.Alert($"IsDisposed ({consumer.GetType().Name}.{consumerDelegate.Method.Name})"
+                                + $"[InvokeHandler : {(process as IProvider).InvokeHandler.Disposing || (process as IProvider).InvokeHandler.IsDisposed}"
+                                + $", Target is Control : {(consumerDelegate.Target is Control && (consumerDelegate.Target as Control).IsDisposed)}"
+                                + $", Target is IProcess : {(consumerDelegate.Target is IProcess && (consumerDelegate.Target as IProcess).IsDisposed)}]");
+                            continue;
+                        }
                         if (invoke)
                         {
                             process.Performance.Debug($"-> PInvoke({consumer.GetType().Name}.{consumerDelegate.Method.Name}, {process})");

@@ -28,6 +28,13 @@ namespace MED
         Dictionary<string, object> ObjectsProperties { get; }
         #endregion
 
+        #region IDisposable
+        [Browsable(false)]
+        bool Disposing { get; }
+        [Browsable(false)]
+        bool IsDisposed { get; }
+        #endregion
+
         #region Process
         bool IsRunning { get; }
 

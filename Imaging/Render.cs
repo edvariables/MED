@@ -75,10 +75,17 @@ namespace MED.Imaging
         {
             if (this.Disposing || this.IsDisposed)
                 return;
-            base.ImageChanged(sender, e);
+            try
+            {
+                base.ImageChanged(sender, e);
 
-            if (RenderImageControl != null)
-                Render.RefreshRender(this, RenderImageControl, Performance, e);
+                if (RenderImageControl != null)
+                    Render.RefreshRender(this, RenderImageControl, Performance, e);
+            }
+            catch(Exception ex)
+            {
+                Performance.Error("ImageChanged", ex);
+            }
         }
 
         public override Bitmap Image

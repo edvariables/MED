@@ -52,6 +52,33 @@ namespace MED.Imaging
         private bool MotionDetectionInitialized = false;
 
         #region Image
+
+        System.Drawing.Region? _ClipRegion { get; set; } = null;
+        [Browsable(false)]
+        public override System.Drawing.Region? ClipRegion
+        {
+            get => _ClipRegion;
+            set
+            {
+                _ClipRegion = value;
+                _ClipRegionTranslated = null;
+            }
+        }
+        Region? _ClipRegionTranslated;
+        /**
+         * 
+         * Returns ClipRegion.Clone().Translate(Location.X, Location.Y);
+        */
+        public virtual Region? ClipRegionTranslated
+        {
+            get
+            {
+                if (_ClipRegionTranslated != null)
+                    return _ClipRegionTranslated;
+                return _ClipRegionTranslated = ImagesCollider.ClipRegionTranslated(ClipRegion, Location);
+            }
+        }
+
         //public override void ImageChanged(IImageProvider sender, EventArgs e)
         //{
         //    ImageProvider = sender;
@@ -141,6 +168,7 @@ namespace MED.Imaging
         public double MhiMinTimeDelta { get; set; } = 0.05;
         public double MhiMaxTimeDelta { get; set; } = 0.5;
 
+        public bool FixedBackground { get; set; }
         public bool FixedBackgroundNow { get; set; }
 
         private Mat _ThresholdMat = null;
@@ -155,28 +183,51 @@ namespace MED.Imaging
         public int DetectionLimit { get; set; } = 1;
 
         public virtual float SpeedMax { get; set; }
-        public virtual float Density { get; set; } = 1F;
-        public virtual PointF Direction { get; set; }
+        public virtual float Mass { get; set; } = 1F;
         public virtual float RotationSpeed { get; set; }
-        public virtual float Speed { get; set; }
-        
+        public virtual float RotationSpeedMax { get; set; }
+
+        float _Speed = 0F;
+        public virtual float Speed
+        {
+            get => _Speed;
+            set
+            {
+                _Speed = value;
+                Direction = _Direction;//Reset Velocity
+            }
+        }
+        PointF _Direction;
+        public virtual PointF Direction
+        {
+            get => _Direction;
+            set
+            {
+                _Direction = value;
+                Velocity = new(value.X * Speed, value.Y * Speed);
+            }
+        }
+        public virtual PointF Velocity { get; set; }
+
 
         public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
         {
             base.LoadSettings(settings, fileName);
 
+            FixedBackground = (bool)ProcessSettings.GetValue("FixedBackground", FixedBackground);
             DetectionLimit = (int)ProcessSettings.GetValue("DetectionLimit", DetectionLimit);
             CvInvokeTransformers a;
             if (Enum.TryParse<CvInvokeTransformers>(ProcessSettings.GetValue("Transformer", Transformer).ToString(), out a))
                 Transformer = a;
-            Density = (float)settings.GetValue("Density", Density);
+            Mass = (float)settings.GetValue("Mass", Mass);
         }
         public override JsonObject SaveProcess(JsonObject node = null)
         {
             node = base.SaveProcess(node);
             node.Add("Transformer", Transformer.ToString());
             node.Add("DetectionLimit", DetectionLimit);
-            node.Add("Density", Density);
+            node.Add("FixedBackground", FixedBackground);
+            node.Add("Mass", Mass);
             return node;
         }
         //public override void SaveSettings(bool saveChildren = true)
@@ -335,7 +386,7 @@ namespace MED.Imaging
 
                         CvInvoke.AbsDiff(PreviousFrame, grayCurrent, frameDiff);
 
-                        if (!FixedBackgroundNow)
+                        if (!FixedBackground)
                         {
                             PreviousFrame.Dispose();
                             PreviousFrame = grayCurrent;
@@ -680,21 +731,6 @@ namespace MED.Imaging
             motionDetectionWithFixedBackgroundSubtraction?.Dispose();
             motionDetectionWithFixedBackgroundSubtraction = new();
 
-        }
-
-        Region? _ClipRegionTranslated;
-        /**
-         * 
-         * Returns ClipRegion.Clone().Translate(Location.X, Location.Y);
-        */
-        public virtual Region? ClipRegionTranslated
-        {
-            get
-            {
-                if (_ClipRegionTranslated != null)
-                    return _ClipRegionTranslated;
-                return _ClipRegionTranslated = ImagesCollider.ClipRegionTranslated(ClipRegion, Location);
-            }
         }
     }
 }

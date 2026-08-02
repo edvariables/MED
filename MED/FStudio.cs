@@ -48,8 +48,7 @@ namespace MED
 
             LoadChilds();
 
-            //MotionDetectionForm f = new();
-            //f.Show();
+            LoadLastProcess();
         }
 
         private void FStudio_FormClosing(object sender, FormClosingEventArgs e)
@@ -99,6 +98,12 @@ namespace MED
 
             Core.Settings.SetValue("FProperties.Width", settingsSection, FProperties.Current.Width);
 
+            if (ActiveProcess != null && !String.IsNullOrEmpty(ActiveProcess.ProcessSettings?.FileName))
+                Core.Settings.SetValue("ActiveProcess", settingsSection, ActiveProcess.ProcessSettings.FileName);
+            else
+                Core.Settings.SetValue("ActiveProcess", settingsSection, "");
+
+
             FLogger.Current.SaveSettings();
 
             Core.Settings.Save();
@@ -137,7 +142,19 @@ namespace MED
             FProperties.Current.Show();
             FLogger.Current.Show();
 
+            FProperties.Current.SizeChanged += FormChild_SizeChanged;
+            FLogger.Current.SizeChanged += FormChild_SizeChanged;
+
             FProperties.Current.ShowProperties((object[])[this.Project]);
+        }
+
+        public void LoadLastProcess()
+        {
+            string settingsSection = this.SettingsSection;
+
+            string processFile = (string)Core.Settings.GetValue("ActiveProcess", settingsSection, "");
+            if (!String.IsNullOrEmpty(processFile) && File.Exists(processFile))
+                GetNewProcessForm(processFile);
         }
 
         /*
@@ -152,10 +169,11 @@ namespace MED
         }
 
 
+
+        #region ProcessForm
         private void ShowNewForm(object sender, EventArgs e)
         {
             GetNewProcessForm();
-
         }
         /**
          * 
@@ -165,7 +183,6 @@ namespace MED
             if (processForm == null)
                 processForm = new("Projet " + childFormNumber++);
             processForm.MdiParent = this;
-            processForm.Dock = DockStyle.Fill;
             processForm.OnProcessStateChanged += ProcessStateChanged;
             processForm.Activated += ProcessForm_Activated;
 
@@ -194,7 +211,7 @@ namespace MED
                 processForm.LoadSettings(null, fileName);
                 processForm.Text = processForm.Name = processForm.Project.Name;
             }
-            else if(processForm.Processes.Count==0)
+            else if (processForm.Processes.Count == 0)
             {
                 var render = new Render(
                     "Render"
@@ -215,7 +232,18 @@ namespace MED
 
             processForm.Icon = Core.Settings.GetIcon(processForm.ProcessIcon);
 
+            processForm.Dock = DockStyle.Fill;
+
             processForm.Show();
+
+            Size size = processForm.Size;
+            Point location = processForm.Location;
+            processForm.SuspendLayout();
+            processForm.Dock = DockStyle.None;
+            processForm.Location = location;
+            processForm.Size = size;
+            processForm.ResumeLayout();
+
 
             if (processForm.Processes.Count > 0 && processForm.Processes.First() is ImageProcess)
             {
@@ -233,8 +261,6 @@ namespace MED
 
             return processForm;
         }
-
-        #region ProcessForm
         private void ProcessForm_Activated(object sender, EventArgs e)
         {
             var activeProcess = ActiveProcessForm;
@@ -246,10 +272,16 @@ namespace MED
         {
             if (this.Disposing || this.IsDisposed)
                 return;
+            try
+            {
+                FLogger.Current.RefreshProgress((ImageProcess)sender);
 
-            FLogger.Current.RefreshProgress((ImageProcess)sender);
-
-            FLogger.Current.ProgressMessage = $"{(sender as Process).Name} [{(sender as Process).Performance.Counter}]";
+                FLogger.Current.ProgressMessage = $"{(sender as Process).Name} [{(sender as Process).Performance.Counter}]";
+            }
+            catch (Exception ex)
+            {
+                Performance.Error("ProcessForm_ImageChanged", ex);
+            }
         }
 
         #endregion
@@ -305,7 +337,9 @@ namespace MED
                 string fileName = saveFileDialog.FileName;
                 if (ActiveProcess != null)
                 {
-                    ActiveProcess?.SaveSettings(null, fileName);
+                    ActiveProcess.SaveSettings(null, fileName);
+
+                    ActiveProcess.ProcessSettings.FileName = fileName;
                 }
             }
         }
@@ -364,10 +398,10 @@ namespace MED
                     Processors.Add(proc);
 
                     ProcessForm form = (ProcessForm)proc;
-                    
+
                     return GetNewProcessForm("", form);
 
-                    
+
                     //form.MdiParent = this;
                     //form.Dock = DockStyle.Fill;
                     //form.Show();
@@ -574,5 +608,56 @@ namespace MED
             }
         }
 
+        private void FormChild_SizeChanged(object? sender, EventArgs e)
+        {
+            Rectangle bounds = this.ClientRectangle;
+            bounds.Width -= (int)this.AutoScaleDimensions.Width;
+            bounds.Height -= (int)this.AutoScaleDimensions.Height;
+            if (statusStrip.Visible)
+                bounds.Height -= statusStrip.Height;
+            if (toolsMenu.Visible)
+            {
+                bounds.Height -= toolsMenu.Height;
+            }
+            if (menuStrip.Visible)
+            {
+                bounds.Height -= menuStrip.Height;
+            }
+            foreach (Form form in MdiChildren)
+            {
+                if (form is ProcessForm)
+                    continue;
+                if (!form.Visible)
+                    continue;//TODO
+                if (form.Dock == DockStyle.Left)
+                {
+                    bounds.X += form.Width;
+                    bounds.Width -= form.Width;
+                }
+                else if (form.Dock == DockStyle.Top)
+                {
+                    bounds.Y += form.Height;
+                    bounds.Height -= form.Height;
+                }
+                else if (form.Dock == DockStyle.Right)
+                {
+                    bounds.Width -= form.Width;
+                }
+                else if (form.Dock == DockStyle.Bottom)
+                {
+                    bounds.Height -= form.Height;
+                }
+            }
+            foreach (Form processForm in MdiChildren)
+            {
+                if (processForm is not ProcessForm)
+                    continue;
+                if (processForm.WindowState != FormWindowState.Normal)
+                    continue;//TODO
+
+                processForm.Location = bounds.Location;
+                processForm.Size = bounds.Size;
+            }
+        }
     }
 }

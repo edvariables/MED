@@ -40,10 +40,18 @@ namespace MED.Imaging
 
 
         [ReadOnly(true)]
-        public bool IsAsynchrone { get => ImageProcesses.IsAsynchrone; set => ImageProcesses.IsAsynchrone = value; }
+        public override bool IsAsynchrone
+        {
+            get { return ImageProcesses == null ? base.IsAsynchrone : ImageProcesses.IsAsynchrone; }
+            set { if (ImageProcesses == null) base.IsAsynchrone = value; else ImageProcesses.IsAsynchrone = value; }
+        }
 
         [Browsable(true)]
-        public ProcessSettings ProcessSettings { get => ImageProcesses.ProcessSettings; set => ImageProcesses.ProcessSettings = value; }
+        public override ProcessSettings ProcessSettings
+        {
+            get { return ImageProcesses == null ? base.ProcessSettings : ImageProcesses.ProcessSettings; }
+            set { if (ImageProcesses == null) base.ProcessSettings = value; else ImageProcesses.ProcessSettings = value; }
+        }
 
         public override void LoadSettings(ProcessSettings processSettings = null, string fileName = "")
         {
@@ -194,6 +202,17 @@ namespace MED.Imaging
                             graphics.DrawImage(imageSrc, location.X, location.Y);
                         }
                         graphics.ResetClip();
+
+
+                        if (!location.IsEmpty && prov is IImageCollidable)
+                            Collider.UpdateColliderRegion(graphics, (IImageCollidable)prov);
+
+                        if (true && prov is IImageMove)
+                        {
+                            var font = new Font(FontFamily.GenericMonospace, 8F);
+                            var brush = new SolidBrush(SystemColors.WindowText);
+                            graphics.DrawString((prov as IImageMove).Speed.ToString("#.##"), font, brush, location.X, location.Y + imageSrc.Height);
+                        }
                     }
                     else
                     {
@@ -291,7 +310,7 @@ namespace MED.Imaging
                         }
                     }
 
-                    if ((prov as IImageCollidable).Density == 0F)
+                    if ((prov as IImageCollidable).Mass == 0F)
                         continue;
                     itemsRegions.Add((IImageCollidable)prov, clipRegion);
                 }
@@ -323,12 +342,12 @@ namespace MED.Imaging
                             {
                                 if (Math.Abs(itemBoundsCenter.X - intersectBounds.X) > 1)
                                 {
-                                    speed.X *= -1 * item1.Density;
+                                    speed.X *= -1 * item1.Mass;
                                     changed = true;
                                 }
                                 if (Math.Abs(itemBoundsCenter.Y - intersectBounds.Y) > 1)
                                 {
-                                    speed.Y *= -1 * item1.Density;
+                                    speed.Y *= -1 * item1.Mass;
                                     changed = true;
                                 }
                                 if (changed)
@@ -343,12 +362,12 @@ namespace MED.Imaging
                                 changed = false;
                                 if (Math.Abs(itemBoundsCenter.X - intersectBounds.X) > 1)
                                 {
-                                    speed.X *= -1 * item2.Density;
+                                    speed.X *= -1 * item2.Mass;
                                     changed = true;
                                 }
                                 if (Math.Abs(itemBoundsCenter.Y - intersectBounds.Y) > 1)
                                 {
-                                    speed.Y *= -1 * item2.Density;
+                                    speed.Y *= -1 * item2.Mass;
                                     changed = true;
                                 }
                                 if (changed)

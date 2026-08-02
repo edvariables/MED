@@ -8,6 +8,6 @@ namespace MED.Imaging
 {
     public interface IImageCollidable : IImageMove
     {
-        float Density { get; }
+        float Mass { get; }
     }
 }

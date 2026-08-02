@@ -280,16 +280,16 @@ namespace MED
         public virtual string ProcessIcon { get; set; }
 
         [Browsable(false)]
-        public Control? InvokeHandler { get; set; }
+        public virtual Control? InvokeHandler { get; set; }
 
         [Browsable(false)]
-        public IConsumer? Consumer { get; set; }
+        public virtual IConsumer? Consumer { get; set; }
 
         [Browsable(true)]
         public virtual Performance? Performance { get; set; }
 
         [Browsable(true)]
-        public ProcessSettings? ProcessSettings { get; set; }
+        public virtual ProcessSettings? ProcessSettings { get; set; }
 
         public virtual void LoadSettings(ProcessSettings? settings = null, string fileName = "")
         {
@@ -320,7 +320,9 @@ namespace MED
                 SaveProcess(settings.Root.AsObject());
 
                 if (fileName != "" || settings.FileName != "")
+                {
                     settings.Save(fileName);
+                }
             }
         }
 
@@ -361,6 +363,10 @@ namespace MED
             }
         }
 
+        #region Process
+
+        public IProcess.ProcessStateChangedDelegate? OnProcessStateChanged;
+
         public virtual void Stop()
         {
 
@@ -400,6 +406,8 @@ namespace MED
 
             ProcessState = ThreadState.Unstarted;
 
+            ProcessStatic.InvokePropertyChangedReset(this);
+
             Performance.Start($"Start {this.ToString()}", true);
 
             //Override next :
@@ -429,9 +437,6 @@ namespace MED
             }
         }
 
-        public IProcess.ProcessStateChangedDelegate? OnProcessStateChanged;
-
-
 
         public virtual void Pause()
         {
@@ -450,7 +455,7 @@ namespace MED
                 Performance.Resume("Process.Resume");
             }
         }
-
+        #endregion
 
     }
 }

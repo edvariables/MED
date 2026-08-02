@@ -56,7 +56,7 @@ namespace MED
         {
             if (Logger == null)
                 return;
-            if (Logger.BufferLength > 0)
+            if (Logger.BufferLength > 0 && !rtbLog.IsDisposed)
             {
                 rtbLog.SuspendLayout();
 

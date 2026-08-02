@@ -18,6 +18,8 @@ namespace MED.Imaging
         float SpeedMax { get; }
         float Speed { get; set; }
         PointF Direction { get; set; }
-        float RotationSpeed { get; }
+        PointF Velocity { get; set; }
+        float RotationSpeed { get; set; }
+        float RotationSpeedMax { get; set; }
     }
 }
