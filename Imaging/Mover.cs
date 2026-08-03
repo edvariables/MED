@@ -87,6 +87,7 @@ namespace MED.Imaging
                 if (RotationSpeed != 0F)
                     Rotation = (float)((Rotation + RotationSpeed * duration) % 360F);
 
+                _ClipRegionTranslated = null;
                 return base.Location = location;
             }
             set
@@ -105,10 +106,9 @@ namespace MED.Imaging
         {
             get
             {
-                //That does not work...
-                //if (_ClipRegionTranslated != null)
-                //    return _ClipRegionTranslated;
-                return _ClipRegionTranslated = ImagesCollider.ClipRegionTranslated(ClipRegion, Location);
+                 if (_ClipRegionTranslated != null)
+                    return _ClipRegionTranslated;
+                return _ClipRegionTranslated = ImagesCollider.ClipRegionTranslated(ClipRegion, Location, Rotation, Image.Size);
             }
         }
 

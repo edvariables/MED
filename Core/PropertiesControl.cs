@@ -265,6 +265,8 @@ namespace MED
             if (MessageBox.Show($"Êtes vous sûr de vouloir supprimer ce process {process.ToString()} ?", "Supprimer un process", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
                 return;
 
+            TreeNode? selectedParentNode = processesControl1.SelectedNode.Parent == null || processesControl1.SelectedNode.Parent.Tag == null ? null
+                                            : processesControl1.SelectedNode.Parent;
             IProcess? selectedParentProcess = processesControl1.SelectedNode.Parent == null || processesControl1.SelectedNode.Parent.Tag == null ? null
                                             : (IProcess)processesControl1.SelectedNode.Parent.Tag;
             if (selectedParentProcess != null)
@@ -272,7 +274,7 @@ namespace MED
                     (selectedParentProcess as IProcesses).Items.Remove(process);
             process.Dispose();
             if (selectedParentProcess != null)
-                ShowProperties([selectedParentProcess]);
+                ShowProperties([selectedParentProcess], selectedParentNode.Parent);
         }
     }
 }

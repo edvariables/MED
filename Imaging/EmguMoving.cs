@@ -75,7 +75,7 @@ namespace MED.Imaging
             {
                 if (_ClipRegionTranslated != null)
                     return _ClipRegionTranslated;
-                return _ClipRegionTranslated = ImagesCollider.ClipRegionTranslated(ClipRegion, Location);
+                return _ClipRegionTranslated = ImagesCollider.ClipRegionTranslated(ClipRegion, Location, 0F, Size.Empty);
             }
         }
 

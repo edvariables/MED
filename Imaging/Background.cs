@@ -125,8 +125,8 @@ namespace MED.Imaging
                 {
                     image = (Bitmap)Bitmap.FromFile(ImageFile);
                     if (!size.IsEmpty
-                        && image.Size != size)
-                    {
+                        /*&& image.Size != size*/)//Needed to normalize file format (and free file ressource)
+                    {   
                         var imageSrc = (Bitmap)Bitmap.FromFile(ImageFile);
                         image = new Bitmap(size.Width, size.Height);
                         Graphics graphics = Graphics.FromImage(image);
@@ -138,7 +138,7 @@ namespace MED.Imaging
                     ClipRegion = GetContourRegion(image);
                 }
                 else
-                    throw new FileNotFoundException("Fichier introuvable", ImageFile);
+                    throw new FileNotFoundException($"Fichier introuvable dans {this} : {ImageFile}", ImageFile);
             }
             return image;
 
@@ -152,6 +152,8 @@ namespace MED.Imaging
          */
         public override void Start()
         {
+            _Image = null;
+
             base.Start();
 
             ProcessState = System.Threading.ThreadState.Running;

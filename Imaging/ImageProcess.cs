@@ -388,8 +388,7 @@ namespace MED.Imaging
             byte[,,] bytesSrc = (byte[,,])matSrc.GetData();
 
             Mat grayCurrent = new(image.Size, DepthType.Cv8U, 1);
-
-            CvInvoke.CvtColor(matSrc, grayCurrent, Emgu.CV.CvEnum.ColorConversion.Bgra2Gray);
+            //CvInvoke.CvtColor(matSrc, grayCurrent, Emgu.CV.CvEnum.ColorConversion.Bgra2Gray);
             byte[] bytes = new byte[image.Size.Width * image.Size.Height];
             int rows = image.Height;
             int cols = image.Width;

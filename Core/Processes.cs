@@ -139,7 +139,7 @@ namespace MED
 
             Items.Clear();
             var itemsNodes = new Dictionary<IProcess, JsonNode>();
-            foreach (var (nodeName, procNode) in nodes)
+            foreach (var (nodeName, procNode) in nodes.ToArray())
             {
                 if (procNode == null)
                     continue;

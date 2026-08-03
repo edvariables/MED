@@ -68,9 +68,13 @@ namespace MED
          * */
         public static IProcess CreateProcess(JsonNode node, Performance? performance, Control? invokeHandler)
         {
-            string processClass = node["ProcessClass"].GetValue<string>();
+            string processClass = node["ProcessClass"]?.GetValue<string>();
             string processLib = node["ProcessLib"]?.GetValue<string>();
-            string name = node["Name"].GetValue<string>();
+            string name = node["Name"]?.GetValue<string>();
+            if(String.IsNullOrEmpty(name) && String.IsNullOrEmpty(processClass))
+            {
+                throw new Exception($"Erreur dans la source JSON pour créer un process. Name et ProcessClass manquants. Chemin : {node.GetPath()}");
+            }
             bool isAsynchrone = (bool)Parser.ObjectFromJsonNode(node["IsAsynchrone"], false);
 
             return CreateProcess(processClass, processLib, name, isAsynchrone, performance, invokeHandler);
@@ -139,7 +143,7 @@ namespace MED
                 && _IsInvokingPropertyChanged[process].Contains(delegateMethod);
             }
         }
-        public static void InvokePropertyChangedReset(IProcess? process=null)
+        public static void InvokePropertyChangedReset(IProcess? process = null)
         {
             lock (_IsInvokingPropertyChanged)
             {
@@ -148,13 +152,13 @@ namespace MED
                     _IsInvokingPropertyChanged.Clear();
                 else if (_IsInvokingPropertyChanged.ContainsKey(process))
                     _IsInvokingPropertyChanged.Remove(process);
-                
+
                 //Clean disposed
-                foreach(KeyValuePair<IProcess, List<Delegate>> item in _IsInvokingPropertyChanged.ToArray())
-                    if(!item.Key.IsRunning
+                foreach (KeyValuePair<IProcess, List<Delegate>> item in _IsInvokingPropertyChanged.ToArray())
+                    if (!item.Key.IsRunning
                         || item.Key.IsDisposed
                         || item.Value == null
-                        || item.Value.Count==0)
+                        || item.Value.Count == 0)
                     {
                         _IsInvokingPropertyChanged.Remove(item.Key);
                     }
@@ -297,7 +301,7 @@ namespace MED
                         return processTo.Name;
                     else if ((processTo as Process).Consumer is Process)
                         if ((processRef as Process).Consumer == ((processTo as Process).Consumer as Process).Consumer)
-                            return ((processTo as Process).Consumer as Process).Name + "/"  + processTo.Name;
+                            return ((processTo as Process).Consumer as Process).Name + "/" + processTo.Name;
             return processTo.Name;
         }
     }

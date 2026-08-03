@@ -101,7 +101,7 @@ namespace MED.Imaging
         {
             ImageProcesses.Start();
 
-            Collider.CollidersRegions = null;
+            Collider.Colliders = null;
         }
 
         public override void Stop() => ImageProcesses.Stop();
@@ -195,7 +195,7 @@ namespace MED.Imaging
                             graphics.SetClip(clipRegion, CombineMode.Replace);
 
                             graphics.DrawImageUnscaled(imageSrc, -imageSrc.Width / 2, -imageSrc.Height / 2/*, imageSrc.Width, imageSrc.Height*/);
-                            
+
                             graphics.ResetTransform();
                         }
                         else
@@ -211,9 +211,7 @@ namespace MED.Imaging
                         }
                         graphics.ResetClip();
                         
-                        if (!location.IsEmpty && prov is IImageCollidable)
-                            Collider.UpdateColliderRegion(graphics, (IImageCollidable)prov);
-
+                        //DEBUG
                         if (true && prov is IImageMove)
                         {
                             var font = new Font(FontFamily.GenericMonospace, 8F);

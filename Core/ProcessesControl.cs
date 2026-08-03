@@ -57,6 +57,7 @@ namespace MED
         {
             object currentObject = this.SelectedNode?.Tag;
             TreeNodeCollection nodes;
+            int insertNodeIndex = int.MaxValue;
             if (rootNode == null)
                 nodes = this.Nodes;
             else
@@ -73,7 +74,10 @@ namespace MED
                     {
                         ObjectsNodes.Remove(item.GetHashCode(), out node);
                         if (node.Parent == rootNode)
+                        {
+                            insertNodeIndex = node.Index;
                             node.Remove();
+                        }
                     }
                 NodesClean();
             }
@@ -173,6 +177,7 @@ namespace MED
                 return null;
             }
             bool isRootNodes = nodes == this.Nodes || nodes == this.Nodes[0].Nodes;
+            bool replaceNodeCache = true;
 
             if (ObjectsNodes.ContainsKey(item.GetHashCode()))
             {
@@ -188,9 +193,12 @@ namespace MED
                     return n;
                 else if (addChildren)
                     addChildren = !(n.Parent == null || n.Parent.Parent == null);
+                else
+                    replaceNodeCache= !(n.Parent == null || n.Parent.Parent == null);
 
                 //Priority to root
-                ObjectsNodes.Remove(item.GetHashCode(), out n);
+                if(replaceNodeCache)
+                    ObjectsNodes.Remove(item.GetHashCode(), out n);
             }
 
             string name;
@@ -212,7 +220,8 @@ namespace MED
 
             TreeNode node = nodes.Add(name);
 
-            ObjectsNodes.Add(item.GetHashCode(), node);
+            if(replaceNodeCache)
+                ObjectsNodes.Add(item.GetHashCode(), node);
 
             node.Tag = item;
             node.ImageKey = image;

@@ -1,6 +1,8 @@
-﻿using System;
+﻿using DirectShowLib.DES;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -18,18 +20,18 @@ namespace MED.Imaging
          * Collider
          * 
          * */
-        Dictionary<IImageCollidable, Region>? _CollidersRegions;
-        public Dictionary<IImageCollidable, Region> CollidersRegions
+        List<IImageCollidable>? _Colliders;
+        public List<IImageCollidable> Colliders
         {
             get
             {
-                if (_CollidersRegions != null)
-                    return _CollidersRegions;
+                if (_Colliders != null)
+                    return _Colliders;
 
                 if (Process.Items == null)
                     return null;
 
-                var colliders = new Dictionary<IImageCollidable, Region>();
+                var colliders = new List<IImageCollidable>();
 
                 foreach (var prov in Process.Items)
                 {
@@ -44,33 +46,33 @@ namespace MED.Imaging
                     if ((prov as IImageCollidable).Mass == 0F)
                         continue;
 
-                    colliders.Add((IImageCollidable)prov, clipRegion);
+                    colliders.Add((IImageCollidable)prov);
                 }
                 if (colliders.Count == 0)
                     return null;
 
-                return _CollidersRegions = colliders;
+                return _Colliders = colliders;
             }
-            set => _CollidersRegions = value;
+            set => _Colliders = value;
         }
 
         /**
          * ColliderBorders
          * 
          * */
-        public Dictionary<IImageCollidable, Region> ManageBorders(Bitmap image, Graphics gr)
+        public List<IImageCollidable> ManageBorders(Bitmap image, Graphics gr)
         {
-            var colliders = CollidersRegions;
+            var colliders = Colliders;
             if (colliders == null || colliders.Count == 0) return colliders;
 
             Process.Performance?.Sub(".Collider.Borders").Resume($"{colliders.Count} colliders", true);
 
             int nCollider = 0;
-            foreach (var (item, _region) in colliders.ToArray())
+            foreach (var item in colliders)
             {
                 var location = item.Location;
                 var direction = item.Direction;
-                var region = _region == null ? item.ClipRegionTranslated : _region;
+                var region = item.ClipRegionTranslated;
                 if (region == null)
                     continue;
                 var bounds0 = region.GetBounds(gr);
@@ -118,8 +120,6 @@ namespace MED.Imaging
                             (item as IImageCollidable).Location = location;
 
                             (item as IImageCollidable).Direction = direction;
-
-                            UpdateColliderRegion(gr, item);
                         }
                     }
                 }
@@ -142,9 +142,9 @@ namespace MED.Imaging
 
             Dictionary<IImageCollidable, Region> someChanges = new();
             var i1 = 0;
-            foreach ((IImageCollidable item1, Region _region1) in colliders.ToArray())
+            foreach (IImageCollidable item1 in colliders)
             {
-                var region1 = _region1 == null ? item1.ClipRegionTranslated : _region1;
+                var region1 = item1.ClipRegionTranslated;
                 if (region1 == null)
                     continue;
                 //var location = item1.Location;
@@ -152,10 +152,8 @@ namespace MED.Imaging
 
                 for (var i2 = i1 + 1; i2 < colliders.Count; i2++)
                 {
-                    var item2 = colliders.Keys.ElementAt(i2);
-                    var region2 = colliders[item2];
-                    //if (region2 == null)
-                    region2 = item2.ClipRegionTranslated;// colliders[item2];
+                    var item2 = colliders.ElementAt(i2);
+                    var region2 = item2.ClipRegionTranslated;
                     if (region2 == null)
                         continue;
                     //location = item2.Location;
@@ -173,11 +171,11 @@ namespace MED.Imaging
                         var intersectBoundsCenter = new PointF((intersectBounds.Right + intersectBounds.Left) / 2, (intersectBounds.Bottom + intersectBounds.Top) / 2);
 
                         if (CollideItem(gr, intersectBounds, intersectBoundsCenter, item1, region1, item2))
-                            if (someChanges.ContainsKey(item1)) someChanges[item1] = region1; 
+                            if (someChanges.ContainsKey(item1)) someChanges[item1] = region1;
                             else someChanges.Add(item1, region1);
 
                         if (CollideItem(gr, intersectBounds, intersectBoundsCenter, item2, region2, item1))
-                            if (someChanges.ContainsKey(item2)) someChanges[item2] = region2; 
+                            if (someChanges.ContainsKey(item2)) someChanges[item2] = region2;
                             else someChanges.Add(item2, region2);
 
                     }
@@ -203,6 +201,7 @@ namespace MED.Imaging
             var changed = false;
             PointF move = new(itemBoundsCenter.X - intersectBoundsCenter.X, itemBoundsCenter.Y - intersectBoundsCenter.Y);
             PointF moveRatio = new(Math.Abs(move.X / itemBounds.Width), Math.Abs(move.Y / itemBounds.Height));
+            Vector2 oldVector = new Vector2((float)(item.Direction.X), (float)(item.Direction.Y));
             Vector2 vector = new Vector2((float)(move.X), (float)(move.Y));
             vector = Vector2.Normalize(vector);
             float speed = item.Speed;
@@ -211,7 +210,7 @@ namespace MED.Imaging
                 //speed.X = Math.Abs(speed.X /** move.X*/) * item.Density;
                 //location.X += speedValue * vector.X;
                 //location.Y += speedValue * vector.Y;
-                location.X += intersectBounds.Width / 2;
+                //location.X += intersectBounds.Width / 2;
                 changed = true;
             }
             else if (move.X < 0)
@@ -219,7 +218,7 @@ namespace MED.Imaging
                 //speed.X = -1 * Math.Abs(speed.X/* * move.X*/) * item.Density;
                 //location.X += speedValue * vector.X;
                 //location.Y += speedValue * vector.Y;
-                location.X -= intersectBounds.Width / 2;
+                //location.X -= intersectBounds.Width / 2;
                 changed = true;
             }
             if (move.Y > 0)
@@ -227,7 +226,7 @@ namespace MED.Imaging
                 //speed.Y = Math.Abs(speed.Y/** move.Y*/) * item.Density;
                 //location.X += speedValue * vector.X;
                 //location.Y += speedValue * vector.Y;
-                location.Y += intersectBounds.Height / 2;
+                //location.Y += intersectBounds.Height / 2;
                 changed = true;
             }
             else if (move.Y < 0)
@@ -235,7 +234,7 @@ namespace MED.Imaging
                 //speed.Y = -1 * Math.Abs(speed.Y /** move.Y*/) * item.Density;
                 //location.X += speedValue * vector.X;
                 //location.Y += speedValue * vector.Y;
-                location.Y -= intersectBounds.Height / 2;
+                //location.Y -= intersectBounds.Height / 2;
                 changed = true;
             }
             if (changed)
@@ -266,35 +265,26 @@ namespace MED.Imaging
 
                 item.Location = location;
 
-                UpdateColliderRegion(gr, item);
-
             }
             return changed;
         }
 
-        public void UpdateColliderRegion(Graphics gr, IImageCollidable item)
-        {
-            //var location = item.Location;
-
-            //var clipRegion = item.ClipRegionTranslated;
-            //var itemBounds = clipRegion.GetBounds(gr);
-            //clipRegion.Translate(location.X, location.Y);
-            //itemBounds = clipRegion.GetBounds(gr);
-            //itemBounds = CollidersRegions[item].GetBounds(gr);
-
-            CollidersRegions[item] = null;// clipRegion;// clipRegion;//Update
-            //itemBounds = CollidersRegions[item].GetBounds(gr);
-        }
-
-
-        public static Region? ClipRegionTranslated(Region? clipRegion, PointF location)
+        public static Region? ClipRegionTranslated(Region? clipRegion, PointF location, float Rotation, Size imageSize)
         {
             if (clipRegion == null)
                 return null;
-            if (location.IsEmpty)
+            if (location.IsEmpty && Rotation == 0F)
                 return clipRegion;
             clipRegion = clipRegion.Clone();
-            clipRegion.Translate(location.X, location.Y);
+            Matrix transformMatrix = new Matrix();
+            transformMatrix.Translate(location.X, location.Y);
+            if (Rotation != 0F)
+            {
+                transformMatrix.RotateAt(Rotation, new PointF(imageSize.Width / 2F, imageSize.Height / 2F));
+            }
+            //clipRegion.Translate(location.X, location.Y);
+            clipRegion.Transform(transformMatrix);
+
             return clipRegion;
         }
     }
