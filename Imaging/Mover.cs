@@ -65,6 +65,17 @@ namespace MED.Imaging
         }
         public virtual PointF Velocity { get; set; }
 
+        [Browsable(false)]
+        public override float Rotation
+        {
+            get => base.Rotation;
+            set
+            {
+                _ClipRegionTranslated = null;
+                base.Rotation = value;
+            }
+        }
+
         long _LocationTime = 0;
         [Browsable(true)]
         public override System.Drawing.PointF Location
@@ -106,7 +117,7 @@ namespace MED.Imaging
         {
             get
             {
-                 if (_ClipRegionTranslated != null)
+                if (_ClipRegionTranslated != null)
                     return _ClipRegionTranslated;
                 return _ClipRegionTranslated = ImagesCollider.ClipRegionTranslated(ClipRegion, Location, Rotation, Image.Size);
             }
