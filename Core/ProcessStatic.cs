@@ -165,9 +165,9 @@ namespace MED
             }
         }
 
-        public static void InvokePropertyChanged(IProcess process, IProvider sender, Delegate delegateMethod, EventArgs e)
+        public static void InvokePropertyChanged(IProcess process, IProvider sender, Delegate? delegateMethod, EventArgs e)
         {
-            if ((process as IProvider).InvokeHandler == null || (process as IProvider).InvokeHandler.Disposing || (process as IProvider).InvokeHandler.IsDisposed)
+            if (process == null || (process as IProvider).InvokeHandler == null || (process as IProvider).InvokeHandler.Disposing || (process as IProvider).InvokeHandler.IsDisposed)
                 return;
             if (delegateMethod != null && process.IsRunning)
             {

@@ -55,7 +55,7 @@ namespace MED.Core
                 File.WriteAllText(Path, "#" + _DefaultSection);
         }
 
-        public static string ReadValue(string Key, string? Section = null, string? defaultValue = null)
+        public static string? ReadValue(string Key, string? Section = null, string? defaultValue = null)
         {
             var RetVal = new StringBuilder(1024);
             GetPrivateProfileString(Section ?? _DefaultSection, Key, "", RetVal, 1024, _Path);

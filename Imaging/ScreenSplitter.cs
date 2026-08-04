@@ -57,23 +57,14 @@ namespace MED.Imaging
         /**
          * Image
          * */
-        //public override void ImageChanged(IImageProvider sender, EventArgs e)
-        //{
-        //    base.ImageChanged(sender, e);
-        //}
-        //public override Bitmap Image
-        //{
-        //    get => base.Image == null ? (base.Image = GetImage()) : base.Image;
-        //    set => base.Image = value;
-        //}
 
         /**
          * GetImage
          * 
          * */
-        public override Bitmap GetImage(IImageProvider provider = null)
+        public override Bitmap? GetImage(IImageProvider provider = null)
         {
-            Performance.Resume($"Make Image from {ImageProviders.Count}", true);
+            Performance?.Resume($"Make Image from {ImageProviders.Count}", true);
             Bitmap image;
             Size size = ImageSizeMin;
             if (size.IsEmpty)
@@ -137,7 +128,7 @@ namespace MED.Imaging
                     Position.Y += itemSize.Height;
             }
             graphics.Dispose();
-            Performance.Pause($"Get Image done => " + (image == null ? "<null>" : "Bitmap"));
+            Performance?.Pause($"Get Image done => " + (image == null ? "<null>" : "Bitmap"));
             return image;
         }
     }

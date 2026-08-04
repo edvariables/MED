@@ -17,28 +17,28 @@ namespace MED.Imaging
 {
     public abstract class ImageProcess : Process, IImageConsumer, IImageProvider
     {
-        public ImageProcess(string name, Performance performance = null, Control invokeHandler = null, IImageConsumer imageConsumer = null, bool isAsynchrone = false)
+        public ImageProcess(string name, Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = false)
             : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
         {
-            ProcessIcon = "Image";
+            ProcessIcon = ProcessIconDefault = "Image";
 
             ImageProviders = new();
             ImageConsumer = imageConsumer;
         }
 
 
-        public virtual void Dispose()
+        public override void Dispose()
         {
             base.Dispose();
             _ImageConsumer = null;
         }
 
-        private IImageConsumer _ImageConsumer;
+        private IImageConsumer? _ImageConsumer;
         [Browsable(false)]
         /**
          * Unique ImageConsumer
          */
-        public virtual IImageConsumer ImageConsumer
+        public virtual IImageConsumer? ImageConsumer
         {
             get => _ImageConsumer;
             set
@@ -154,14 +154,23 @@ namespace MED.Imaging
             }
         }
 
-        public IImageProvider.ImageChangedDelegate OnImageChanged;
+        public IImageProvider.ImageChangedDelegate? OnImageChanged;
 
         [Browsable(true)]
         [ReadOnly(true)]
+        /**
+         * ResetOnImageChanged
+         * <summary>in ImageChanged(){ ... if (ResetOnImageChanged)  Image = null;</summary>
+         * */
         public bool ResetOnImageChanged { get; protected set; }
 
         [Browsable(true)]
         [ReadOnly(true)]
+        /**
+         * ImageIsProvided
+         * <summary>ImageIsProvided means the image is provided by a IImageProvider process.
+         * If false, image is sourced, from a file for example.</summary>
+         * */
         public bool ImageIsProvided { get; protected set; }
 
         /***
@@ -192,9 +201,9 @@ namespace MED.Imaging
                 Performance.Debug($"Waiting for last provider {sender} => {ImageProviders.Last()}");
         }
 
-        protected Bitmap _Image;
+        protected Bitmap? _Image;
         [Browsable(false)]
-        public virtual Bitmap Image
+        public virtual Bitmap? Image
         {
             get
             {
@@ -217,9 +226,9 @@ namespace MED.Imaging
         /**
          * GetImage abstract
          */
-        public virtual Bitmap GetImage(IImageProvider provider = null)
+        public virtual Bitmap? GetImage(IImageProvider? provider = null)
         {
-            Performance.Debug($"ImageProcess.GetImage ImageIsProvided={ImageIsProvided}, " + (provider == null ? "<null>" : "provider") + " / " + (ImageProvider == null ? "<null>" : "ImageProvider"));
+            Performance?.Debug($"ImageProcess.GetImage ImageIsProvided={ImageIsProvided}, " + (provider == null ? "<null>" : "provider") + " / " + (ImageProvider == null ? "<null>" : "ImageProvider"));
 
             if (ImageIsProvided)
                 if (provider != null)
@@ -235,7 +244,7 @@ namespace MED.Imaging
         public List<IImageProvider> ImageProviders { get; set; }
 
         [Browsable(false)]
-        public IImageProvider ImageProvider
+        public IImageProvider? ImageProvider
         {
             get => ImageProviders.Count == 0 ? null : ImageProviders.First();
             set
@@ -404,9 +413,9 @@ namespace MED.Imaging
 
             return grayCurrent;
         }
-#endregion
+        #endregion
 
-        Bitmap _EmptyImage;
+        Bitmap? _EmptyImage;
         [Browsable(false)]
         public Bitmap EmptyImage
         {
@@ -433,7 +442,7 @@ namespace MED.Imaging
             set => _EmptyImage = value;
         }
 
-        Bitmap _WaitingImage;
+        Bitmap? _WaitingImage;
         [Browsable(false)]
         public Bitmap WaitingImage
         {

@@ -21,21 +21,40 @@ using System.Windows.Forms.Design;
 
 namespace MED.Imaging
 {
-    public class Background(string name = "BackgroundImage", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
-        : ImageSourced(name, performance, invokeHandler, imageConsumer, isAsynchrone)
+    public class ImageSourced
+        : ImageProcess, IImageSourced
     {
+        public ImageSourced(string name = "BackgroundImage", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
+            : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
+        {
+            ImageIsProvided = false;
+        }
 
         #region Properties
 
-        private Color _BackgroundColor = Color.Black;
+
+        Size _ImageSizeMin = new Size(320, 240);
         [Browsable(true)]
-        [ReadOnly(false)]
-        public Color BackgroundColor
+        public override Size ImageSizeMin
         {
-            get => _BackgroundColor;
+            get => _ImageSizeMin;
             set
             {
-                _BackgroundColor = value;
+                _ImageSizeMin = value;
+                Image = null;
+            }
+        }
+
+        private string _ImageFile = "";
+        [Browsable(true)]
+        [EditorAttribute(typeof(FileNameEditor), typeof(UITypeEditor))]
+        [ReadOnly(false)]
+        public string ImageFile
+        {
+            get => _ImageFile;
+            set
+            {
+                _ImageFile = value;
                 Image = null;
             }
         }
@@ -44,23 +63,34 @@ namespace MED.Imaging
         {
             base.LoadSettings(settings, fileName);
 
-            BackgroundColor = (Color)settings.GetValue("BackgroundColor", BackgroundColor);
+            ImageFile = (String)settings.GetValue("ImageFile", ImageFile);
         }
         public override JsonObject SaveProcess(JsonObject node = null)
         {
             node = base.SaveProcess(node);
-            node.Add("BackgroundColor", BackgroundColor.ToString());
+            node.Add("ImageFile", ImageFile);
             return node;
         }
         #endregion
 
         #region Image
+        /**
+         * GetImage
+         * 
+         * */
+        public override Bitmap GetImage(IImageProvider provider = null)
+        {
+            if (_Image != null)
+                return _Image;
+
+            return GetImageFromSource(provider);
+        }
 
         /**
          * GetImageFromSource
          * 
          * */
-        public override Bitmap GetImageFromSource(IImageProvider? provider = null)
+        public virtual Bitmap? GetImageFromSource(IImageProvider? provider = null)
         {
             Size size = ImageSizeMin;
             if (size.IsEmpty)
@@ -69,19 +99,29 @@ namespace MED.Imaging
             if (size.IsEmpty)
                 size = EmptyImage.Size;
 
-            Bitmap image;
+            Bitmap image = null;
             ClipRegion = null;
+            if (!string.IsNullOrEmpty(_ImageFile))
+            {
+                if (File.Exists(ImageFile))
+                {
+                    image = (Bitmap)Bitmap.FromFile(ImageFile);
+                    if (!size.IsEmpty
+                        /*&& image.Size != size*/)//Needed to normalize file format (and free file ressource)
+                    {
+                        var imageSrc = (Bitmap)Bitmap.FromFile(ImageFile);
+                        image = new Bitmap(size.Width, size.Height);
+                        Graphics graphics = Graphics.FromImage(image);
 
-            image = new Bitmap(size.Width, size.Height);
-            Graphics graphics = Graphics.FromImage(image);
-
-            Color color = BackgroundColor;
-            //Color color = Color.FromArgb((int)Performance.Average_msec, (int)Performance.Counter % 255, (int)Performance.Counter % 255);
-            SolidBrush brush = new SolidBrush(color);
-
-            GraphicsUnit units = GraphicsUnit.Point;
-            graphics.FillRectangle(brush, image.GetBounds(ref units));
-            graphics.Dispose();
+                        graphics.DrawImage(imageSrc, 0, 0, image.Width, image.Height);
+                        graphics.Dispose();
+                        imageSrc.Dispose();
+                    }
+                    ClipRegion = GetContourRegion(image);
+                }
+                else
+                    throw new FileNotFoundException($"Fichier introuvable dans {this} : {ImageFile}", ImageFile);
+            }
             return image;
 
         }

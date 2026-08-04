@@ -87,49 +87,6 @@ namespace MED.Imaging
 
             return base.Image = image;
         }
-        //public override Bitmap Image
-        //{
-        //    get
-        //    {
-        //        if (ImageProvider == null)
-        //            return null;
-
-        //        if (base.Image != null)
-        //            return base.Image;
-
-        //        Bitmap image = ImageProvider.Image;
-        //        if (image == null)
-        //            return null;
-
-        //        bool shrink = false;
-        //        if (shrink)
-        //        {
-        //            float newWidth = 256F;
-        //            var size = new Size((int)newWidth, (int)(image.Height * newWidth / image.Width));
-        //            image = new Bitmap(image, size);
-        //        }
-
-        //        if (!MoveDetectInit)
-        //        {
-
-        //            InitMoveDetector(image);
-
-        //            return image;
-        //        }
-        //        int x, y;
-
-        //        Performance.Resume("Process MoveDetectorAction", true);
-
-        //        MoveDetectorAction(image);
-
-        //        Performance.Pause("done Process MoveDetectorAction");
-
-        //        return base.Image = image;
-
-        //    }
-        //    set { base.Image = value; }
-        //}
-
 
         /**
          * 

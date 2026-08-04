@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.ComponentModel.Design;
+using System.Drawing.Design;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -20,12 +22,13 @@ namespace MED
 
             if (name == "")
                 name = this.GetType().Name;
-            ProcessIcon = "Process";
+            ProcessIcon = ProcessIconDefault;
 
             Name = name;
 
             Performance = performance == null ? MED.Performance.Empty() : performance;
 
+            Enabled = true;
         }
 
 
@@ -243,7 +246,7 @@ namespace MED
 
         public bool IsInvokingPropertyChanged(Delegate delegateMethod) => ProcessStatic.IsInvokingPropertyChanged(this, delegateMethod);
 
-        public virtual void InvokePropertyChanged(IProvider sender, Delegate delegateMethod, EventArgs e) => ProcessStatic.InvokePropertyChanged(this, sender, delegateMethod, e);
+        public virtual void InvokePropertyChanged(IProvider sender, Delegate? delegateMethod, EventArgs e) => ProcessStatic.InvokePropertyChanged(this, sender, delegateMethod, e);
 
         public void AddHandler(string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
         {
@@ -274,10 +277,16 @@ namespace MED
         }
 
         #region Properties & Settings
+        public virtual bool Enabled { get; set; }
         public virtual bool IsAsynchrone { get; set; }
 
         public virtual string Name { get; set; }
+
+        [Editor(typeof(MEDIconSelectorEditor), typeof(UITypeEditor))]
+        [TypeConverter(typeof(MEDIconNameConverter))]
+        
         public virtual string ProcessIcon { get; set; }
+        public virtual string ProcessIconDefault { get; protected set; } = "Process";
 
         [Browsable(false)]
         public virtual Control? InvokeHandler { get; set; }
@@ -301,6 +310,7 @@ namespace MED
                 LoadProcess(settings.Root);
 
             Name = (string)settings.GetValue("Name", Name);
+            ProcessIcon = (string)settings.GetValue("ProcessIcon", ProcessIcon);
             IsAsynchrone = (bool)settings.GetValue("IsAsynchrone", IsAsynchrone);
 
             Performance?.LoadSettings(settings.ChildSettings("Perf"));
@@ -343,6 +353,8 @@ namespace MED
                 node["ProcessLib"] = assembly;
             node["Name"] = Name;
             node["IsAsynchrone"] = IsAsynchrone;
+            if (ProcessIcon != ProcessIconDefault)
+                node["ProcessIcon"] = ProcessIcon;
 
             node["Perf"] = Performance.SaveNode();
 

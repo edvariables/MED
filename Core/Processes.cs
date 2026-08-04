@@ -15,6 +15,7 @@ namespace MED
         public Processes(string name = "MED.Project", Performance? performance = null, Control? invokeHandler = null, IConsumer? consumer = null, bool isAsynchrone = false)
             : base(name == null || name == "" ? "MED.Project" : name, performance, invokeHandler, consumer, isAsynchrone)
         {
+            ProcessIcon = ProcessIconDefault = "tree";
             Items = new();
         }
         public override void Dispose()
@@ -234,10 +235,10 @@ namespace MED
 
             InitializeProcesses();
 
-            foreach (var item in Items)
-            {
-                item.Start();
-            }
+            if (Items != null)
+                foreach (var item in Items)
+                    if (item.Enabled)
+                        item.Start();
 
             ProcessState = ThreadState.Running;
         }

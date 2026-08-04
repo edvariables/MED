@@ -19,6 +19,8 @@ namespace MED.Imaging
         public Render(string name = "Render", Performance performance = null, Control invokeHandler = null, IImageConsumer imageConsumer = null, bool isAsynchrone = false)
             : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
         {
+            ProcessIcon = ProcessIconDefault = "drive";
+
             ImageIsProvided = true;
             ResetOnImageChanged = true;
             Centered = true;
@@ -88,7 +90,7 @@ namespace MED.Imaging
             }
         }
 
-        public override Bitmap Image
+        public override Bitmap? Image
         {
             get => base.Image == null ? WaitingImage : base.Image;
             set => base.Image = value;

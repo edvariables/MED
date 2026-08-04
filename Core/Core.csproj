@@ -15,10 +15,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="EDIcons.Designer.cs">
+    <Compile Update="MEDIcons.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>EDIcons.resx</DependentUpon>
+      <DependentUpon>MEDIcons.resx</DependentUpon>
     </Compile>
     <Compile Update="ProcessControl.cs">
       <SubType>UserControl</SubType>
@@ -34,9 +34,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Update="EDIcons.resx">
+    <EmbeddedResource Update="MEDIcons.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>EDIcons.Designer.cs</LastGenOutput>
+      <LastGenOutput>MEDIcons.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Update="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

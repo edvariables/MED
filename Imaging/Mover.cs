@@ -19,18 +19,12 @@ using System.Xml.Linq;
 
 namespace MED.Imaging
 {
-    public class Mover : Background, IImageProvider, IImageCollidable
+    public class Mover : ImageSourced, IImageProvider, IImageCollidable
     {
-        public Mover(string name = "Mover", Performance performance = null, Control invokeHandler = null, IImageConsumer imageConsumer = null, bool isAsynchrone = true)
+        public Mover(string name = "Mover", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
         : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
         {
             FPSMax = 0;
-
-            Random rnd = new Random((int)(DateTime.Now.Ticks % int.MaxValue));
-
-            Vector2 vector = new Vector2((float)rnd.NextDouble(), (float)rnd.NextDouble());
-            vector = Vector2.Normalize(vector);
-            Direction = new(vector.X, vector.Y);
         }
 
         #region Properties
@@ -50,29 +44,7 @@ namespace MED.Imaging
                     _Speed = value;
                 else
                     _Speed = Math.Min(value, SpeedMax);
-                Direction = _Direction;//Reset Velocity
-            }
-        }
-        PointF _Direction;
-        public virtual PointF Direction
-        {
-            get => _Direction;
-            set
-            {
-                _Direction = value;
-                Velocity = new(value.X * Speed, value.Y * Speed);
-            }
-        }
-        public virtual PointF Velocity { get; set; }
-
-        [Browsable(false)]
-        public override float Rotation
-        {
-            get => base.Rotation;
-            set
-            {
-                _ClipRegionTranslated = null;
-                base.Rotation = value;
+                Direction = _Direction;//Reset Velocity and Vector
             }
         }
 
@@ -98,14 +70,94 @@ namespace MED.Imaging
                 if (RotationSpeed != 0F)
                     Rotation = (float)((Rotation + RotationSpeed * duration) % 360F);
 
-                _ClipRegionTranslated = null;
-                return base.Location = location;
+                return Location = location;
             }
             set
             {
-                base.Location = value;
                 _ClipRegionTranslated = null;
+                base.Location = value;
             }
+        }
+
+        Vector2 _LocationVector;
+        [Browsable(false)]
+        public virtual Vector2 LocationVector
+        {
+            get
+            {
+                if (_LocationVector.Equals(Vector2.Zero))
+                    return _LocationVector = new Vector2(base.Location.X, base.Location.Y);
+                return _LocationVector;
+            }
+            private set { _LocationVector = value; }
+        }
+
+        [Browsable(false)]
+        public override float Rotation
+        {
+            get => base.Rotation;
+            set
+            {
+                _ClipRegionTranslated = null;
+                base.Rotation = value;
+            }
+        }
+
+        PointF _Direction;
+        public virtual PointF Direction
+        {
+            get => _Direction;
+            set
+            {
+                _Direction = value;
+                DirectionVector = Vector2.Zero;
+            }
+        }
+
+        Vector2 _DirectionVector;
+        [Browsable(false)]
+        public virtual Vector2 DirectionVector
+        {
+            get
+            {
+                if (_DirectionVector.Equals(Vector2.Zero))
+                    return _DirectionVector = new Vector2(Direction.X, Direction.Y);
+                return _DirectionVector;
+            }
+            private set
+            {
+                Velocity = PointF.Empty; 
+                _DirectionVector = value; 
+            }
+        }
+
+        PointF _Velocity;
+        public virtual PointF Velocity
+        {
+            get
+            {
+                if (_Velocity.IsEmpty)
+                    return _Velocity = new(Direction.X * Speed, Direction.Y * Speed);
+                return _Velocity;
+            }
+            set
+            {
+                _Velocity = value;
+                _VelocityVector = Vector2.Zero;
+            }
+        }
+
+        Vector2 _VelocityVector;
+        [Browsable(false)]
+        public virtual Vector2 VelocityVector
+        {
+            get
+            {
+                if (_VelocityVector.Equals(Vector2.Zero))
+                    return _VelocityVector = new Vector2(Velocity.X, Velocity.Y);
+                return _VelocityVector;
+            }
+            private set { _VelocityVector = value; }
         }
 
         Region? _ClipRegionTranslated;
@@ -113,11 +165,12 @@ namespace MED.Imaging
          * 
          * Returns ClipRegion.Clone().Translate(Location.X, Location.Y);
         */
+        [Browsable(false)]
         public virtual Region? ClipRegionTranslated
         {
             get
             {
-                if (_ClipRegionTranslated != null)
+                if (_ClipRegionTranslated != null || Image == null || ClipRegion==null)
                     return _ClipRegionTranslated;
                 return _ClipRegionTranslated = ImagesCollider.ClipRegionTranslated(ClipRegion, Location, Rotation, Image.Size);
             }
@@ -130,9 +183,22 @@ namespace MED.Imaging
         {
             Location = PointF.Empty;
             Rotation = 0F;
+
+            RandomizeDirection();
+
             Image = null;
 
             base.Start();
+        }
+        public void RandomizeDirection()
+        {
+            if (SpeedMax != 0)
+            {
+                Random rnd = new Random((int)(DateTime.Now.Ticks % int.MaxValue));
+                Vector2 vector = new Vector2((float)rnd.NextDouble(), (float)rnd.NextDouble());
+                vector = Vector2.Normalize(vector);
+                Direction = new(vector.X, vector.Y);
+            }
         }
         #endregion
 

@@ -17,11 +17,11 @@ namespace MED
         [Browsable(false)]
         Size ImageSizeMin { get; }
 
-        Bitmap Image { get; }
+        Bitmap? Image { get; }
         
         System.Drawing.Region? ClipRegion { get; }
         
-        System.Drawing.PointF Location { get; }
+        System.Drawing.PointF Location { get; set; }
         
         float Rotation { get; }
 

@@ -14,12 +14,14 @@ using static libMotionDetection.MotionDetectionWithMotionHistory;
 
 namespace MED.Imaging
 {
-    public class EmguMoving : ImageProcess, IMatFrameConsumer, IMatFrameProvider, IImageCollidable
+    public class EmguMoving : Mover, IMatFrameConsumer, IMatFrameProvider
     {
         //isAsynchrone = true
-        public EmguMoving(string name = "EmguMoving", Performance performance = null, Control invokeHandler = null, IImageConsumer imageConsumer = null, bool isAsynchrone = true)
+        public EmguMoving(string name = "EmguMoving", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
             : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
         {
+            FPSMax = 0;
+            ProcessIcon = ProcessIconDefault = "Client";
             ResetOnImageChanged = false;//self managed
         }
 
@@ -53,56 +55,11 @@ namespace MED.Imaging
 
         #region Image
 
-        System.Drawing.Region? _ClipRegion { get; set; } = null;
-        [Browsable(false)]
-        public override System.Drawing.Region? ClipRegion
-        {
-            get => _ClipRegion;
-            set
-            {
-                _ClipRegion = value;
-                _ClipRegionTranslated = null;
-            }
-        }
-        Region? _ClipRegionTranslated;
-        /**
-         * 
-         * Returns ClipRegion.Clone().Translate(Location.X, Location.Y);
-        */
-        public virtual Region? ClipRegionTranslated
-        {
-            get
-            {
-                if (_ClipRegionTranslated != null)
-                    return _ClipRegionTranslated;
-                return _ClipRegionTranslated = ImagesCollider.ClipRegionTranslated(ClipRegion, Location, 0F, Size.Empty);
-            }
-        }
-
-        //public override void ImageChanged(IImageProvider sender, EventArgs e)
-        //{
-        //    ImageProvider = sender;
-        //    base.ImageChanged(sender, e);
-        //}
-
-
-        //private Bitmap _Image;
-        //[Browsable(false)]
-        //public override Bitmap Image
-        //{
-        //    get => _Image;
-        //    set
-        //    {
-        //        //Performance.Debug("Set_Image (override) : " + (_Image == null ? "<null>" : "Bitmap") + " => " + (value == null ? "<null>" : "Bitmap"));
-        //        _Image = value;
-        //    }
-        //}
-
         public override Bitmap GetImage(IImageProvider provider = null)
         {
-            Performance.Resume($"GetImage Algorithm #{Transformer}", true);
+            Performance?.Resume($"GetImage Transformer #{Transformer}", true);
             var image = FrameToImage((IMatFrameProvider)provider, Frame);
-            Performance.Pause();
+            Performance?.Pause();
             return image;
         }
         #endregion
@@ -111,10 +68,10 @@ namespace MED.Imaging
 
         #region Frame
 
-        private Mat PreviousFrame;
+        private Mat? PreviousFrame;
 
         [Browsable(false)]
-        public Mat Frame { get; protected set; }
+        public Mat? Frame { get; protected set; }
         public void FrameChanged(IMatFrameProvider sender, EventArgs e)
         {
             ImageProvider = (IImageProvider)sender;
@@ -156,6 +113,7 @@ namespace MED.Imaging
             BackgroundSubtraction_GMG,
             FixedBackground_MOG2,
         }
+
         [Browsable(true)]
         public CvInvokeTransformers Transformer { get; set; }
 
@@ -173,41 +131,11 @@ namespace MED.Imaging
 
         private Mat _ThresholdMat = null;
 
-        [Browsable(true)]
-        public List<CvInvokeTransformers> Transformers { get; set; }
-
         /**
          * DetectionLimit = 1 to 255
          * */
         [Browsable(true)]
         public int DetectionLimit { get; set; } = 1;
-
-        public virtual float SpeedMax { get; set; }
-        public virtual float Mass { get; set; } = 1F;
-        public virtual float RotationSpeed { get; set; }
-        public virtual float RotationSpeedMax { get; set; }
-
-        float _Speed = 0F;
-        public virtual float Speed
-        {
-            get => _Speed;
-            set
-            {
-                _Speed = value;
-                Direction = _Direction;//Reset Velocity
-            }
-        }
-        PointF _Direction;
-        public virtual PointF Direction
-        {
-            get => _Direction;
-            set
-            {
-                _Direction = value;
-                Velocity = new(value.X * Speed, value.Y * Speed);
-            }
-        }
-        public virtual PointF Velocity { get; set; }
 
 
         public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
@@ -219,7 +147,6 @@ namespace MED.Imaging
             CvInvokeTransformers a;
             if (Enum.TryParse<CvInvokeTransformers>(ProcessSettings.GetValue("Transformer", Transformer).ToString(), out a))
                 Transformer = a;
-            Mass = (float)settings.GetValue("Mass", Mass);
         }
         public override JsonObject SaveProcess(JsonObject node = null)
         {
@@ -227,7 +154,6 @@ namespace MED.Imaging
             node.Add("Transformer", Transformer.ToString());
             node.Add("DetectionLimit", DetectionLimit);
             node.Add("FixedBackground", FixedBackground);
-            node.Add("Mass", Mass);
             return node;
         }
         //public override void SaveSettings(bool saveChildren = true)
@@ -239,7 +165,7 @@ namespace MED.Imaging
         #endregion
 
         #region CreateImage
-        public Bitmap FrameToImage(IMatFrameProvider sender, Mat currentFrame)
+        public virtual Bitmap FrameToImage(IMatFrameProvider sender, Mat currentFrame)
         {
             if (this.Disposing || this.IsDisposed || ImageProvider == null)
                 return null;

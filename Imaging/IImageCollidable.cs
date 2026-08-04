@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace MED.Imaging
 {
-    public interface IImageCollidable : IImageMove
+    public interface IImageCollidable : IImageMover
     {
         float Mass { get; }
     }

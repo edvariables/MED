@@ -12,7 +12,12 @@ namespace MED
     public interface IProcess : IDisposable
     {
         string Name { get; set; }
+        bool Enabled { get; set; }
+
         string ProcessIcon { get; }
+
+        [Browsable(false)]
+        string ProcessIconDefault { get; }
         Performance? Performance { get; }
 
         #region Settings

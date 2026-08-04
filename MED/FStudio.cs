@@ -25,7 +25,7 @@ namespace MED
     public partial class FStudio : ProcessForm
     {
         private int childFormNumber = 0;
-        public static FStudio Current { get; private set; }
+        public static FStudio? Current { get; private set; }
 
         public FStudio()
         {
@@ -230,7 +230,7 @@ namespace MED
 
             }
 
-            processForm.Icon = Core.Settings.GetIcon(processForm.ProcessIcon);
+            processForm.Icon = MEDIcon.GetIcon(processForm.ProcessIcon);
 
             processForm.Dock = DockStyle.Fill;
 
@@ -433,7 +433,7 @@ namespace MED
                 return null;
             }
         }
-        private IProcess _active_Process;
+        private IProcess? _active_Process;
         public IProcess ActiveProcess
         {
             get

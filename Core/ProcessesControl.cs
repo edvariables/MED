@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MED.Core;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -20,8 +21,8 @@ namespace MED
 
             this.HideSelection = false;
 
-            ImageList = Core.Settings.IconsImageList;
-            StateImageList = Core.Settings.StatesImageList;
+            ImageList = MEDIcon.IconsImageList;
+            StateImageList = MEDIcon.StatesImageList;
         }
 
 

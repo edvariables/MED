@@ -44,65 +44,6 @@ namespace MED.Core
         public const string ProcessFileExtension = ".med.json";
         public static readonly string MyProjectsDirectory;
 
-        private static ImageList _IconsImageList = null;
-        public static ImageList IconsImageList
-        {
-            get
-            {
-                if (_IconsImageList != null)
-                    return _IconsImageList;
-                //First call initialize ResourceSet
-                if (EDIcons.ResourceManager.GetObject("MED", System.Globalization.CultureInfo.InvariantCulture) == null)
-                    return null;
-                ImageList imageList = new();
-                foreach (var kvp in EDIcons.ResourceManager.GetResourceSet(System.Globalization.CultureInfo.InvariantCulture, false, false))
-                    if (((DictionaryEntry)kvp).Value is Image)
-                    {
-                        string name = (string)((DictionaryEntry)kvp).Key;
-                        Image image = (Image)((DictionaryEntry)kvp).Value;
-                        imageList.Images.Add(name, image);
-                    }
-                return _IconsImageList = imageList;
-            }
-        }
-
-        private static ImageList _StatesImageList = null;
-        public static ImageList StatesImageList
-        {
-            get
-            {
-                if (_StatesImageList != null)
-                    return _StatesImageList;
-                //First call initialize ResourceSet
-                if (EDIcons.ResourceManager.GetObject("MED", System.Globalization.CultureInfo.InvariantCulture) == null)
-                    return null;
-                ImageList imageList = new();
-
-                string[] images = ["False", "True", "AutoReset", "Alert"];
-                foreach (string name in images) {
-                    var image = EDIcons.ResourceManager.GetObject(name);
-                    if (image is Image)
-                        imageList.Images.Add(name, (Image)image);
-                }
-                return _StatesImageList = imageList;
-            }
-        }
-        public static Bitmap GetImage(string name)
-        {
-            //System.Reflection.PropertyInfo prop = (System.Reflection.PropertyInfo)typeof(EDIcons).GetProperty(name);
-            var prop = typeof(EDIcons).GetProperty(name, System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
-            object value = prop.GetValue(null, null);
-            if (value is Bitmap)
-                return (Bitmap)prop.GetValue(null, null);
-            if (name != "Null")
-                return GetImage("Null");
-            return null;
-        }
-        public static Icon GetIcon(string name)
-        {
-            Bitmap image = GetImage(name);
-            return System.Drawing.Icon.FromHandle(image.GetHicon());
-        }
         /**
          * Get section|setting
          * */

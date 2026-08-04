@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -7,18 +8,17 @@ using System.Threading.Tasks;
 
 namespace MED.Imaging
 {
-    public interface IImageMove
+    public interface IImageMover: IImageProvider
     {
-
-        System.Drawing.Region? ClipRegion { get; }
         System.Drawing.Region? ClipRegionTranslated { get; }
-        System.Drawing.PointF Location { get; set; }
-        float Rotation { get; }
+        Vector2 LocationVector { get; }
 
         float SpeedMax { get; }
         float Speed { get; set; }
         PointF Direction { get; set; }
+        Vector2 DirectionVector { get; }
         PointF Velocity { get; set; }
+        Vector2 VelocityVector { get; }
         float RotationSpeed { get; set; }
         float RotationSpeedMax { get; set; }
     }

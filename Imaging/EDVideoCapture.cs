@@ -14,9 +14,13 @@ using System.Threading.Tasks;
 namespace MED.Imaging
 {
     //isAsynchrone = true
-    public class EDVideoCapture(string name = "VideoCapture", Performance performance = null, Control invokeHandler = null, IImageConsumer imageConsumer = null, bool isAsynchrone = true)
-        : ImageProcess(name, performance, invokeHandler, imageConsumer, isAsynchrone), IImageProvider, IMatFrameProvider
+    public class EDVideoCapture : ImageProcess, IImageProvider, IMatFrameProvider
     {
+        public EDVideoCapture(string name = "VideoCapture", Performance performance = null, Control invokeHandler = null, IImageConsumer imageConsumer = null, bool isAsynchrone = true)
+        : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
+        {
+            ProcessIcon = ProcessIconDefault = "Object";
+        }
         public override void Dispose()
         {
             base.Dispose();
@@ -169,9 +173,9 @@ namespace MED.Imaging
 
         public Bitmap FrameToImage(IMatFrameProvider sender, Mat currentFrame = null)
         {
-            if (ImageSizeMin.IsEmpty || currentFrame ==null || currentFrame.Size == ImageSizeMin)
+            if (ImageSizeMin.IsEmpty || currentFrame == null || currentFrame.Size == ImageSizeMin)
                 return currentFrame?.ToBitmap();
-            
+
             Mat resized = new();
             CvInvoke.Resize(currentFrame, resized, ImageSizeMin);
             return resized.ToBitmap();

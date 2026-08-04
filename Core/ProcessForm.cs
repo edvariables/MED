@@ -24,7 +24,7 @@ namespace MED
 
             Project = new(name, null, this, this);
 
-            ProcessIcon = Project.ProcessIcon;
+            ProcessIcon = ProcessIconDefault;
 
             Project.OnProcessStateChanged += Invoke_ProcessStateChanged;
         }
@@ -259,8 +259,10 @@ namespace MED
             {
                 Project.ProcessIcon = value;
                 if (!String.IsNullOrEmpty(value))
-                    this.Icon = Core.Settings.GetIcon(value);
+                    this.Icon = MEDIcon.GetIcon(value);
             }
         }
+
+        public virtual string ProcessIconDefault { get; protected set; } = "Visual";
     }
 }
