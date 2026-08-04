@@ -15,6 +15,10 @@ using System.Threading.Tasks;
 
 namespace MED.Imaging
 {
+    /**
+     * abstract class ImageProcess : Process, IImageConsumer, IImageProvider
+     * <summary>Image from an other provider process</summary>
+     * */
     public abstract class ImageProcess : Process, IImageConsumer, IImageProvider
     {
         public ImageProcess(string name, Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = false)
@@ -271,9 +275,12 @@ namespace MED.Imaging
          * */
         #region Settings
 
-        public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
+        public override void LoadSettings(ProcessSettings? settings = null, string fileName = "")
         {
             base.LoadSettings(settings, fileName);
+
+            if (settings == null)
+                return;
 
             FPSMax = (int)settings.GetValue("FPSMax", FPSMax);
 
@@ -294,7 +301,8 @@ namespace MED.Imaging
 
             node["ImageSizeMax"] = Parser.ObjectToString(ImageSizeMax);
             node["ImageSizeMin"] = Parser.ObjectToString(ImageSizeMin);
-            node["FPSMax"] = FPSMax;
+            if (FPSMax != 0)
+                node["FPSMax"] = FPSMax;
 
             var consumers = new JsonObject();
 

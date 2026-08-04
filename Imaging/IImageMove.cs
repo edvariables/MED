@@ -8,6 +8,10 @@ using System.Threading.Tasks;
 
 namespace MED.Imaging
 {
+    /**
+     * interface IImageMover: IImageProvider
+     * <summary>Image as a physic object</summary>
+     * */
     public interface IImageMover: IImageProvider
     {
         System.Drawing.Region? ClipRegionTranslated { get; }

@@ -8,6 +8,10 @@ using System.Threading.Tasks;
 
 namespace MED
 {
+    /**
+     * interface IImageProvider : IProvider
+     * <summary>A process that is able to provide an image</summary>
+     * */
     public interface IImageProvider : IProvider
     {
 

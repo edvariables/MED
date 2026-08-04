@@ -15,7 +15,11 @@ using System.Xml.Linq;
 
 namespace MED
 {
-    public class ProcessSettings:INullable
+    /**
+     * class ProcessSettings
+     * <summary>Hosts a process settings</summary>
+     * */
+    public class ProcessSettings : INullable
     {
         public ProcessSettings(string fileName, JsonNode? root = null)
         {
@@ -33,12 +37,12 @@ namespace MED
 
         public bool IsNull => false;
 
-        public JsonNode ChildNode(string childName, bool createIfNone = false)
+        public JsonNode? ChildNode(string childName, bool createIfNone = false)
         {
             if (Root is JsonArray)
             {
-                foreach (var node in (Root as JsonArray))
-                    if (node["Name"]?.GetValue<string>() == childName)
+                foreach (var node in (JsonArray)Root)
+                    if (node != null && node["Name"]?.GetValue<string>() == childName)
                         return node;
                 if (createIfNone)
                 {
@@ -54,12 +58,12 @@ namespace MED
                     Root[childName] = new JsonObject();
             return Root[childName];
         }
-        public JsonArray ChildArray(string childName, bool createIfNone = false)
+        public JsonArray? ChildArray(string childName, bool createIfNone = false)
         {
             if (Root is JsonArray)
             {
-                foreach (var node in (Root as JsonArray))
-                    if (node["Name"]?.GetValue<string>() == childName)
+                foreach (var node in (JsonArray)Root)
+                    if (node != null && node["Name"]?.GetValue<string>() == childName)
                         if (node is JsonArray)
                             return (JsonArray)node;
                         else
@@ -78,7 +82,7 @@ namespace MED
                     Root[childName] = new JsonArray();
                 else
                     return null;
-            return (JsonArray)Root[childName];
+            return (JsonArray?)Root[childName];
         }
         public ProcessSettings ChildSettings(string childName, bool asJsonArray = false)
         {
@@ -112,7 +116,7 @@ namespace MED
                 fileName = FileName;
             try
             {
-                Root = JsonNode.Parse(File.ReadAllText(fileName));
+                Root = JsonNode.Parse(File.ReadAllText(fileName)) ?? new JsonObject();
 
                 return true;
             }
@@ -141,7 +145,7 @@ namespace MED
         /**
          * Get value from INI, Settings or Cache
          * */
-        public object GetValue(string setting, object default_value = null)
+        public object? GetValue(string setting, object? default_value = null)
         {
             var childNode = ChildNode(setting, false);
             if (childNode == null)
@@ -151,7 +155,7 @@ namespace MED
         /**
          * Set value
          * */
-        public void SetValue(string setting, object set_value = null)
+        public void SetValue(string setting, object? set_value = null)
         {
 
             var o = Root.AsObject();

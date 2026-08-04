@@ -8,12 +8,14 @@ using System.Threading.Tasks;
 
 namespace MED
 {
-    public interface IProcesses
+    /**
+     * interface IProcesses
+     * <summary>A process that hosts a collection of processes</summary>
+     * */
+    public interface IProcesses:IProcess
     {
-        Performance? Performance { get; }
-
         Logger? Logger { get; set; }
 
-        List<IProcess>? Items { get; }
+        List<IProcess> Items { get; }
     }
 }

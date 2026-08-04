@@ -37,7 +37,7 @@ namespace MED
             else
                 FProperties.CurrentProperty = Performance;
         }
-        public static FLogger Current { get; private set; }
+        public static FLogger? Current { get; private set; }
 
         public Logger Logger = new();
 

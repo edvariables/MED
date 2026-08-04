@@ -9,6 +9,10 @@ using System.Threading.Tasks;
 
 namespace MED
 {
+    /**
+     * interface IProcess
+     * <summary>A process with a process state</summary>
+     * */
     public interface IProcess : IDisposable
     {
         string Name { get; set; }

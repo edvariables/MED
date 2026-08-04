@@ -27,6 +27,7 @@ namespace MED.Imaging
         public ImageSourced(string name = "BackgroundImage", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
             : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
         {
+            FPSMax = 0;
             ImageIsProvided = false;
         }
 
@@ -59,7 +60,7 @@ namespace MED.Imaging
             }
         }
 
-        public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
+        public override void LoadSettings(ProcessSettings? settings = null, string fileName = "")
         {
             base.LoadSettings(settings, fileName);
 

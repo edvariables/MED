@@ -19,12 +19,15 @@ using System.Xml.Linq;
 
 namespace MED.Imaging
 {
+    /**
+     * class Mover : ImageSourced, IImageProvider, IImageCollidable
+     * <summary>Image as a physic object that can move, rotate and collide</summary>
+     * */
     public class Mover : ImageSourced, IImageProvider, IImageCollidable
     {
         public Mover(string name = "Mover", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
         : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
         {
-            FPSMax = 0;
         }
 
         #region Properties

@@ -21,8 +21,12 @@ using System.Windows.Forms.Design;
 
 namespace MED.Imaging
 {
+    /**
+     * class Background : ImageSourced, IImageProvider
+     * <summary>Image as a physic object that can move, rotate and collide</summary>
+     * */
     public class Background(string name = "BackgroundImage", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
-        : ImageSourced(name, performance, invokeHandler, imageConsumer, isAsynchrone)
+        : ImageSourced(name, performance, invokeHandler, imageConsumer, isAsynchrone), IImageProvider
     {
 
         #region Properties
@@ -40,7 +44,7 @@ namespace MED.Imaging
             }
         }
 
-        public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
+        public override void LoadSettings(ProcessSettings? settings = null, string fileName = "")
         {
             base.LoadSettings(settings, fileName);
 

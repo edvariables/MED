@@ -11,6 +11,10 @@ using System.Threading.Tasks;
 
 namespace MED
 {
+    /**
+     * class Performance
+     * <summary>Logger and performance counter</summary>
+     * */
     public class Performance : INullable
     {
         public string Name;

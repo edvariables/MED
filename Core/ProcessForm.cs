@@ -9,6 +9,10 @@ using System.Threading.Tasks;
 
 namespace MED
 {
+    /**
+     * class ProcessForm : Form, IProcess, IConsumer
+     * <summary>A form that hosts a process</summary>
+     * */
     public class ProcessForm : Form, IProcess, IConsumer
     {
         public ProcessForm() : this("ProcessForm") { }
@@ -34,7 +38,7 @@ namespace MED
             FormWindowState org = this.WindowState;
             base.WndProc(ref m);
             if (this.WindowState != org)
-                this.ProcessForm_WindowStateChanged(null, EventArgs.Empty);
+                this.ProcessForm_WindowStateChanged(this, EventArgs.Empty);
         }
 
         protected virtual void Form_FormClosed(object sender, FormClosedEventArgs e)
@@ -65,7 +69,7 @@ namespace MED
                 }
                 catch (Exception ex)
                 {
-                    Performance.Error("ProcessForm_WindowStateChanged", ex);
+                    Performance?.Error("ProcessForm_WindowStateChanged", ex);
                 }
                 if (WindowState == FormWindowState.Normal)
                 {
@@ -97,7 +101,7 @@ namespace MED
         [ReadOnly(true)]
         public Processes Project { get; protected set; }
 
-        public Logger Logger { get => Project.Logger; set => Project.Logger = value; }
+        public Logger? Logger { get => Project.Logger; set => Project.Logger = value; }
 
         #region Settings
 
@@ -106,12 +110,13 @@ namespace MED
         public bool IsAsynchrone { get => Project.IsAsynchrone; set => Project.IsAsynchrone = value; }
 
         [Browsable(true)]
-        public ProcessSettings ProcessSettings { get => Project.ProcessSettings; set => Project.ProcessSettings = value; }
+        public ProcessSettings? ProcessSettings { get => Project.ProcessSettings; set => Project.ProcessSettings = value; }
 
         public virtual void LoadSettings(ProcessSettings? processSettings = null, string fileName = "")
         {
             Project.LoadSettings(processSettings, fileName);
-
+            if (ProcessSettings == null)
+                return;
             Size = (Size)ProcessSettings.GetValue("Size", Size);
             Location = (Point)ProcessSettings.GetValue("Location", Location);
             StartFullScreen = (bool)ProcessSettings.GetValue("StartFullScreen", StartFullScreen);
@@ -135,7 +140,8 @@ namespace MED
                 node["Size"] = Parser.ObjectToString(Size);
                 node["Location"] = Parser.ObjectToString(Location);
             }
-            node["Perf"] = Performance.SaveNode();
+            if (Performance != null)
+                node["Perf"] = Performance.SaveNode();
 
             return node;
         }
@@ -162,20 +168,20 @@ namespace MED
         [Browsable(true)]
         public virtual List<IProcess> Processes { get => Project.Items; }
 
-        public static ProcessForm FindProcessForm(IProcess proc)
+        public static ProcessForm? FindProcessForm(IProcess proc)
         {
             if (proc is ProcessForm)
                 return (ProcessForm)proc;
             if (proc is IProcesses)
-                if ((proc as Process).InvokeHandler is ProcessForm)
-                    return (ProcessForm)((proc as Process).InvokeHandler);
+                if (((Process)proc).InvokeHandler is ProcessForm)
+                    return (ProcessForm?)((Process)proc).InvokeHandler;
 
             if (proc is IProvider)
-                if ((proc as IProvider).InvokeHandler is ProcessForm)
-                    return (ProcessForm)((proc as IProvider).InvokeHandler);
-                else if ((proc as IProvider).InvokeHandler is Control)
+                if (((IProvider)proc).InvokeHandler is ProcessForm)
+                    return (ProcessForm?)(((IProvider)proc).InvokeHandler);
+                else if (((IProvider)proc).InvokeHandler is Control)
                 {
-                    var f = ((proc as IProvider).InvokeHandler).FindForm();
+                    var f = ((IProvider)proc).InvokeHandler?.FindForm();
                     if (f is ProcessForm)
                         return (ProcessForm)f;
                 }
@@ -187,7 +193,7 @@ namespace MED
 
         protected virtual void InitializeProcesses(bool resetAll = false) => Project.InitializeProcesses(resetAll);
 
-        public Performance Performance { get => Project.Performance; }
+        public Performance? Performance { get => Project.Performance; }
 
         public bool IsRunning { get => Project.ProcessState == ThreadState.Running || Project.ProcessState == ThreadState.Suspended; }
 

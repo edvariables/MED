@@ -10,6 +10,10 @@ using System.Xml.Linq;
 
 namespace MED
 {
+    /**
+     * class Processes : Process, IProcesses
+     * <summary>A process that hosts a collection of processes</summary>
+     * */
     public class Processes : Process, IProcesses
     {
         public Processes(string name = "MED.Project", Performance? performance = null, Control? invokeHandler = null, IConsumer? consumer = null, bool isAsynchrone = false)
@@ -27,7 +31,7 @@ namespace MED
         private Logger? _Logger { get; set; }
 
         [Browsable(false)]
-        public Logger Logger
+        public Logger? Logger
         {
             get => _Logger;
             set
@@ -35,15 +39,19 @@ namespace MED
                 _Logger = value;
                 if (value != null && (Performance == null || Performance.IsEmpty))
                     Performance = new(Name, value/*, false TODO*/);
-                else
+                else if (Performance != null)
                     Performance.Logger = value;
                 //Propagate
                 if (Items != null)
                     foreach (var proc in Items)
-                        if (proc is Process)
-                            (proc as Process).Performance.Logger = _Logger;
+                        if (proc == null)
+                            continue;
+                        else if (proc is Process && ((Process)proc).Performance != null)
+#pragma warning disable CS8602 // Déréférencement d'une éventuelle référence null.
+                            ((Process)proc).Performance.Logger = _Logger;
+#pragma warning restore CS8602 // Déréférencement d'une éventuelle référence null.
                         else if (proc is ProcessForm)
-                            (proc as ProcessForm).Logger = _Logger;
+                            ((ProcessForm)proc).Logger = _Logger;
             }
         }
 
@@ -91,23 +99,25 @@ namespace MED
             else
                 childSettings.Root.AsObject().Clear();
 
-            foreach (var proc in Items)
-                childSettings.ChildSettings(proc.Name);
+            if (Items != null)
+                foreach (var proc in Items)
+                    childSettings.ChildSettings(proc.Name);
 
             JsonObject nodes = childSettings.Root.AsObject();
 
-            foreach (var proc in Items)
-                if (proc is IProcesses)
-                    proc.SaveSettings(childSettings.ChildSettings(proc.Name));
-                else
-                    nodes[proc.Name] = proc.SaveProcess();
+            if (Items != null)
+                foreach (var proc in Items)
+                    if (proc is IProcesses)
+                        proc.SaveSettings(childSettings.ChildSettings(proc.Name));
+                    else
+                        nodes[proc.Name] = proc.SaveProcess();
         }
         #endregion
 
         #region Processes
 
         [Browsable(true)]
-        public virtual List<IProcess>? Items { get; protected set; }
+        public virtual List<IProcess> Items { get; protected set; }
         public virtual void DisposeProcesses()
         {
             if (Items != null)
@@ -115,7 +125,7 @@ namespace MED
                 foreach (var handler in Items)
                     if (handler is IDisposable)
                         (handler as IDisposable).Dispose();
-                Items = null;
+                Items.Clear();
             }
         }
 
@@ -127,7 +137,7 @@ namespace MED
             {//Compatibility
                 nodes = new();
                 foreach (var procNode in processesSettings.Root.AsArray())
-                    nodes.Add(nodes.Count.ToString(), procNode.DeepClone());
+                    nodes.Add(nodes.Count.ToString(), procNode?.DeepClone());
             }
             else
                 nodes = processesSettings.Root.AsObject();
@@ -148,7 +158,7 @@ namespace MED
                 {
                     IProcess item = ProcessStatic.CreateProcess(procNode, Performance, InvokeHandler);
                     if (item is Process)
-                        (item as Process).Consumer = this.Consumer ?? this;
+                        ((Process)item).Consumer = this.Consumer ?? this;
                     item.LoadSettings(processesSettings.ChildSettings(item.Name));
 
                     Items.Add(item);
@@ -168,20 +178,26 @@ namespace MED
         {
             if (node["Consumers"] == null)
                 return;
-            var consumers = node["Consumers"].AsObject();
+            var consumers = node["Consumers"]?.AsObject();
             if (consumers == null) return;
             foreach (var property in consumers)
-            {
-                var propertyName = property.Key;
-                foreach (var consumerNode in property.Value.AsArray())
+                if (property.Value != null)
                 {
-                    LoadConsumer(process, consumerNode.AsObject(), propertyName);
+                    var propertyName = property.Key;
+                    foreach (var consumerNode in property.Value.AsArray())
+                        if (consumerNode != null)
+                        {
+                            LoadConsumer(process, consumerNode.AsObject(), propertyName);
+                        }
                 }
-            }
         }
         public virtual void LoadConsumer(IProcess process, JsonObject consumerNode, string propertyName)
         {
-            string consumerPath = consumerNode["Name"].ToString();
+            if (consumerNode == null)
+                return;
+            string? consumerPath = consumerNode["Name"]?.ToString();
+            if (consumerPath == null)
+                return;
             IProcess consumerProcess = ProcessStatic.FindItem(this, consumerPath);
             if (consumerProcess == null)
                 return;
@@ -268,7 +284,7 @@ namespace MED
         {
             base.Resume();
 
-            if (IsRunning)
+            if (IsRunning && Items!=null)
                 foreach (var item in Items)
                     item.Resume();
 
@@ -279,7 +295,7 @@ namespace MED
         {
             ProcessState = ThreadState.Suspended;
 
-            if (IsRunning)
+            if (IsRunning && Items != null)
                 foreach (var item in Items)
                     item.Pause();
         }

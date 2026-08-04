@@ -55,7 +55,7 @@ namespace MED
             var typeName = GetType().Name;
             if (typeName == Name)
                 return $"{Name}({ProcessState})";
-            return $"{typeName}[{Name}]({ProcessState})";
+            return $"{Name} as {typeName} ({ProcessState})";
         }
 
         /**
@@ -308,12 +308,14 @@ namespace MED
                 ProcessSettings = settings;
             if (settings != null && settings.Root != null)
                 LoadProcess(settings.Root);
+            if (settings != null)
+            {
+                Name = (string)settings.GetValue("Name", Name);
+                ProcessIcon = (string)settings.GetValue("ProcessIcon", ProcessIcon);
+                IsAsynchrone = (bool)settings.GetValue("IsAsynchrone", IsAsynchrone);
 
-            Name = (string)settings.GetValue("Name", Name);
-            ProcessIcon = (string)settings.GetValue("ProcessIcon", ProcessIcon);
-            IsAsynchrone = (bool)settings.GetValue("IsAsynchrone", IsAsynchrone);
-
-            Performance?.LoadSettings(settings.ChildSettings("Perf"));
+                Performance?.LoadSettings(settings.ChildSettings("Perf"));
+            }
         }
 
         public virtual void LoadProcess(JsonNode node)
@@ -356,7 +358,7 @@ namespace MED
             if (ProcessIcon != ProcessIconDefault)
                 node["ProcessIcon"] = ProcessIcon;
 
-            node["Perf"] = Performance.SaveNode();
+            node["Perf"] = Performance?.SaveNode();
 
             return node;
         }
@@ -420,7 +422,7 @@ namespace MED
 
             ProcessStatic.InvokePropertyChangedReset(this);
 
-            Performance.Start($"Start {this.ToString()}", true);
+            Performance?.Start($"Start {this.ToString()}", true);
 
             //Override next :
             /*
@@ -455,7 +457,7 @@ namespace MED
             if (IsRunning)
             {
                 ProcessState = ThreadState.Suspended;
-                Performance.Suspend("Process.Pause");
+                Performance?.Suspend("Process.Pause");
             }
         }
 
@@ -464,7 +466,7 @@ namespace MED
             if (IsRunning)
             {
                 ProcessState = ThreadState.Running;
-                Performance.Resume("Process.Resume");
+                Performance?.Resume("Process.Resume");
             }
         }
         #endregion

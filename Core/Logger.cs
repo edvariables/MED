@@ -8,6 +8,11 @@ using System.Threading.Tasks;
 
 namespace MED
 {
+    /**
+     * class Logger
+     * <summary>Host of a StringBuilder.
+     * Used by Performance class</summary>
+     * */
     public class Logger:INullable
     {
         private StringBuilder Buffer = new();

@@ -10,6 +10,10 @@ using System.Windows.Forms;
 
 namespace MED
 {
+    /**
+     * class ProcessControl : UserControl
+     * <summary>Control managing process states</summary>
+     * */
     public partial class ProcessControl : UserControl
     {
         public ProcessControl()
@@ -27,7 +31,7 @@ namespace MED
         }
 
         private IProcess? _ActiveProcess;
-        public IProcess ActiveProcess
+        public IProcess? ActiveProcess
         {
             get
             {
@@ -37,6 +41,7 @@ namespace MED
             }
             set
             {
+#pragma warning disable CS8602 // Déréférencement d'une éventuelle référence null.
                 if (_ActiveProcess != null)
                 {
                     if (_ActiveProcess is ProcessForm)
@@ -53,6 +58,7 @@ namespace MED
                     else if (_ActiveProcess is Process)
                         (_ActiveProcess as Process).OnProcessStateChanged += ProcessStateChanged;
                 }
+#pragma warning restore CS8602 // Déréférencement d'une éventuelle référence null.
             }
         }
 

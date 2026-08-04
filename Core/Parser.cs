@@ -8,6 +8,10 @@ using System.Threading.Tasks;
 
 namespace MED.Core
 {
+    /**
+     * static class Parser
+     * <summary>Parse data to and from json or .ini file</summary>
+     * */
     public static class Parser
     {
 
@@ -92,7 +96,7 @@ namespace MED.Core
             return number.Replace(_DecimalSeparator, ".");
         }
 
-        public static object? ObjectFromJsonNode(JsonNode node, object type_as)
+        public static object? ObjectFromJsonNode(JsonNode node, object? type_as)
         {
             if (type_as == null)
                 return node.GetValue<object>();
@@ -119,6 +123,11 @@ namespace MED.Core
         }
 
         public static string? SizeToPretty(Size size) => ObjectToString(size)?.Replace(",", " x ");
-        public static Size SizeFromPretty(string size) => (Size)ObjectFromString(size.Replace("x", ","), typeof(Size));
+        public static Size SizeFromPretty(string size)
+        {
+#pragma warning disable CS8605 // Conversion unboxing d'une valeur peut-être null.
+            return (Size)ObjectFromString(size.Replace("x", ","), typeof(Size));
+#pragma warning restore CS8605 // Conversion unboxing d'une valeur peut-être null.
+        }
     }
 }

@@ -20,7 +20,6 @@ namespace MED.Imaging
         public EmguMoving(string name = "EmguMoving", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
             : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
         {
-            FPSMax = 0;
             ProcessIcon = ProcessIconDefault = "Client";
             ResetOnImageChanged = false;//self managed
         }

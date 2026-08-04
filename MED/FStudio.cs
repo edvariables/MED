@@ -434,7 +434,7 @@ namespace MED
             }
         }
         private IProcess? _active_Process;
-        public IProcess ActiveProcess
+        public IProcess? ActiveProcess
         {
             get
             {
@@ -457,7 +457,9 @@ namespace MED
                 _active_Process = value;
                 if (_active_Process != null)
                     if (_active_Process is Form)
+#pragma warning disable CS8602 // Déréférencement d'une éventuelle référence null.
                         (_active_Process as Form).Activate();
+#pragma warning restore CS8602 // Déréférencement d'une éventuelle référence null.
                 ActiveProcessChanged(_active_Process);
             }
         }
@@ -466,7 +468,7 @@ namespace MED
          * 
          * 
          * */
-        private void ActiveProcessChanged(IProcess sender, System.Threading.ThreadState state = System.Threading.ThreadState.Unstarted)
+        private void ActiveProcessChanged(IProcess? sender, System.Threading.ThreadState state = System.Threading.ThreadState.Unstarted)
         {
             if (sender == null)
             {

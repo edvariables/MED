@@ -7,7 +7,11 @@ using System.Threading.Tasks;
 
 namespace MED
 {
-    public interface IProvider
+    /**
+     * interface IProvider
+     * <summary>A process that is able to provide a property</summary>
+     * */
+    public interface IProvider: IProcess
     {
 
         [Browsable(false)]

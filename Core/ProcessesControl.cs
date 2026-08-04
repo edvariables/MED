@@ -13,6 +13,10 @@ using System.Xml.Linq;
 
 namespace MED
 {
+    /**
+     * class ProcessesControl : TreeView
+     * <summary>A treeview representation of processes</summary>
+     * */
     public partial class ProcessesControl : TreeView
     {
         public ProcessesControl()
@@ -56,7 +60,7 @@ namespace MED
 
         public void ShowProperties(object[] items, TreeNode? rootNode = null, bool clear = false)
         {
-            object currentObject = this.SelectedNode?.Tag;
+            object? currentObject = this.SelectedNode?.Tag;
             TreeNodeCollection nodes;
             int insertNodeIndex = int.MaxValue;
             if (rootNode == null)
@@ -67,14 +71,16 @@ namespace MED
                 NodesClear(rootNode);
             else
             {
-                TreeNode node;
+                TreeNode? node;
                 foreach (var item in items)
                     if (item == null)
                         continue;
                     else if (ObjectsNodes.ContainsKey(item.GetHashCode()))
                     {
+#pragma warning disable CS8600 // Conversion de littéral ayant une valeur null ou d'une éventuelle valeur null en type non-nullable.
                         ObjectsNodes.Remove(item.GetHashCode(), out node);
-                        if (node.Parent == rootNode)
+#pragma warning restore CS8600 // Conversion de littéral ayant une valeur null ou d'une éventuelle valeur null en type non-nullable.
+                        if (node != null && node.Parent == rootNode)
                         {
                             insertNodeIndex = node.Index;
                             node.Remove();
@@ -95,7 +101,7 @@ namespace MED
             if (nodes.Count > 0 && SelectedNode == null)
                 SelectedNode = nodes[0];
         }
-        public void NodesClear(TreeNode rootNode = null)
+        public void NodesClear(TreeNode? rootNode = null)
         {
             if (rootNode == null)
             {
@@ -122,14 +128,16 @@ namespace MED
         {
             foreach (KeyValuePair<int, TreeNode> kvp in ObjectsNodes.ToArray())
             {
-                if (kvp.Value.Handle == 0
-                    || kvp.Value.Tag is Process && ((kvp.Value.Tag as Process).IsDisposed || (kvp.Value.Tag as Process).Disposing)
-                    || kvp.Value.Tag is Control && ((kvp.Value.Tag as Control).IsDisposed || (kvp.Value.Tag as Control).Disposing)
-                    )
+                if (kvp.Value == null
+                    || kvp.Value.Handle == 0
+                    || kvp.Value.Tag == null
+                    || (kvp.Value.Tag is Process && (((Process)kvp.Value.Tag).IsDisposed || ((Process)kvp.Value.Tag).Disposing))
+                    || (kvp.Value.Tag is Control && (((Control)kvp.Value.Tag).IsDisposed || ((Control)kvp.Value.Tag).Disposing))
+                )
                 {
-                    TreeNode node;
+                    TreeNode? node;
                     ObjectsNodes.Remove(kvp.Key, out node);
-                    node.Remove();
+                    node?.Remove();
                 }
             }
         }
@@ -143,37 +151,39 @@ namespace MED
                     AddItem(item, nodes, addChildren);
         }
 
-        public TreeNode AddItem(object item, TreeNodeCollection nodes, bool addChildren = true)
+        public TreeNode? AddItem(object? item, TreeNodeCollection nodes, bool addChildren = true)
         {
+            if(item==null)
+                return null;
             try
             {
                 var disposed = false;
                 if (item is Control)
                 {
-                    if ((item as Control).IsDisposed || (item as Control).Disposing)
+                    if (((Control)item).IsDisposed || ((Control)item).Disposing)
                         disposed = true;
                 }
-                else if (item is Process && ((item as Process).IsDisposed) || (item as Process).Disposing)
+                else if (item is Process && ((Process)item).IsDisposed || ((Process)item).Disposing)
                     disposed = true;
 
                 if (disposed)
                 {
                     if (ObjectsNodes.ContainsKey(item.GetHashCode()))
                     {
-                        TreeNode n;
+                        TreeNode? n;
                         ObjectsNodes.Remove(item.GetHashCode(), out n);
-                        n.Remove();
+                        n?.Remove();
                     }
                     return null;
                 }
             }
             catch
             {
-                if (ObjectsNodes.ContainsKey(item.GetHashCode()))
+                if (item != null && ObjectsNodes.ContainsKey(item.GetHashCode()))
                 {
-                    TreeNode n;
+                    TreeNode? n;
                     ObjectsNodes.Remove(item.GetHashCode(), out n);
-                    n.Remove();
+                    n?.Remove();
                 }
                 return null;
             }
@@ -183,7 +193,7 @@ namespace MED
             if (ObjectsNodes.ContainsKey(item.GetHashCode()))
             {
                 TreeNode n = (TreeNode)ObjectsNodes[item.GetHashCode()];
-                if (n.Handle == 0)
+                if (n==null || n.Handle == 0)
                     NodesClean();
                 else if (isRootNodes)
                 {
@@ -195,24 +205,24 @@ namespace MED
                 else if (addChildren)
                     addChildren = !(n.Parent == null || n.Parent.Parent == null);
                 else
-                    replaceNodeCache= !(n.Parent == null || n.Parent.Parent == null);
+                    replaceNodeCache = !(n.Parent == null || n.Parent.Parent == null);
 
                 //Priority to root
-                if(replaceNodeCache)
-                    ObjectsNodes.Remove(item.GetHashCode(), out n);
+                if (replaceNodeCache)
+                    ObjectsNodes.Remove(item.GetHashCode());
             }
 
-            string name;
+            string? name;
             string image = "";
             if (item is IProcess)
             {
-                name = (item as IProcess).Name;
-                image = (item as IProcess).ProcessIcon;
+                name = ((IProcess)item).Name;
+                image = ((IProcess)item).ProcessIcon;
             }
             else if (item is Performance)
             {
                 name = "Performance";
-                image = (item as Performance).Icon;
+                image = ((Performance)item).Icon;
             }
             else
                 name = item.ToString();
@@ -221,7 +231,7 @@ namespace MED
 
             TreeNode node = nodes.Add(name);
 
-            if(replaceNodeCache)
+            if (replaceNodeCache)
                 ObjectsNodes.Add(item.GetHashCode(), node);
 
             node.Tag = item;
@@ -233,7 +243,7 @@ namespace MED
             {
                 if (item is IProcesses)
                 {
-                    object[] items = (item as IProcesses).Items.ToArray();
+                    object[] items = ((IProcesses)item).Items.ToArray();
                     //Reverse
                     if (node.Parent == null)
                         items = items.Reverse().ToArray<object>();
@@ -242,13 +252,16 @@ namespace MED
                 if (item is IProcess)
                 {
                     //AddItems((item as IProcess).ObjectsProperties.Values.ToArray(), node.Nodes);
-                    foreach (var kvp in (item as IProcess).ObjectsProperties)
+                    foreach (var kvp in ((IProcess)item).ObjectsProperties)
                     {
-                        if (kvp.Value is List<IProcess> && (kvp.Value as List<IProcess>).Count > 0 && (kvp.Value as List<IProcess>).First() != item)
+                        if (kvp.Value != null 
+                            && kvp.Value is List<IProcess> 
+                            && ((List<IProcess>)kvp.Value).Count > 0 
+                            && ((List<IProcess>)kvp.Value).First() != item)
                         {
                             var subNode = node.Nodes.Add(kvp.Key);
                             subNode.SelectedImageKey = subNode.ImageKey = "next_blue";
-                            AddItems((kvp.Value as List<IProcess>).ToArray(), subNode.Nodes, false);
+                            AddItems(((List<IProcess>)kvp.Value).ToArray(), subNode.Nodes, false);
                         }
                         //else if (kvp.Value is IConsumer)
                         //{

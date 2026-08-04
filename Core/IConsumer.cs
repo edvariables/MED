@@ -6,7 +6,11 @@ using System.Threading.Tasks;
 
 namespace MED
 {
-    public interface IConsumer
+    /**
+     * interface IConsumer
+     * <summary>A process that is able to consume a property from a provider</summary>
+     * */
+    public interface IConsumer : IProcess
     {
         bool IsAsynchrone { get; set; }
     }

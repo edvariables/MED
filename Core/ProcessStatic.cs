@@ -9,6 +9,10 @@ using System.Threading.Tasks;
 
 namespace MED
 {
+    /**
+     * static class ProcessStatic
+     * <summary>Tools for process</summary>
+     * */
     public static class ProcessStatic
     {
         public static string test = "ciic";
@@ -18,7 +22,10 @@ namespace MED
             var memberInfo = handler_obj.GetType().GetMember(handler_field);
             if (memberInfo == null)
                 throw new Exception($"Le type {handler_obj.GetType().FullName} n'a pas de delegate {handler_field}");
-            var eventInfo = (System.Reflection.FieldInfo)memberInfo.GetValue(0);
+            object? eventInfoO = memberInfo.GetValue(0);
+            if (eventInfoO == null)
+                return;
+            var eventInfo = (System.Reflection.FieldInfo)eventInfoO;
 
             var miHandler = consumer_type.GetMethod(consumer_method);
             if (miHandler == null)
@@ -34,10 +41,14 @@ namespace MED
         public static void RemoveHandler(IProvider handler_obj, string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
         {
             //TODO
-            var memberInfo = handler_obj.GetType().GetMember(handler_field);
-            if (memberInfo == null)
+            object? memberInfoO = handler_obj.GetType().GetMember(handler_field);
+            if (memberInfoO == null)
                 throw new Exception($"Le type {handler_obj.GetType().FullName} n'a pas de delegate {handler_field}");
+            var memberInfo = (System.Reflection.FieldInfo)memberInfoO;
+
             var eventInfo = (System.Reflection.FieldInfo)memberInfo.GetValue(0);
+            if (eventInfo == null)
+                throw new Exception($"Le type {handler_obj.GetType().FullName} n'a pas de delegate {handler_field}");
 
 
             var miHandler = consumer_type.GetMethod(consumer_method);
