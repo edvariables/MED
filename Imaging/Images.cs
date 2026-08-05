@@ -161,7 +161,6 @@ namespace MED.Imaging
 
             image = new Bitmap(size.Width, size.Height);
 
-            Point Position = new Point(0, 0);
             Graphics graphics = Graphics.FromImage(image);
 
             MoveItems();
@@ -177,80 +176,95 @@ namespace MED.Imaging
                 if (item is not IImageProvider)
                     continue;
 
-                Bitmap? imageSrc = ((IImageProvider)item).Image;
-                if (imageSrc != null)
+                try
                 {
-                    var clipRegion = ((IImageProvider)item).ClipRegion;
-
-                    var location = ((IImageProvider)item).Location;
-
-                    var rotation = ((IImageProvider)item).Rotation;
-
-                    if (clipRegion != null)
-                    {
-                        if (!location.IsEmpty)
-                        {
-                            clipRegion = clipRegion.Clone();
-                        }
-
-                        if (rotation != 0F)
-                        {
-                            graphics.TranslateTransform(Position.X + location.X + imageSrc.Width / 2, Position.Y + location.Y + imageSrc.Height / 2);
-                            //rotate
-                            graphics.RotateTransform(rotation, MatrixOrder.Prepend);
-
-                            clipRegion.Translate(-imageSrc.Width / 2, -imageSrc.Height / 2);
-                            graphics.SetClip(clipRegion, CombineMode.Replace);
-
-                            graphics.DrawImageUnscaled(imageSrc, -imageSrc.Width / 2, -imageSrc.Height / 2/*, imageSrc.Width, imageSrc.Height*/);
-
-                            graphics.ResetTransform();
-                        }
-                        else
-                        {
-                            if (!location.IsEmpty)
-                                clipRegion.Translate(location.X, location.Y);
-                            graphics.SetClip(clipRegion, CombineMode.Replace);
-                            if (location.IsEmpty && imageSrc.Size != size && ((IImageProvider)item).ImageSizeMin.IsEmpty)
-                                graphics.DrawImage(imageSrc, 0, 0, size.Width, size.Height);
-                            else
-                                graphics.DrawImageUnscaled(imageSrc, 0, 0);
-                            //var bounds = clipRegion.GetBounds(graphics);
-                        }
-                        graphics.ResetClip();
-
-                        //DEBUG
-                        if (true && item is IImageMover)
-                        {
-                            var font = new Font(FontFamily.GenericMonospace, 8F);
-                            var brush = new SolidBrush(SystemColors.WindowText);
-                            graphics.DrawString(((IImageMover)item).Speed.ToString("#.##"), font, brush, location.X, location.Y + imageSrc.Height);
-                        }
-                    }
-                    else
-                    {
-
-                        if (rotation != 0F)
-                        {
-                            graphics.TranslateTransform(Position.X + location.X + imageSrc.Width / 2, Position.Y + location.Y + imageSrc.Height / 2);
-                            //rotate
-                            graphics.RotateTransform(rotation, MatrixOrder.Prepend);
-                            graphics.DrawImage(imageSrc, -imageSrc.Width / 2, -imageSrc.Height / 2/*, imageSrc.Width, imageSrc.Height*/);
-                            //move image back
-                            //graphics.TranslateTransform(-(float)imageSrc.Width / 2, -(float)imageSrc.Height / 2);
-                            graphics.ResetTransform();
-                        }
-                        else
-                        {
-                            graphics.DrawImage(imageSrc, Position.X + location.X, Position.Y + location.Y, imageSrc.Width, imageSrc.Height);
-                        }
-                    }
+                    AppendImage(graphics, size, (IImageProvider)item);
                 }
+                catch(Exception ex)
+                {
+                    Performance.Error($"AppendImage Image {item}", ex);
+                }
+
                 nProvider++;
             }
             graphics.Dispose();
             Performance.Pause($"Get Image done => " + (image == null ? "<null>" : "Bitmap"));
             return image;
+        }
+
+        /**
+         * Append item image to global one
+         * 
+         * */
+        private void AppendImage(Graphics graphics, Size size, IImageProvider item)
+        {
+            Bitmap? imageSrc = item.Image;
+            if (imageSrc != null)
+            {
+                var clipRegion = item.ClipRegion;
+
+                var location = item.Location;
+
+                var rotation = item.Rotation;
+
+                if (clipRegion != null)
+                {
+                    if (rotation != 0F)
+                    {
+                        graphics.TranslateTransform(location.X + imageSrc.Width / 2, location.Y + imageSrc.Height / 2);
+                        //rotate
+                        graphics.RotateTransform(rotation, MatrixOrder.Prepend);
+
+                        clipRegion = clipRegion.Clone();
+
+                        clipRegion.Translate(-imageSrc.Width / 2, -imageSrc.Height / 2);
+
+                        graphics.SetClip(clipRegion, CombineMode.Replace);
+
+                        graphics.DrawImageUnscaled(imageSrc, -imageSrc.Width / 2, -imageSrc.Height / 2/*, imageSrc.Width, imageSrc.Height*/);
+                    }
+                    else
+                    {
+                        if (!location.IsEmpty)
+                            graphics.TranslateTransform(location.X, location.Y); //clipRegion.Translate(location.X, location.Y);
+
+                        graphics.SetClip(clipRegion, CombineMode.Replace);
+
+                        if (location.IsEmpty && imageSrc.Size != size && item.ImageSizeMin.IsEmpty)
+                            graphics.DrawImage(imageSrc, 0, 0, size.Width, size.Height);
+                        else
+                            graphics.DrawImageUnscaled(imageSrc, 0, 0);
+                    }
+                    graphics.ResetTransform();
+                    graphics.ResetClip();
+
+                    //DEBUG
+                    if (true && item is IImageMover && !location.IsEmpty)
+                    {
+                        var font = new Font(FontFamily.GenericMonospace, 8F);
+                        var brush = new SolidBrush(SystemColors.WindowText);
+                        graphics.DrawString(((IImageMover)item).Speed.ToString("#.##"), font, brush, location.X, location.Y + imageSrc.Height);
+                    }
+                }
+                else
+                {
+
+                    if (rotation != 0F)
+                    {
+                        graphics.TranslateTransform(location.X + imageSrc.Width / 2, location.Y + imageSrc.Height / 2);
+                        //rotate
+                        graphics.RotateTransform(rotation, MatrixOrder.Prepend);
+                        //draw
+                        graphics.DrawImage(imageSrc, -imageSrc.Width / 2, -imageSrc.Height / 2/*, imageSrc.Width, imageSrc.Height*/);
+                        
+                        graphics.ResetTransform();
+                    }
+                    else
+                    {
+                        graphics.DrawImage(imageSrc, location.X, location.Y, imageSrc.Width, imageSrc.Height);
+                    }
+                }
+            }
         }
 
         //Move items

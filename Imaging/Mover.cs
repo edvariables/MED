@@ -60,6 +60,8 @@ namespace MED.Imaging
             }
             set
             {
+                if (float.IsNaN(value.X))
+                    return;
                 _ClipRegionTranslated = null;
                 base.Location = value;
             }
@@ -88,7 +90,7 @@ namespace MED.Imaging
             get
             {
                 if (_LocationVector.Equals(Vector2.Zero))
-                    return _LocationVector = new Vector2(base.Location.X, base.Location.Y);
+                    return _LocationVector = base.Location.ToVector2();
                 return _LocationVector;
             }
             private set { _LocationVector = value; }
@@ -123,7 +125,7 @@ namespace MED.Imaging
             get
             {
                 if (_DirectionVector.Equals(Vector2.Zero))
-                    return _DirectionVector = new Vector2(Direction.X, Direction.Y);
+                    return _DirectionVector = Direction.ToVector2();
                 return _DirectionVector;
             }
             private set
@@ -156,7 +158,7 @@ namespace MED.Imaging
             get
             {
                 if (_VelocityVector.Equals(Vector2.Zero))
-                    return _VelocityVector = new Vector2(Velocity.X, Velocity.Y);
+                    return _VelocityVector = Velocity.ToVector2();
                 return _VelocityVector;
             }
             private set { _VelocityVector = value; }

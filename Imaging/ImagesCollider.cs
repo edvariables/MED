@@ -233,7 +233,16 @@ namespace MED.Imaging
             var item2partialRegion = item2.ClipRegionTranslated?.Clone();
             if (item2partialRegion == null
                 || !exploreItem2Source)
-                return [intersectBoundsCenter, intersectBoundsCenter];
+                if (intersectBounds.Width > intersectBounds.Height)
+                    return new PointF[] { new PointF(intersectBounds.X, intersectBounds.Y+ intersectBounds.Height/2)
+                                    , new PointF(intersectBounds.Right, intersectBounds.Y+ intersectBounds.Height/2) };
+                else if (intersectBounds.Height > intersectBounds.Width)
+                    return new PointF[] { new PointF(intersectBounds.X+intersectBounds.Width/2, intersectBounds.Y)
+                                    , new PointF(intersectBounds.X+intersectBounds.Height/2, intersectBounds.Bottom) };
+                else
+                    return new PointF[] { new PointF(intersectBounds.X, intersectBounds.Y)
+                                    , new PointF(intersectBounds.Right, intersectBounds.Bottom) };
+
             //Part of item2 in intersectBounds
             item2partialRegion.Intersect(intersectBounds);
             bounds = item2partialRegion.GetBounds(gr);
@@ -341,6 +350,11 @@ namespace MED.Imaging
 
             //location.X += item.Velocity.X;
             //location.Y += item.Velocity.Y;
+            if (float.IsNaN(location.X))
+            {
+                item.Performance?.Error("location.X IsNaN !");
+                return false;
+            }
 
             item.Location = location;
 
