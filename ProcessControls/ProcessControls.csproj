@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>MED</RootNamespace>
+    <AssemblyName>MED.$(MSBuildProjectName)</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Core\Core.csproj" />
+    <ProjectReference Include="..\EDJoystick\EDJoystick.csproj" />
+    <ProjectReference Include="..\Imaging\Imaging.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="ProcessesControl.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="PropertiesControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+  </ItemGroup>
+
+</Project>

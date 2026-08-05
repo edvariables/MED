@@ -16,7 +16,7 @@ namespace MED.Imaging
 {
     public class Render : ImageProcess
     {
-        public Render(string name = "Render", Performance performance = null, Control invokeHandler = null, IImageConsumer imageConsumer = null, bool isAsynchrone = false)
+        public Render(string name = "Render", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = false)
             : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
         {
             ProcessIcon = ProcessIconDefault = "drive";
@@ -29,7 +29,7 @@ namespace MED.Imaging
                 RenderImageControl = (PictureBox)invokeHandler;
 
             if (imageConsumer == null)
-                RenderImageControl = (Control)invokeHandler;
+                RenderImageControl = (Control?)invokeHandler;
         }
 
         #region Settings
@@ -68,7 +68,7 @@ namespace MED.Imaging
             ProcessState = System.Threading.ThreadState.Running;
         }
 
-        public Control RenderImageControl { get; set; }
+        public Control? RenderImageControl { get; set; }
 
         /**
          * Image
@@ -86,7 +86,7 @@ namespace MED.Imaging
             }
             catch(Exception ex)
             {
-                Performance.Error("ImageChanged", ex);
+                Performance?.Error("ImageChanged", ex);
             }
         }
 

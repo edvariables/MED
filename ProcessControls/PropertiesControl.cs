@@ -25,19 +25,20 @@ namespace MED
         Dictionary<string, string> ProcessClasses = new();
         private void InitProcessClasses()
         {
-            ProcessClasses.Add("Render", "MED.Imaging.Render");
-            ProcessClasses.Add("ScreenSplitter", "MED.Imaging.ScreenSplitter");
-            ProcessClasses.Add("Project", "MED.Processes");
-            ProcessClasses.Add("Images", "MED.Imaging.Images");
-            ProcessClasses.Add("EmguMoving", "MED.Imaging.EmguMoving");
-            ProcessClasses.Add("EDVideoCapture", "MED.Imaging.EDVideoCapture");
-            ProcessClasses.Add("Background", "MED.Imaging.Background");
-            ProcessClasses.Add("(Autre...)", "");
+            ProcessClasses.Add("Render", typeof(MED.Imaging.Render).FullName ?? "");
+            ProcessClasses.Add("ScreenSplitter", typeof(MED.Imaging.ScreenSplitter).FullName ?? "");
+            ProcessClasses.Add("Project", typeof(MED.Processes).FullName ?? "");
+            ProcessClasses.Add("Images", typeof(MED.Imaging.Images).FullName ?? "");
+            ProcessClasses.Add("Collider", typeof(MED.Imaging.Mover).FullName ?? "");
+            ProcessClasses.Add("EmguMoving", typeof(MED.Imaging.EmguMoving).FullName ?? "");
+            ProcessClasses.Add("VideoCapture", typeof(MED.Imaging.EDVideoCapture).FullName ?? "");
+            ProcessClasses.Add("Background", typeof(MED.Imaging.Background).FullName ?? "");
+            ProcessClasses.Add("ImageSourced", typeof(MED.Imaging.ImageSourced).FullName ?? "");
 
             toolStripCboProcAddClasses.Items.Clear();
             foreach (var proc in ProcessClasses)
             {
-                toolStripCboProcAddClasses.Items.Add(proc.Key);
+                var item = toolStripCboProcAddClasses.Items.Add(proc.Key);
             }
         }
 
@@ -80,19 +81,22 @@ namespace MED
         /**
          * 
          */
-        private void ShowNodeProperties(object node)
+        private void ShowNodeProperties(object? node)
         {
+            if (node == null)
+                return;
+
             if (node is TreeNode)
-                node = (node as TreeNode).Tag;
+                node = ((TreeNode)node).Tag;
 
             object currentObject = propertyGrid.SelectedObject;
             cboObjectsList.Items.Clear();
             if (node == null)
                 return;
             if (node is IProcess)
-                cboObjectsList.Items.AddRange((node as IProcess).ObjectsProperties.Values.ToArray());
+                cboObjectsList.Items.AddRange(((IProcess)node).ObjectsProperties.Values.ToArray());
 
-            if(!cboObjectsList.Items.Contains(node))
+            if (!cboObjectsList.Items.Contains(node))
                 cboObjectsList.Items.Insert(0, node);
 
             if (cboObjectsList.Items.Count > 0)

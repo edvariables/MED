@@ -2,9 +2,10 @@
 using DynamicData;
 using Emgu.CV;
 using MED.Core;
-using MED.Imaging;
 using MED.EDJoystick;
 using MED.EDWebCam;
+using MED.Imaging;
+using MED.Properties;
 using Microsoft.Win32;
 using MotionDetectionWinFormsApp;
 using System;
@@ -19,6 +20,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Xml.Linq;
 
 namespace MED
 {
@@ -44,8 +46,6 @@ namespace MED
         {
             LoadSettings();
 
-            Init_ProcessorTypes();//TODO suppr
-
             LoadChilds();
 
             LoadLastProcess();
@@ -68,7 +68,7 @@ namespace MED
             }
         }
 
-        public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
+        public override void LoadSettings(ProcessSettings? settings = null, string fileName = "")
         {
             base.LoadSettings(settings, fileName);
 
@@ -82,6 +82,8 @@ namespace MED
             this.Size = (Size)v;
 
             EnsureFormLocationAndSize();
+
+            LoadFavorites(settingsSection);
 
             this.WindowState = Enum.Parse<FormWindowState>(Core.Settings.GetValue("WindowState", settingsSection, this.WindowState).ToString());
         }
@@ -103,10 +105,37 @@ namespace MED
             else
                 Core.Settings.SetValue("ActiveProcess", settingsSection, "");
 
+            SaveFavorites(settingsSection);
 
-            FLogger.Current.SaveSettings();
+            FLogger.Current?.SaveSettings();
 
             Core.Settings.Save();
+        }
+
+        protected void SaveFavorites(string settingsSection)
+        {
+            StringBuilder favorites = new();
+            foreach (var item in toolStrip.Items)
+                if (item is ToolStripButton
+                    && ((ToolStripButton)item).Name.StartsWith("btnFavorite["))
+                {
+                    if (favorites.Length > 0)
+                        favorites.Append(';');
+                    favorites.Append(((ToolStripButton)item).Tag?.ToString());
+                }
+            Core.Settings.SetValue("Favorites", settingsSection, favorites.ToString());
+        }
+
+        protected void LoadFavorites(string settingsSection)
+        {
+            var v = Core.Settings.GetValue("Favorites", settingsSection, "");
+            if (v == null)
+                return;
+
+            string favorites = (string)v;
+            foreach (var fileName in favorites.Split(";"))
+                if (fileName != "" && File.Exists(fileName))
+                    CreateProcessFavorite(fileName, Path.GetFileNameWithoutExtension(fileName), "Process");
         }
 
         private void EnsureFormLocationAndSize()
@@ -114,6 +143,8 @@ namespace MED
             var screen = Screen.FromHandle(this.Handle);
             if (screen == null)
                 screen = Screen.PrimaryScreen;
+            if (screen == null)
+                return;
             if (this.Width >= screen.WorkingArea.Width)
                 this.Width = screen.WorkingArea.Width;
             if (this.Height >= screen.WorkingArea.Height)
@@ -140,10 +171,13 @@ namespace MED
             f.Dock = DockStyle.Right;
 
             FProperties.Current.Show();
-            FLogger.Current.Show();
 
+            if (FLogger.Current != null)
+            {
+                FLogger.Current.Show();
+                FLogger.Current.SizeChanged += FormChild_SizeChanged;
+            }
             FProperties.Current.SizeChanged += FormChild_SizeChanged;
-            FLogger.Current.SizeChanged += FormChild_SizeChanged;
 
             FProperties.Current.ShowProperties((object[])[this.Project]);
         }
@@ -178,7 +212,7 @@ namespace MED
         /**
          * 
          * */
-        private ProcessForm GetNewProcessForm(string fileName = "", ProcessForm processForm = null)
+        private ProcessForm GetNewProcessForm(string? fileName = null, ProcessForm? processForm = null)
         {
             if (processForm == null)
                 processForm = new("Projet " + childFormNumber++);
@@ -186,9 +220,9 @@ namespace MED
             processForm.OnProcessStateChanged += ProcessStateChanged;
             processForm.Activated += ProcessForm_Activated;
 
-            processForm.Logger = FLogger.Current.Logger;
+            processForm.Logger = FLogger.Current?.Logger;
 
-            PictureBox pictureBox = null;
+            PictureBox? pictureBox = null;
 
             if (processForm.GetType() == typeof(ProcessForm) || processForm.Processes.Count == 0)
             {
@@ -206,7 +240,7 @@ namespace MED
                 pictureBox.Dock = DockStyle.Fill;
                 processForm.Controls.Add(pictureBox);
             }
-            if (fileName != "")
+            if (!string.IsNullOrEmpty(fileName))
             {
                 processForm.LoadSettings(null, fileName);
                 processForm.Text = processForm.Name = processForm.Project.Name;
@@ -215,14 +249,14 @@ namespace MED
             {
                 var render = new Render(
                     "Render"
-                    , new Performance("Render", FLogger.Current.Logger)
+                    , new Performance("Render", FLogger.Current?.Logger)
                     , pictureBox
                 );
                 processForm.Processes.Add(render);
 
                 var videoCapture = new EDVideoCapture(
                     "VideoCapture"
-                    , new Performance("VideoCapture", FLogger.Current.Logger)
+                    , new Performance("VideoCapture", FLogger.Current?.Logger)
                     , processForm
                     , (IImageConsumer)processForm.Processes.Last()
                 );
@@ -248,10 +282,10 @@ namespace MED
             if (processForm.Processes.Count > 0 && processForm.Processes.First() is ImageProcess)
             {
                 if (processForm.Processes.First() is Render)
-                    (processForm.Processes.First() as Render).RenderImageControl = pictureBox;
+                    ((Render)processForm.Processes.First()).RenderImageControl = pictureBox;
                 else
-                    (processForm.Processes.First() as ImageProcess).InvokeHandler = pictureBox;
-                (processForm.Processes.First() as ImageProcess).OnImageChanged += ProcessForm_ImageChanged;
+                    ((ImageProcess)processForm.Processes.First()).InvokeHandler = pictureBox;
+                ((ImageProcess)processForm.Processes.First()).OnImageChanged += ProcessForm_ImageChanged;
             }
 
             Processes.Add(processForm);
@@ -261,7 +295,7 @@ namespace MED
 
             return processForm;
         }
-        private void ProcessForm_Activated(object sender, EventArgs e)
+        private void ProcessForm_Activated(object? sender, EventArgs e)
         {
             var activeProcess = ActiveProcessForm;
         }
@@ -270,17 +304,20 @@ namespace MED
          * */
         private void ProcessForm_ImageChanged(IImageProvider sender, EventArgs e)
         {
-            if (this.Disposing || this.IsDisposed)
+            if (this.Disposing || this.IsDisposed || FLogger.Current == null)
                 return;
             try
             {
                 FLogger.Current.RefreshProgress((ImageProcess)sender);
 
-                FLogger.Current.ProgressMessage = $"{(sender as Process).Name} [{(sender as Process).Performance.Counter}]";
+                FLogger.Current.ProgressMessage = $"{((Process)sender).Name} [{((Process)sender).Performance?.Counter}]";
+
+                if (btnProcessStartOneStep.Checked)
+                    btnProcessPause_Click(sender, e);
             }
             catch (Exception ex)
             {
-                Performance.Error("ProcessForm_ImageChanged", ex);
+                Performance?.Error("ProcessForm_ImageChanged", ex);
             }
         }
 
@@ -339,63 +376,79 @@ namespace MED
                 {
                     ActiveProcess.SaveSettings(null, fileName);
 
-                    ActiveProcess.ProcessSettings.FileName = fileName;
+                    if (ActiveProcess.ProcessSettings != null)
+                        ActiveProcess.ProcessSettings.FileName = fileName;
                 }
             }
-        }
-        private void btnWebCam_Click(object sender, EventArgs e)
-        {
-            ProcessForm form = GetProcessorForm(typeof(FWebCam));
-            form.Activate();
-        }
-
-        private void btnJoystick_Click(object sender, EventArgs e)
-        {
-            ProcessForm form = GetProcessorForm(typeof(FJoystick));
-            form.Activate();
         }
 
 
         #region Processes
-        public List<Type> ProcessorTypes;
-        void Init_ProcessorTypes()
+
+        private void toolStripBtnAddToFavorites_Click(object sender, EventArgs e) => AddProcessToFavorites();
+
+        private void AddProcessToFavorites()
         {
-            ProcessorTypes = new();
-            ProcessorTypes.Add(typeof(FWebCam));
-            ProcessorTypes.Add(typeof(FJoystick));
+            var processForm = ActiveProcessForm;
+            if (processForm == null)
+                return;
+            if (String.IsNullOrEmpty(ActiveProcessForm.ProcessSettings?.FileName))
+                return;
+
+            CreateProcessFavorite(ActiveProcessForm.ProcessSettings.FileName, ActiveProcessForm.Name, processForm.ProcessIcon);
         }
-        public List<IProcess> Processors = new();
-        public void CleanProcessors()
+        private void CreateProcessFavorite(string fileName, string name, string processIcon)
         {
-            foreach (var proc in Processors.ToArray())
+            ToolStripButton btnFavorite = new ToolStripButton();
+            btnFavorite.Image = MEDIcon.GetImage(processIcon);
+            btnFavorite.Name = $"btnFavorite[{name}]";
+            btnFavorite.Tag = fileName;
+            btnFavorite.Size = new Size(76, 22);
+            btnFavorite.Text = name;
+            btnFavorite.AutoSize = true;
+            btnFavorite.Click += BtnFavorite_Click;
+
+            toolStrip.Items.Add(btnFavorite);
+        }
+
+        private void BtnFavorite_Click(object? sender, EventArgs e)
+        {
+            if (sender == null)
+                return;
+            string? fileName = (string?)((ToolStripButton)sender).Tag;
+            ProcessForm? processForm = null;
+            foreach (Form form in MdiChildren)
             {
-                if (proc is ProcessForm && (proc as ProcessForm).IsDisposed)
-                    Processors.Remove(proc);
-                else if (proc is Process && (proc as Process).IsDisposed)
-                    Processors.Remove(proc);
+                if (form is ProcessForm
+                && ((ProcessForm)form).ProcessSettings != null
+                && ((ProcessForm)form).ProcessSettings.FileName == fileName)
+                {
+                    processForm = (ProcessForm)form;
+                    break;
+                }
             }
+            if (processForm != null)
+            {
+                if (!processForm.Visible)
+                    processForm.Visible = true;
+                if (processForm.WindowState == FormWindowState.Minimized)
+                    processForm.WindowState = FormWindowState.Normal;
+                processForm.BringToFront();
+                processForm.Show();
+                return;
+            }
+
+            GetNewProcessForm(fileName);
         }
+
         public ProcessForm GetProcessorForm(Type type)
         {
-            CleanProcessors();
-
-            //Existing
-            foreach (var proc in Processors)
-            {
-                if (proc.GetType().Equals(type))
-                    if (proc is ProcessForm)
-                        return (ProcessForm)proc;
-                    else
-                        throw new Exception($"{type.Name} is not a ProcessForm type");
-            }
-
             //CreateInstance
             try
             {
                 IProcess proc = (IProcess)Activator.CreateInstance(type);
                 if (proc is ProcessForm)
                 {
-                    Processors.Add(proc);
 
                     ProcessForm form = (ProcessForm)proc;
 
@@ -457,9 +510,7 @@ namespace MED
                 _active_Process = value;
                 if (_active_Process != null)
                     if (_active_Process is Form)
-#pragma warning disable CS8602 // Déréférencement d'une éventuelle référence null.
-                        (_active_Process as Form).Activate();
-#pragma warning restore CS8602 // Déréférencement d'une éventuelle référence null.
+                        ((Form)_active_Process).Activate();
                 ActiveProcessChanged(_active_Process);
             }
         }
@@ -514,15 +565,35 @@ namespace MED
             if (ProcessForm.FindProcessForm(sender) == ActiveProcess)
                 ActiveProcessChanged(sender, state);
             if (state == System.Threading.ThreadState.Running)
-                FLogger.Current.Start();
+                FLogger.Current?.Start();
             else if (state == System.Threading.ThreadState.Stopped)
-                FLogger.Current.Stop();
+            {
+                FLogger.Current?.Stop();
+                btnProcessStartOneStep.Checked = false;
+            }
         }
         #endregion
 
         #region Process
         private void btnProcessStart_Click(object sender, EventArgs e)
         {
+            btnProcessStartOneStep.Checked = false;
+            var p = ActiveProcess;
+            if (p != null)
+                p.Start();
+            else
+                MessageBox.Show("Aucun process actif. Sélectionnez une fenêtre.");
+            ActiveProcessChanged(p);
+        }
+
+        private void btnProcessStartOneStep_Click(object sender, EventArgs e)
+        {
+            if (btnProcessStartOneStep.Checked)
+            {
+                btnProcessStartOneStep.Checked = false;
+                return;
+            }
+            btnProcessStartOneStep.Checked = true;
             var p = ActiveProcess;
             if (p != null)
                 p.Start();

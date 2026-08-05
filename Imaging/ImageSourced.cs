@@ -139,46 +139,7 @@ namespace MED.Imaging
 
             base.Start();
 
-            ProcessState = System.Threading.ThreadState.Running;
-            if (FPSMax > 0)
-            {
-                Thread thread = new(Ticker);
-                thread.Start();
-            }
-        }
-        private void Ticker()
-        {
-            int sleep = 0;
-            while (IsRunning)
-            {
-                if (IsDisposed || Disposing)
-                {
-                    Stop();
-                    return;
-                }
-                if (ProcessState == ThreadState.Suspended)
-                {
-                    Thread.Sleep(100);
-                    continue;
-                }
-
-                Performance?.Resume($"------------------Tick. Sleep : {sleep}", true);//increment
-
-                ImageChanged(this, EventArgs.Empty);
-
-                if (IsDisposed || Disposing)
-                {
-                    Stop();
-                    return;
-                }
-
-                if (Performance.Average_msec < FPSMaxDuration)
-                    sleep += 5;
-                else if (sleep > 0)
-                    sleep -= 5;
-                if (sleep > 0)
-                    Thread.Sleep(sleep);
-            }
+            ProcessState = ThreadState.Running;
         }
         #endregion
     }

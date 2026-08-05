@@ -1,4 +1,5 @@
 ﻿using DirectShowLib.DES;
+using Emgu.CV;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -23,7 +24,7 @@ namespace MED.Imaging
          * 
          * */
         List<IImageCollidable>? _Colliders;
-        public List<IImageCollidable> Colliders
+        public List<IImageCollidable>? Colliders
         {
             get
             {
@@ -62,7 +63,7 @@ namespace MED.Imaging
          * ColliderBorders
          * 
          * */
-        public List<IImageCollidable> ManageBorders(Bitmap image, Graphics gr)
+        public List<IImageCollidable>? ManageBorders(Bitmap image, Graphics gr)
         {
             var colliders = Colliders;
             if (colliders == null || colliders.Count == 0) return colliders;
@@ -72,6 +73,8 @@ namespace MED.Imaging
             int nCollider = 0;
             foreach (var item in colliders)
             {
+                if (item.SpeedMax == 0F)
+                    continue;
                 var location = item.Location;
                 var direction = item.Direction;
                 var region = item.ClipRegionTranslated;
@@ -143,9 +146,10 @@ namespace MED.Imaging
             Process.Performance?.Sub(".Collider").Resume($"{colliders.Count} colliders", true);
 
             Dictionary<IImageCollidable, Region> someChanges = new();
-            var i1 = 0;
-            foreach (IImageCollidable item1 in colliders)
+            for (var i1 = 0; i1 < colliders.Count - 1; i1++)
             {
+                var item1 = colliders.ElementAt(i1);
+
                 var region1 = item1.ClipRegionTranslated;
                 if (region1 == null)
                     continue;
@@ -185,18 +189,165 @@ namespace MED.Imaging
 
                     }
                 }
-
-                i1++;
             }
             Process.Performance?.Sub(".Collider").Pause($"Collider done {colliders.Count}");
 
             return someChanges;
         }
 
-        //private Vector2 IntersectVector(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, IImageCollidable item, Region region, IImageCollidable item2)
-        //{
-        //}
+        private PointF[] GetRegionStartAndEnd(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, IImageCollidable item, Region region, IImageCollidable item2, bool exploreItem2Source = true)
+        {
+            if (intersectBounds.Width > intersectBounds.Height * 2)
+            {
+                return new PointF[] { new PointF(intersectBounds.X, intersectBounds.Y+ intersectBounds.Height/2)
+                                    , new PointF(intersectBounds.Right, intersectBounds.Y+ intersectBounds.Height/2) };
+            }
+            if (intersectBounds.Height > intersectBounds.Width * 2)
+            {
+                return new PointF[] { new PointF(intersectBounds.X+intersectBounds.Width/2, intersectBounds.Y)
+                                    , new PointF(intersectBounds.X+intersectBounds.Height/2, intersectBounds.Bottom) };
+            }
+            //Rotate 45
+            var rotateRegion = region.Clone();
+            var matrix = new Matrix();
+            matrix.RotateAt(45, intersectBoundsCenter);
+            rotateRegion.Transform(matrix);
+            var bounds = rotateRegion.GetBounds(gr);
+
+            if (bounds.Width > bounds.Height * 2)
+            {
+                float delta = (1F - (float)Math.Cos(Math.PI / 4)) * bounds.Width;
+
+                return new PointF[] { new PointF(bounds.X-delta, bounds.Y+ bounds.Height/2-delta)
+                                    , new PointF(bounds.Right - delta, bounds.Y + bounds.Height / 2 - delta) };
+            }
+            if (bounds.Height > bounds.Width * 2)
+            {
+                float delta = (1F - (float)Math.Cos(Math.PI / 4)) * bounds.Width;
+
+                return new PointF[] { new PointF(bounds.X+bounds.Width/2-delta, bounds.Y-delta)
+                                    , new PointF(bounds.X+bounds.Height/2-delta, bounds.Bottom-delta) };
+            }
+
+            //Still rectangular
+            var item2partialRegion = item2.ClipRegionTranslated?.Clone();
+            if (item2partialRegion == null
+                || !exploreItem2Source)
+                return [intersectBoundsCenter, intersectBoundsCenter];
+            //Part of item2 in intersectBounds
+            item2partialRegion.Intersect(intersectBounds);
+            bounds = item2partialRegion.GetBounds(gr);
+            var boundsCenter = new PointF((bounds.Right + bounds.Left) / 2, (bounds.Bottom + bounds.Top) / 2);
+
+            return GetRegionStartAndEnd(gr, bounds, boundsCenter, item, region, item2, false);
+        }
+
         private bool CollideItem(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, IImageCollidable item, Region region, IImageCollidable item2)
+        {
+            var location = item.Location;
+            if (location.IsEmpty)
+                return false;
+            if (item2.Speed == 0F)
+                return CollideMoverAndWall(gr, intersectBounds, intersectBoundsCenter, item, region, item2);
+            return CollideMovingItems(gr, intersectBounds, intersectBoundsCenter, item, region, item2);
+        }
+        private bool CollideMoverAndWall(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, IImageCollidable item, Region region, IImageCollidable item2)
+        {
+            var location = item.Location;
+            if (location.IsEmpty)
+                return false;
+
+            var itemBounds = region.GetBounds(gr);
+            var itemBoundsCenter = new PointF((itemBounds.Right + itemBounds.Left) / 2, (itemBounds.Bottom + itemBounds.Top) / 2);
+            PointF move = new(itemBoundsCenter.X - intersectBoundsCenter.X, itemBoundsCenter.Y - intersectBoundsCenter.Y);
+            if (move.IsEmpty)
+                return false;
+
+            var wallPoints = GetRegionStartAndEnd(gr, intersectBounds, intersectBoundsCenter, item, region, item2);
+            PointF wallStart = wallPoints[0];
+            PointF wallEnd = wallPoints[1];
+
+            #region Closest Point
+
+            // Vector representing the direction and length of the wall
+
+            //**Calculating the Dot Product for the Closest Point
+            // Vector from the start of the wall to the ball's centre
+            Vector2 vector_to_point = new(-move.X, -move.Y);
+
+            // Vector representing the direction and length of the wall
+            Vector2 line_vector = new(wallStart.X - wallEnd.X, wallEnd.Y - wallEnd.Y);
+
+            // Calculate the dot product between the two vectors
+            double dot_product_result = Vector2.Dot(vector_to_point, line_vector);
+
+            //**Normalising the Wall and Calculating the Parameter t
+            // Square of the wall's length for normalisation
+            double line_length_squared = line_vector.X * line_vector.X + line_vector.Y * line_vector.Y;
+            // Calculate the normalised parameter 't' for the closest point along the wall
+            float t = (float)(dot_product_result / line_length_squared);
+
+            //**Clamping t to Constrain the Closest Point Within Wall Bounds
+            // Clamp 't' to ensure the closest point remains within the wall's bounds
+            t = Math.Max(0, Math.Min(1, t));
+
+            // Return the coordinates of the closest point on the wall
+            PointF closest = new(wallStart.X + line_vector.X * t, wallStart.Y + line_vector.Y * t);
+            #endregion
+
+            #region Detecting Ball and Wall Overlap
+
+            float dx = itemBoundsCenter.X - closest.X;
+            float dy = itemBoundsCenter.Y - closest.Y;
+            float distance_squared = dx * dx + dy * dy;  // Using squared distance to avoid unnecessary square root calculations
+            float radius_sum = itemBounds.Width / 2 /*+ w.radius*/;  // The combined radius of the ball and the wall's thickness
+            var overlapping = distance_squared <= radius_sum * radius_sum;   // True if overlapping
+
+            #endregion
+
+            #region Resolving Ball and Wall Collision
+
+            //Normal
+            Vector2 collision_normal = new(closest.X - itemBoundsCenter.X, closest.Y - itemBoundsCenter.Y);
+            collision_normal = Vector2.Normalize(collision_normal);
+
+            //Determine the Penetration Depth
+            float distance = (float)Math.Sqrt(dx * dx + dy * dy);   // The actual distance between the ball's center and the closest point
+            float penetration = radius_sum - distance;
+
+            //Push the Ball Out of the Wall
+            if (penetration > 0)
+            {
+                location.X += collision_normal.X * penetration;
+                location.Y += collision_normal.Y * penetration;
+            }
+
+            #endregion
+
+            #region Reflect and Dampen the Velocity
+
+            float velocity_dot_normal = Vector2.Dot(item.VelocityVector, collision_normal);
+            Vector2 velocity_normal = collision_normal * velocity_dot_normal;
+            Vector2 velocity_tangent = item.VelocityVector - velocity_normal;
+
+            // Reverse and dampen the normal component of the velocity
+            // Damping factor is arbitrarily chosen as 0.6
+            var itemVelocity = velocity_tangent - velocity_normal * 1F;
+
+            #endregion
+
+            location.X += itemVelocity.X;
+            location.Y += itemVelocity.Y;
+
+            //location.X += item.Velocity.X;
+            //location.Y += item.Velocity.Y;
+
+            item.Location = location;
+
+            return true;
+        }
+
+        private bool CollideMovingItems(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, IImageCollidable item, Region region, IImageCollidable item2)
         {
             var location = item.Location;
             if (location.IsEmpty)
@@ -316,7 +467,7 @@ namespace MED.Imaging
                 //PointF contactPoint = intersectBoundsCenter;// start.x + line_vector.x * t, start.y + line_vector.y * t;
 
                 PointF closest = intersectBoundsCenter;
-                double dx =itemBoundsCenter.X - closest.X;
+                double dx = itemBoundsCenter.X - closest.X;
                 double dy = itemBoundsCenter.Y - closest.Y;
                 //double distance_squared = dx * dx + dy * dy;  // Using squared distance to avoid unnecessary square root calculations
                 //double radius_sum = itemBounds.Width + w.radius;  // The combined radius of the ball and the wall's thickness
@@ -331,14 +482,14 @@ namespace MED.Imaging
                 location.X -= penetration * ball_1_velocity.X;
                 location.Y -= penetration * ball_1_velocity.Y;
 
-                float velocity_dot_normal =(float)Vector2.Dot( ball_1_velocity ,collision_normal);
+                float velocity_dot_normal = (float)Vector2.Dot(ball_1_velocity, collision_normal);
 
                 Vector2 velocity_normal = collision_normal * velocity_dot_normal;
                 Vector2 velocity_tangent = ball_1_velocity - velocity_normal;
 
                 // Reverse and dampen the normal component of the velocity
                 // Damping factor is arbitrarily chosen as 0.6
-                ball_1_velocity = velocity_tangent -  velocity_normal* 0.6F;
+                ball_1_velocity = velocity_tangent - velocity_normal * 0.6F;
 
                 var direction = item.Direction = new PointF(ball_1_velocity.X, ball_1_velocity.Y);
 
@@ -354,23 +505,5 @@ namespace MED.Imaging
             return changed;
         }
 
-        public static Region? ClipRegionTranslated(Region? clipRegion, PointF location, float Rotation, Size imageSize)
-        {
-            if (clipRegion == null)
-                return null;
-            if (location.IsEmpty && Rotation == 0F)
-                return clipRegion;
-            clipRegion = clipRegion.Clone();
-            Matrix transformMatrix = new Matrix();
-            transformMatrix.Translate(location.X, location.Y);
-            if (Rotation != 0F)
-            {
-                transformMatrix.RotateAt(Rotation, new PointF(imageSize.Width / 2F, imageSize.Height / 2F));
-            }
-            //clipRegion.Translate(location.X, location.Y);
-            clipRegion.Transform(transformMatrix);
-
-            return clipRegion;
-        }
     }
 }

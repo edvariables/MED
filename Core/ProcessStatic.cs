@@ -44,9 +44,9 @@ namespace MED
             object? memberInfoO = handler_obj.GetType().GetMember(handler_field);
             if (memberInfoO == null)
                 throw new Exception($"Le type {handler_obj.GetType().FullName} n'a pas de delegate {handler_field}");
-            var memberInfo = (System.Reflection.FieldInfo)memberInfoO;
+            var memberInfos = (System.Reflection.MemberInfo[])memberInfoO;
 
-            var eventInfo = (System.Reflection.FieldInfo)memberInfo.GetValue(0);
+            var eventInfo = (System.Reflection.FieldInfo)memberInfos.GetValue(0);
             if (eventInfo == null)
                 throw new Exception($"Le type {handler_obj.GetType().FullName} n'a pas de delegate {handler_field}");
 
@@ -79,14 +79,14 @@ namespace MED
          * */
         public static IProcess CreateProcess(JsonNode node, Performance? performance, Control? invokeHandler)
         {
-            string processClass = node["ProcessClass"]?.GetValue<string>();
-            string processLib = node["ProcessLib"]?.GetValue<string>();
-            string name = node["Name"]?.GetValue<string>();
+            string? processClass = node["ProcessClass"]?.GetValue<string>();
+            string? processLib = node["ProcessLib"]?.GetValue<string>();
+            string? name = node["Name"]?.GetValue<string>();
             if(String.IsNullOrEmpty(name) && String.IsNullOrEmpty(processClass))
             {
                 throw new Exception($"Erreur dans la source JSON pour créer un process. Name et ProcessClass manquants. Chemin : {node.GetPath()}");
             }
-            bool isAsynchrone = (bool)Parser.ObjectFromJsonNode(node["IsAsynchrone"], false);
+            bool isAsynchrone = (bool)(Parser.ObjectFromJsonNode(node["IsAsynchrone"], false)??false);
 
             return CreateProcess(processClass, processLib, name, isAsynchrone, performance, invokeHandler);
         }
@@ -100,8 +100,9 @@ namespace MED
 
             if (processClass == "")
                 processClass = "MED.Process";
-
-            return (IProcess)AssemblyLoader.CreateObjectInstance(processLib, processClass, [name, performance.Sub(name), invokeHandler, null, isAsynchrone]);
+            if (processLib == null)
+                processLib = "";
+            return (IProcess)AssemblyLoader.CreateObjectInstance(processLib, processClass, [name, performance?.Sub(name), invokeHandler, null, isAsynchrone]);
         }
 
 
@@ -184,7 +185,8 @@ namespace MED
             {
                 if (IsInvokingPropertyChanged(process, delegateMethod))
                 {
-                    process.Performance.Alert($"(already)IsInvokingPropertyChanged {delegateMethod.Method.Name}");
+                    process.Performance?.Alert($"(already)IsInvokingPropertyChanged {delegateMethod.Method.Name}");
+                    process.Performance?.StackTrace("InvokePropertyChanged");
                     return;
                 }
                 try

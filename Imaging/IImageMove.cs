@@ -14,6 +14,8 @@ namespace MED.Imaging
      * */
     public interface IImageMover: IImageProvider
     {
+        void Move(long elapsedTime);
+
         System.Drawing.Region? ClipRegionTranslated { get; }
         Vector2 LocationVector { get; }
 

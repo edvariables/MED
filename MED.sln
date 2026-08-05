@@ -28,6 +28,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProcessControls", "ProcessControls\ProcessControls.csproj", "{637E51E0-D486-467B-A338-83BB9D61E875}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -116,6 +118,14 @@ Global
 		{243444BC-7531-A965-5C03-E93CC4611C7E}.Release|Any CPU.Build.0 = Release|Any CPU
 		{243444BC-7531-A965-5C03-E93CC4611C7E}.Release|x86.ActiveCfg = Release|x86
 		{243444BC-7531-A965-5C03-E93CC4611C7E}.Release|x86.Build.0 = Release|x86
+		{637E51E0-D486-467B-A338-83BB9D61E875}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{637E51E0-D486-467B-A338-83BB9D61E875}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{637E51E0-D486-467B-A338-83BB9D61E875}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{637E51E0-D486-467B-A338-83BB9D61E875}.Debug|x86.Build.0 = Debug|Any CPU
+		{637E51E0-D486-467B-A338-83BB9D61E875}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{637E51E0-D486-467B-A338-83BB9D61E875}.Release|Any CPU.Build.0 = Release|Any CPU
+		{637E51E0-D486-467B-A338-83BB9D61E875}.Release|x86.ActiveCfg = Release|Any CPU
+		{637E51E0-D486-467B-A338-83BB9D61E875}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

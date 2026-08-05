@@ -41,7 +41,7 @@ namespace MED.Core
                 return Assembly.GetExecutingAssembly().GetTypes().First().Namespace;
             }
         }
-        public const string ProcessFileExtension = ".med.json";
+        public const string ProcessFileExtension = ".medjson";
         public static readonly string MyProjectsDirectory;
 
         /**

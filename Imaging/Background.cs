@@ -111,6 +111,8 @@ namespace MED.Imaging
         }
         private void Ticker()
         {
+            Thread.Sleep(100);
+
             int sleep = 0;
             while (IsRunning)
             {

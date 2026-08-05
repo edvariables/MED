@@ -38,10 +38,6 @@
             saveToolStripMenuItem = new ToolStripMenuItem();
             saveAsToolStripMenuItem = new ToolStripMenuItem();
             toolStripSeparator4 = new ToolStripSeparator();
-            printToolStripMenuItem = new ToolStripMenuItem();
-            printPreviewToolStripMenuItem = new ToolStripMenuItem();
-            printSetupToolStripMenuItem = new ToolStripMenuItem();
-            toolStripSeparator5 = new ToolStripSeparator();
             exitToolStripMenuItem = new ToolStripMenuItem();
             editMenu = new ToolStripMenuItem();
             undoToolStripMenuItem = new ToolStripMenuItem();
@@ -75,20 +71,17 @@
             openToolStripButton = new ToolStripButton();
             saveToolStripButton = new ToolStripButton();
             toolStripSeparator1 = new ToolStripSeparator();
-            printToolStripButton = new ToolStripButton();
-            printPreviewToolStripButton = new ToolStripButton();
-            toolStripSeparator2 = new ToolStripSeparator();
             helpToolStripButton = new ToolStripButton();
             toolStripSeparator10 = new ToolStripSeparator();
             btnProcessStart = new ToolStripButton();
             btnProcessPause = new ToolStripButton();
             btnProcessStop = new ToolStripButton();
             toolStripSeparator9 = new ToolStripSeparator();
-            btnWebCam = new ToolStripButton();
-            btnJoystick = new ToolStripButton();
+            toolStripBtnAddToFavorites = new ToolStripButton();
             statusStrip = new StatusStrip();
             toolStripStatusLabel = new ToolStripStatusLabel();
             toolTip = new ToolTip(components);
+            btnProcessStartOneStep = new ToolStripButton();
             menuStrip.SuspendLayout();
             toolStrip.SuspendLayout();
             statusStrip.SuspendLayout();
@@ -107,7 +100,7 @@
             // 
             // fileMenu
             // 
-            fileMenu.DropDownItems.AddRange(new ToolStripItem[] { newToolStripMenuItem, openToolStripMenuItem, toolStripSeparator3, saveToolStripMenuItem, saveAsToolStripMenuItem, toolStripSeparator4, printToolStripMenuItem, printPreviewToolStripMenuItem, printSetupToolStripMenuItem, toolStripSeparator5, exitToolStripMenuItem });
+            fileMenu.DropDownItems.AddRange(new ToolStripItem[] { newToolStripMenuItem, openToolStripMenuItem, toolStripSeparator3, saveToolStripMenuItem, saveAsToolStripMenuItem, toolStripSeparator4, exitToolStripMenuItem });
             fileMenu.ImageTransparentColor = SystemColors.ActiveBorder;
             fileMenu.Name = "fileMenu";
             fileMenu.Size = new Size(54, 20);
@@ -119,7 +112,7 @@
             newToolStripMenuItem.ImageTransparentColor = Color.Black;
             newToolStripMenuItem.Name = "newToolStripMenuItem";
             newToolStripMenuItem.ShortcutKeys = Keys.Control | Keys.N;
-            newToolStripMenuItem.Size = new Size(231, 22);
+            newToolStripMenuItem.Size = new Size(170, 22);
             newToolStripMenuItem.Text = "&Nouveau";
             newToolStripMenuItem.Click += ShowNewForm;
             // 
@@ -129,14 +122,14 @@
             openToolStripMenuItem.ImageTransparentColor = Color.Black;
             openToolStripMenuItem.Name = "openToolStripMenuItem";
             openToolStripMenuItem.ShortcutKeys = Keys.Control | Keys.O;
-            openToolStripMenuItem.Size = new Size(231, 22);
+            openToolStripMenuItem.Size = new Size(170, 22);
             openToolStripMenuItem.Text = "&Ouvrir";
             openToolStripMenuItem.Click += OpenFile;
             // 
             // toolStripSeparator3
             // 
             toolStripSeparator3.Name = "toolStripSeparator3";
-            toolStripSeparator3.Size = new Size(228, 6);
+            toolStripSeparator3.Size = new Size(167, 6);
             // 
             // saveToolStripMenuItem
             // 
@@ -144,53 +137,25 @@
             saveToolStripMenuItem.ImageTransparentColor = Color.Black;
             saveToolStripMenuItem.Name = "saveToolStripMenuItem";
             saveToolStripMenuItem.ShortcutKeys = Keys.Control | Keys.S;
-            saveToolStripMenuItem.Size = new Size(231, 22);
+            saveToolStripMenuItem.Size = new Size(170, 22);
             saveToolStripMenuItem.Text = "&Enregistrer";
             // 
             // saveAsToolStripMenuItem
             // 
             saveAsToolStripMenuItem.Name = "saveAsToolStripMenuItem";
-            saveAsToolStripMenuItem.Size = new Size(231, 22);
+            saveAsToolStripMenuItem.Size = new Size(170, 22);
             saveAsToolStripMenuItem.Text = "Enregistrer &sous";
             saveAsToolStripMenuItem.Click += SaveAsToolStripMenuItem_Click;
             // 
             // toolStripSeparator4
             // 
             toolStripSeparator4.Name = "toolStripSeparator4";
-            toolStripSeparator4.Size = new Size(228, 6);
-            // 
-            // printToolStripMenuItem
-            // 
-            printToolStripMenuItem.Image = (Image)resources.GetObject("printToolStripMenuItem.Image");
-            printToolStripMenuItem.ImageTransparentColor = Color.Black;
-            printToolStripMenuItem.Name = "printToolStripMenuItem";
-            printToolStripMenuItem.ShortcutKeys = Keys.Control | Keys.P;
-            printToolStripMenuItem.Size = new Size(231, 22);
-            printToolStripMenuItem.Text = "&Imprimer";
-            // 
-            // printPreviewToolStripMenuItem
-            // 
-            printPreviewToolStripMenuItem.Image = (Image)resources.GetObject("printPreviewToolStripMenuItem.Image");
-            printPreviewToolStripMenuItem.ImageTransparentColor = Color.Black;
-            printPreviewToolStripMenuItem.Name = "printPreviewToolStripMenuItem";
-            printPreviewToolStripMenuItem.Size = new Size(231, 22);
-            printPreviewToolStripMenuItem.Text = "Aperçu a&vant impression";
-            // 
-            // printSetupToolStripMenuItem
-            // 
-            printSetupToolStripMenuItem.Name = "printSetupToolStripMenuItem";
-            printSetupToolStripMenuItem.Size = new Size(231, 22);
-            printSetupToolStripMenuItem.Text = "Configuration de l'impression";
-            // 
-            // toolStripSeparator5
-            // 
-            toolStripSeparator5.Name = "toolStripSeparator5";
-            toolStripSeparator5.Size = new Size(228, 6);
+            toolStripSeparator4.Size = new Size(167, 6);
             // 
             // exitToolStripMenuItem
             // 
             exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            exitToolStripMenuItem.Size = new Size(231, 22);
+            exitToolStripMenuItem.Size = new Size(170, 22);
             exitToolStripMenuItem.Text = "&Quitter";
             exitToolStripMenuItem.Click += ExitToolsStripMenuItem_Click;
             // 
@@ -398,7 +363,7 @@
             // 
             // toolStrip
             // 
-            toolStrip.Items.AddRange(new ToolStripItem[] { newToolStripButton, openToolStripButton, saveToolStripButton, toolStripSeparator1, printToolStripButton, printPreviewToolStripButton, toolStripSeparator2, helpToolStripButton, toolStripSeparator10, btnProcessStart, btnProcessPause, btnProcessStop, toolStripSeparator9, btnWebCam, btnJoystick });
+            toolStrip.Items.AddRange(new ToolStripItem[] { newToolStripButton, openToolStripButton, saveToolStripButton, toolStripSeparator1, helpToolStripButton, toolStripSeparator10, btnProcessStart, btnProcessStartOneStep, btnProcessPause, btnProcessStop, toolStripSeparator9, toolStripBtnAddToFavorites });
             toolStrip.Location = new Point(0, 24);
             toolStrip.Name = "toolStrip";
             toolStrip.Size = new Size(1138, 25);
@@ -439,29 +404,6 @@
             // 
             toolStripSeparator1.Name = "toolStripSeparator1";
             toolStripSeparator1.Size = new Size(6, 25);
-            // 
-            // printToolStripButton
-            // 
-            printToolStripButton.DisplayStyle = ToolStripItemDisplayStyle.Image;
-            printToolStripButton.Image = (Image)resources.GetObject("printToolStripButton.Image");
-            printToolStripButton.ImageTransparentColor = Color.Black;
-            printToolStripButton.Name = "printToolStripButton";
-            printToolStripButton.Size = new Size(23, 22);
-            printToolStripButton.Text = "Imprimer";
-            // 
-            // printPreviewToolStripButton
-            // 
-            printPreviewToolStripButton.DisplayStyle = ToolStripItemDisplayStyle.Image;
-            printPreviewToolStripButton.Image = (Image)resources.GetObject("printPreviewToolStripButton.Image");
-            printPreviewToolStripButton.ImageTransparentColor = Color.Black;
-            printPreviewToolStripButton.Name = "printPreviewToolStripButton";
-            printPreviewToolStripButton.Size = new Size(23, 22);
-            printPreviewToolStripButton.Text = "Aperçu avant impression";
-            // 
-            // toolStripSeparator2
-            // 
-            toolStripSeparator2.Name = "toolStripSeparator2";
-            toolStripSeparator2.Size = new Size(6, 25);
             // 
             // helpToolStripButton
             // 
@@ -509,23 +451,15 @@
             toolStripSeparator9.Name = "toolStripSeparator9";
             toolStripSeparator9.Size = new Size(6, 25);
             // 
-            // btnWebCam
+            // toolStripBtnAddToFavorites
             // 
-            btnWebCam.Image = (Image)resources.GetObject("btnWebCam.Image");
-            btnWebCam.ImageTransparentColor = Color.Magenta;
-            btnWebCam.Name = "btnWebCam";
-            btnWebCam.Size = new Size(76, 22);
-            btnWebCam.Text = "WebCam";
-            btnWebCam.Click += btnWebCam_Click;
-            // 
-            // btnJoystick
-            // 
-            btnJoystick.Image = (Image)resources.GetObject("btnJoystick.Image");
-            btnJoystick.ImageTransparentColor = Color.Magenta;
-            btnJoystick.Name = "btnJoystick";
-            btnJoystick.Size = new Size(68, 22);
-            btnJoystick.Text = "Joystick";
-            btnJoystick.Click += btnJoystick_Click;
+            toolStripBtnAddToFavorites.DisplayStyle = ToolStripItemDisplayStyle.Image;
+            toolStripBtnAddToFavorites.Image = (Image)resources.GetObject("toolStripBtnAddToFavorites.Image");
+            toolStripBtnAddToFavorites.ImageTransparentColor = Color.Magenta;
+            toolStripBtnAddToFavorites.Name = "toolStripBtnAddToFavorites";
+            toolStripBtnAddToFavorites.Size = new Size(23, 22);
+            toolStripBtnAddToFavorites.ToolTipText = "Ajoute le process courant aux favoris";
+            toolStripBtnAddToFavorites.Click += toolStripBtnAddToFavorites_Click;
             // 
             // statusStrip
             // 
@@ -542,6 +476,17 @@
             toolStripStatusLabel.Name = "toolStripStatusLabel";
             toolStripStatusLabel.Size = new Size(27, 17);
             toolStripStatusLabel.Text = "État";
+            // 
+            // btnProcessStartOneStep
+            // 
+            btnProcessStartOneStep.DisplayStyle = ToolStripItemDisplayStyle.Image;
+            btnProcessStartOneStep.Image = (Image)resources.GetObject("btnProcessStartOneStep.Image");
+            btnProcessStartOneStep.ImageTransparentColor = Color.Magenta;
+            btnProcessStartOneStep.Name = "btnProcessStartOneStep";
+            btnProcessStartOneStep.Size = new Size(23, 22);
+            btnProcessStartOneStep.Text = "1";
+            btnProcessStartOneStep.ToolTipText = "Pas à pas";
+            btnProcessStartOneStep.Click += btnProcessStartOneStep_Click;
             // 
             // FStudio
             // 
@@ -578,12 +523,9 @@
         private System.Windows.Forms.ToolStrip toolStrip;
         private System.Windows.Forms.StatusStrip statusStrip;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator4;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator5;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator6;
-        private System.Windows.Forms.ToolStripMenuItem printSetupToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator7;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator8;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel;
@@ -594,8 +536,6 @@
         private System.Windows.Forms.ToolStripMenuItem openToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem saveToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem saveAsToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem printToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem printPreviewToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem editMenu;
         private System.Windows.Forms.ToolStripMenuItem undoToolStripMenuItem;
@@ -622,17 +562,15 @@
         private System.Windows.Forms.ToolStripButton newToolStripButton;
         private System.Windows.Forms.ToolStripButton openToolStripButton;
         private System.Windows.Forms.ToolStripButton saveToolStripButton;
-        private System.Windows.Forms.ToolStripButton printToolStripButton;
-        private System.Windows.Forms.ToolStripButton printPreviewToolStripButton;
         private System.Windows.Forms.ToolStripButton helpToolStripButton;
         private System.Windows.Forms.ToolTip toolTip;
         private ToolStripSeparator toolStripSeparator9;
-        private ToolStripButton btnWebCam;
-        private ToolStripButton btnJoystick;
         private ToolStripSeparator toolStripSeparator10;
         private ToolStripButton btnProcessStart;
         private ToolStripButton btnProcessPause;
         private ToolStripButton btnProcessStop;
+        private ToolStripButton toolStripBtnAddToFavorites;
+        private ToolStripButton btnProcessStartOneStep;
     }
 }
 

@@ -183,6 +183,8 @@ namespace MED.Imaging
         [Browsable(false)]
         public virtual void ImageChanged(IImageProvider sender, EventArgs e)
         {
+            if (ProcessState != ThreadState.Running)
+                return;
             //string? from = sender == this ? "myself" : sender.ToString();
             //Performance.Debug($"ImageChanged from {from}");
             ImageProvider = sender; //Add

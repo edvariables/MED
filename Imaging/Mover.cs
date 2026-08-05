@@ -51,35 +51,34 @@ namespace MED.Imaging
             }
         }
 
-        long _LocationTime = 0;
         [Browsable(true)]
         public override System.Drawing.PointF Location
         {
             get
             {
-                var location = base.Location;
-                if (ProcessState != ThreadState.Running
-                    || Speed == 0)
-                    return location;
-                long now = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
-                long duration = now - _LocationTime;
-                _LocationTime = now;
-                if (duration > 1000 || duration == 0)
-                    return location;
-
-                location.X += Velocity.X * duration;
-                location.Y += Velocity.Y * duration;
-
-                if (RotationSpeed != 0F)
-                    Rotation = (float)((Rotation + RotationSpeed * duration) % 360F);
-
-                return Location = location;
+                return base.Location;
             }
             set
             {
                 _ClipRegionTranslated = null;
                 base.Location = value;
             }
+        }
+
+        public virtual void Move(long elapsedTime)
+        {
+            var location = Location;
+            if (ProcessState != ThreadState.Running
+                || Speed == 0)
+                return;
+
+            location.X += Velocity.X * elapsedTime;
+            location.Y += Velocity.Y * elapsedTime;
+
+            if (RotationSpeed != 0F)
+                Rotation = (float)((Rotation + RotationSpeed * elapsedTime) % 360F);
+
+            Location = location;
         }
 
         Vector2 _LocationVector;
@@ -129,8 +128,8 @@ namespace MED.Imaging
             }
             private set
             {
-                Velocity = PointF.Empty; 
-                _DirectionVector = value; 
+                Velocity = PointF.Empty;
+                _DirectionVector = value;
             }
         }
 
@@ -173,10 +172,26 @@ namespace MED.Imaging
         {
             get
             {
-                if (_ClipRegionTranslated != null || Image == null || ClipRegion==null)
+                if (_ClipRegionTranslated != null || Image == null || ClipRegion == null)
                     return _ClipRegionTranslated;
-                return _ClipRegionTranslated = ImagesCollider.ClipRegionTranslated(ClipRegion, Location, Rotation, Image.Size);
+                return _ClipRegionTranslated = TranslateRegion(ClipRegion, Location, Rotation, Image.Size);
             }
+        }
+
+        public static Region? TranslateRegion(Region region, PointF location, float Rotation, Size imageSize)
+        {
+            if (location.IsEmpty && Rotation == 0F)
+                return region;
+            region = region.Clone();
+            Matrix transformMatrix = new Matrix();
+            transformMatrix.Translate(location.X, location.Y);
+            if (Rotation != 0F)
+            {
+                transformMatrix.RotateAt(Rotation, new PointF(imageSize.Width / 2F, imageSize.Height / 2F));
+            }
+            region.Transform(transformMatrix);
+
+            return region;
         }
 
         #endregion
@@ -188,8 +203,6 @@ namespace MED.Imaging
             Rotation = 0F;
 
             RandomizeDirection();
-
-            Image = null;
 
             base.Start();
         }

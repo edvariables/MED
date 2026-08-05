@@ -18,6 +18,7 @@
     <ProjectReference Include="..\EDJoystick\EDJoystick.csproj" />
     <ProjectReference Include="..\EDWebCam\EDWebCam.csproj" />
     <ProjectReference Include="..\Imaging\Imaging.csproj" />
+    <ProjectReference Include="..\ProcessControls\ProcessControls.csproj" />
   </ItemGroup>
 
   <ItemGroup>

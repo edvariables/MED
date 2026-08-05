@@ -33,13 +33,11 @@ namespace MED.Imaging
         }
 
         public Processes ImageProcesses { get; set; }
-        public Logger Logger { get => ImageProcesses.Logger; set => ImageProcesses.Logger = value; }
+        public Logger? Logger { get => ImageProcesses.Logger; set => ImageProcesses.Logger = value; }
 
 
         #region Settings
 
-
-        [ReadOnly(true)]
         public override bool IsAsynchrone
         {
             get { return ImageProcesses == null ? base.IsAsynchrone : ImageProcesses.IsAsynchrone; }
@@ -47,13 +45,13 @@ namespace MED.Imaging
         }
 
         [Browsable(true)]
-        public override ProcessSettings ProcessSettings
+        public override ProcessSettings? ProcessSettings
         {
             get { return ImageProcesses == null ? base.ProcessSettings : ImageProcesses.ProcessSettings; }
             set { if (ImageProcesses == null) base.ProcessSettings = value; else ImageProcesses.ProcessSettings = value; }
         }
 
-        public override void LoadSettings(ProcessSettings processSettings = null, string fileName = "")
+        public override void LoadSettings(ProcessSettings? processSettings = null, string fileName = "")
         {
             if (processSettings != null)
                 ProcessSettings = processSettings;
@@ -68,7 +66,7 @@ namespace MED.Imaging
 
         }
 
-        public override void SaveSettings(ProcessSettings settings = null, string fileName = "")
+        public override void SaveSettings(ProcessSettings? settings = null, string fileName = "")
         {
             if (settings == null)
                 settings = ProcessSettings;
@@ -83,13 +81,17 @@ namespace MED.Imaging
 
         #endregion
 
-        public override Performance Performance { get => ImageProcesses.Performance; }
+        public override Performance? Performance { get => ImageProcesses.Performance; }
 
         public override bool IsRunning { get => ImageProcesses.ProcessState == ThreadState.Running || ImageProcesses.ProcessState == ThreadState.Suspended; }
 
         public override System.Threading.ThreadState ProcessState { get => ImageProcesses.ProcessState; set => ImageProcesses.ProcessState = value; }
 
-        public void Invoke_ProcessStateChanged(IProcess sender, System.Threading.ThreadState state) => OnProcessStateChanged?.Invoke(sender, state);
+        public void Invoke_ProcessStateChanged(IProcess sender, System.Threading.ThreadState state)
+        {
+            OnProcessStateChanged?.Invoke(sender, state);
+            MoveItemsTimeOnProcessStateChanged(state);
+        }
 
         /**
          * Process
@@ -162,6 +164,8 @@ namespace MED.Imaging
             Point Position = new Point(0, 0);
             Graphics graphics = Graphics.FromImage(image);
 
+            MoveItems();
+
             Collider.Collide(image, graphics);
 
             int nProvider = 0;
@@ -173,12 +177,14 @@ namespace MED.Imaging
                 if (item is not IImageProvider)
                     continue;
 
-                Bitmap imageSrc = (item as IImageProvider).Image;
+                Bitmap? imageSrc = ((IImageProvider)item).Image;
                 if (imageSrc != null)
                 {
-                    var clipRegion = (item as IImageProvider).ClipRegion;
+                    var clipRegion = ((IImageProvider)item).ClipRegion;
 
-                    var location = (item as IImageProvider).Location;
+                    var location = ((IImageProvider)item).Location;
+
+                    var rotation = ((IImageProvider)item).Rotation;
 
                     if (clipRegion != null)
                     {
@@ -187,12 +193,11 @@ namespace MED.Imaging
                             clipRegion = clipRegion.Clone();
                         }
 
-                        if ((item as IImageProvider).Rotation != 0F)
+                        if (rotation != 0F)
                         {
-
                             graphics.TranslateTransform(Position.X + location.X + imageSrc.Width / 2, Position.Y + location.Y + imageSrc.Height / 2);
                             //rotate
-                            graphics.RotateTransform((item as IImageProvider).Rotation, MatrixOrder.Prepend);
+                            graphics.RotateTransform(rotation, MatrixOrder.Prepend);
 
                             clipRegion.Translate(-imageSrc.Width / 2, -imageSrc.Height / 2);
                             graphics.SetClip(clipRegion, CombineMode.Replace);
@@ -206,7 +211,7 @@ namespace MED.Imaging
                             if (!location.IsEmpty)
                                 clipRegion.Translate(location.X, location.Y);
                             graphics.SetClip(clipRegion, CombineMode.Replace);
-                            if (location.IsEmpty && imageSrc.Size != size && (item as IImageProvider).ImageSizeMin.IsEmpty)
+                            if (location.IsEmpty && imageSrc.Size != size && ((IImageProvider)item).ImageSizeMin.IsEmpty)
                                 graphics.DrawImage(imageSrc, 0, 0, size.Width, size.Height);
                             else
                                 graphics.DrawImageUnscaled(imageSrc, 0, 0);
@@ -219,17 +224,17 @@ namespace MED.Imaging
                         {
                             var font = new Font(FontFamily.GenericMonospace, 8F);
                             var brush = new SolidBrush(SystemColors.WindowText);
-                            graphics.DrawString((item as IImageMover).Speed.ToString("#.##"), font, brush, location.X, location.Y + imageSrc.Height);
+                            graphics.DrawString(((IImageMover)item).Speed.ToString("#.##"), font, brush, location.X, location.Y + imageSrc.Height);
                         }
                     }
                     else
                     {
 
-                        if ((item as IImageProvider).Rotation != 0F)
+                        if (rotation != 0F)
                         {
                             graphics.TranslateTransform(Position.X + location.X + imageSrc.Width / 2, Position.Y + location.Y + imageSrc.Height / 2);
                             //rotate
-                            graphics.RotateTransform((item as IImageProvider).Rotation, MatrixOrder.Prepend);
+                            graphics.RotateTransform(rotation, MatrixOrder.Prepend);
                             graphics.DrawImage(imageSrc, -imageSrc.Width / 2, -imageSrc.Height / 2/*, imageSrc.Width, imageSrc.Height*/);
                             //move image back
                             //graphics.TranslateTransform(-(float)imageSrc.Width / 2, -(float)imageSrc.Height / 2);
@@ -247,6 +252,52 @@ namespace MED.Imaging
             Performance.Pause($"Get Image done => " + (image == null ? "<null>" : "Bitmap"));
             return image;
         }
+
+        //Move items
+        long _MoveItemsTime = 0;
+        void MoveItems()
+        {
+            if (_MoveItemsTimePaused != 0L)
+                return;
+
+            long now = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+            long elapsedTime = now - _MoveItemsTime;
+            _MoveItemsTime = now;
+
+            Performance?.Step($"MoveItems {elapsedTime} msec");
+
+            if (elapsedTime > 1000 || elapsedTime == 0)
+                return;
+
+            foreach (var item in Items)
+            {
+                if (!item.Enabled || item is not IImageMover)
+                    continue;
+                ((IImageMover)item).Move(elapsedTime);
+            }
+        }
+        long _MoveItemsTimePaused = 0;
+        void MoveItemsTimeOnProcessStateChanged(System.Threading.ThreadState state)
+        {
+            long now = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+            if (state == ThreadState.Suspended)
+            {
+                _MoveItemsTimePaused = now;
+            }
+            else if (state == ThreadState.Running)
+            {
+                if (_MoveItemsTimePaused != 0L)
+                {
+                    _MoveItemsTime += now - _MoveItemsTimePaused;
+                }
+                _MoveItemsTimePaused = 0L;
+            }
+            else if (state == ThreadState.Stopped)
+            {
+                _MoveItemsTime = _MoveItemsTimePaused = 0L;
+            }
+        }
+
         /**
          * Collide
          * 

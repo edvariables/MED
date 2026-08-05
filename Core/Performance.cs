@@ -370,7 +370,7 @@ namespace MED
         public string GetStackTrace()
         {
             string current = Environment.StackTrace;
-            for (var i = 3; i > 0; i--)
+            for (var i = 4; i > 0; i--)
             {
                 var pos = current.IndexOf('\n');
                 if (pos < 0) break;
