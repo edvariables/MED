@@ -149,29 +149,28 @@ namespace MED.Imaging
          * GetImage
          * 
          * */
-        public override Bitmap GetImage(IImageProvider provider = null)
+        public override Bitmap? GetImage(IImageProvider? provider = null)
         {
-            Bitmap image;
             if (Frame == null || IsDisposed || Disposing)
                 return null;
 
-            Performance.Step("LastFrame.ToBitmap()");
+            Performance?.Step("LastFrame.ToBitmap()");
             try
             {
-                return FrameToImage((IMatFrameProvider)provider, Frame);
+                return FrameToImage((IMatFrameProvider?)provider, Frame);
             }
             catch (System.AccessViolationException ex)
             {
-                Performance.Error("AccessViolationException in FrameToImage()");
+                Performance?.Error("AccessViolationException in FrameToImage()", ex);
             }
             catch (Exception ex)
             {
-                Performance.Error("in LastFrame.ToBitmap() : ", ex);
+                Performance?.Error("in LastFrame.ToBitmap() : ", ex);
             }
             return null;
         }
 
-        public Bitmap FrameToImage(IMatFrameProvider sender, Mat currentFrame = null)
+        public Bitmap? FrameToImage(IMatFrameProvider? sender, Mat currentFrame = null)
         {
             if (ImageSizeMin.IsEmpty || currentFrame == null || currentFrame.Size == ImageSizeMin)
                 return currentFrame?.ToBitmap();

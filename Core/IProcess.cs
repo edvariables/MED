@@ -47,6 +47,7 @@ namespace MED
 
         #region Process
         bool IsRunning { get; }
+        bool IsPaused { get; }
 
         delegate void ProcessStateChangedDelegate(IProcess sender, System.Threading.ThreadState state);
 

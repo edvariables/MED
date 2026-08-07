@@ -180,7 +180,7 @@ namespace MED.Imaging
                 {
                     AppendImage(graphics, size, (IImageProvider)item);
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     Performance.Error($"AppendImage Image {item}", ex);
                 }
@@ -196,12 +196,16 @@ namespace MED.Imaging
          * Append item image to global one
          * 
          * */
-        private void AppendImage(Graphics graphics, Size size, IImageProvider item)
+        private void AppendImage(Graphics graphics, Size size, IImageProvider item, bool drawEdges = true)
         {
             Bitmap? imageSrc = item.Image;
             if (imageSrc != null)
             {
-                var clipRegion = item.ClipRegion;
+                Region? clipRegion;
+                if (drawEdges && item is IImageCollidable)
+                    clipRegion = ((IImageCollidable)item).ClipEdgesRegion;
+                else
+                    clipRegion = item.ClipRegion;
 
                 var location = item.Location;
 
@@ -247,7 +251,7 @@ namespace MED.Imaging
 
                         var pen = new Pen(brush);
                         var center = new PointF(item.Location.X + imageSrc.Width / 2, item.Location.Y + imageSrc.Height / 2);
-                        var direction = new PointF(center.X + ((IImageMover)item).Velocity.X* imageSrc.Width*2, center.Y + ((IImageMover)item).Velocity.Y * imageSrc.Height*2);
+                        var direction = new PointF(center.X + ((IImageMover)item).Velocity.X * imageSrc.Width * 2, center.Y + ((IImageMover)item).Velocity.Y * imageSrc.Height * 2);
                         graphics.DrawLine(pen, center, direction);
                     }
                 }
@@ -261,7 +265,7 @@ namespace MED.Imaging
                         graphics.RotateTransform(rotation, MatrixOrder.Prepend);
                         //draw
                         graphics.DrawImage(imageSrc, -imageSrc.Width / 2, -imageSrc.Height / 2/*, imageSrc.Width, imageSrc.Height*/);
-                        
+
                         graphics.ResetTransform();
                     }
                     else
@@ -302,7 +306,7 @@ namespace MED.Imaging
                     continue;
                 ((IImageMover)item).Move(elapsedTime);
             }
-        
+
         }
         long _MoveItemsTimePauseDuration = 40;//msec
 

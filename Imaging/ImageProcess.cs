@@ -141,6 +141,9 @@ namespace MED.Imaging
         public virtual System.Drawing.Region? ClipRegion { get; set; } = null;
 
         [Browsable(false)]
+        public virtual GraphicsPath? ClipPath { get; set; } = null;
+
+        [Browsable(false)]
         public virtual System.Drawing.PointF Location { get; set; } = System.Drawing.PointF.Empty;
 
         [Browsable(false)]
@@ -204,7 +207,7 @@ namespace MED.Imaging
                 InvokeImageChanged(sender, e);
             }
             else
-                Performance.Debug($"Waiting for last provider {sender} => {ImageProviders.Last()}");
+                Performance?.Debug($"Waiting for last provider {sender} => {ImageProviders.Last()}");
         }
 
         protected Bitmap? _Image;
@@ -281,17 +284,18 @@ namespace MED.Imaging
         {
             base.LoadSettings(settings, fileName);
 
-            if (settings == null)
+            if (settings == null
+            && ((settings = ProcessSettings) == null))
                 return;
 
-            FPSMax = (int)settings.GetValue("FPSMax", FPSMax);
+            FPSMax = (int)(settings.GetValue("FPSMax", FPSMax) ?? FPSMax);
 
-            var value = ProcessSettings.GetValue("ImageSizeMax", ImageSizeMax);
+            var value = settings.GetValue("ImageSizeMax", ImageSizeMax);
             if (value is Size)
                 ImageSizeMax = (Size)value;
             else
                 ImageSizeMax = Size.Empty;
-            value = ProcessSettings.GetValue("ImageSizeMin", ImageSizeMin);
+            value = settings.GetValue("ImageSizeMin", ImageSizeMin);
             if (value is Size)
                 ImageSizeMin = (Size)value;
             else
@@ -333,18 +337,18 @@ namespace MED.Imaging
 
         #region Contours Region
 
-        public Region GetContourRegion(Bitmap image)
+        public Region? GetContourRegion(Bitmap image, out GraphicsPath grPath)
         {
             //Mat mat = Emgu.CV.BitmapExtension.ToMat(image);
             //Mat grayCurrent = new();
             //CvInvoke.CvtColor(mat, grayCurrent, Emgu.CV.CvEnum.ColorConversion.Bgra2Gray);
             Mat grayCurrent = ConvertRgbA2AlphaGray(image, Color.Transparent);
-            var clipRegion = GetContourRegion(grayCurrent);
+            var clipRegion = GetContourRegion(grayCurrent, out grPath);
             if (clipRegion == null)
             {
                 Mat white = Mat.Ones(grayCurrent.Rows, grayCurrent.Cols, grayCurrent.Depth, grayCurrent.NumberOfChannels);
                 Mat dst = white - grayCurrent;
-                clipRegion = GetContourRegion(dst);
+                clipRegion = GetContourRegion(dst, out grPath);
                 if (clipRegion != null)
                 {
                     Region regionNot = new(new RectangleF(0, 0, image.Width, image.Height));
@@ -359,11 +363,11 @@ namespace MED.Imaging
             return clipRegion;
         }
 
-        public Region GetContourRegion(Mat grayCurrent)
+        public Region? GetContourRegion(Mat grayCurrent, out GraphicsPath grPath)
         {
+            grPath = new GraphicsPath();
             try
             {
-                using (GraphicsPath grPath = new GraphicsPath())
                 using (VectorOfVectorOfPoint contours = new VectorOfVectorOfPoint())
                 using (Mat hierarchy = new Mat())
                 {

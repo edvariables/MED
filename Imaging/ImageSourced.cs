@@ -97,12 +97,13 @@ namespace MED.Imaging
             Size size = ImageSizeMin;
             if (size.IsEmpty)
                 if (Consumer is ImageProcess)
-                    size = (Consumer as ImageProcess).ImageSizeMin;
+                    size = ((ImageProcess)Consumer).ImageSizeMin;
             if (size.IsEmpty)
                 size = EmptyImage.Size;
 
             Bitmap image = null;
             ClipRegion = null;
+            ClipPath = null;
             if (!string.IsNullOrEmpty(_ImageFile))
             {
                 if (File.Exists(ImageFile))
@@ -122,13 +123,46 @@ namespace MED.Imaging
                         graphics.Dispose();
                         imageSrc.Dispose();
                     }
-                    ClipRegion = GetContourRegion(image);
+                    GraphicsPath grPath;
+                    ClipRegion = GetContourRegion(image, out grPath);
+                    ClipPath = grPath;
                 }
                 else
                     throw new FileNotFoundException($"Fichier introuvable dans {this} : {ImageFile}", ImageFile);
             }
             return image;
 
+        }
+
+        public override Region? ClipRegion
+        {
+            get => base.ClipRegion;
+            set
+            {
+                ClipEdgesRegion = null;
+                base.ClipRegion = value;
+            }
+        }
+
+
+        private System.Drawing.Region? _ClipRegionEdges = null;
+
+        [Browsable(false)]
+        public virtual System.Drawing.Region? ClipEdgesRegion
+        {
+            get
+            {
+                if (_ClipRegionEdges != null || ClipRegion == null)
+                    return _ClipRegionEdges;
+
+                System.Drawing.Region clipRegionEdges= ClipRegion.Clone();
+                float offset = 2F;// 1.5F;
+                clipRegionEdges.Translate(offset, offset);
+                clipRegionEdges.Xor(ClipRegion);
+                return _ClipRegionEdges = clipRegionEdges;
+
+            }
+            set => _ClipRegionEdges = value;
         }
         #endregion
 

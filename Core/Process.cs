@@ -247,7 +247,7 @@ namespace MED
 
         public bool IsInvokingPropertyChanged(Delegate delegateMethod) => ProcessStatic.IsInvokingPropertyChanged(this, delegateMethod);
 
-        public virtual void InvokePropertyChanged(IProvider sender, Delegate? delegateMethod, EventArgs e) => ProcessStatic.InvokePropertyChanged(this, sender, delegateMethod, e);
+        public virtual void InvokePropertyChanged(IProvider? sender, Delegate? delegateMethod, EventArgs e) => ProcessStatic.InvokePropertyChanged(this, sender, delegateMethod, e);
 
         public void AddHandler(string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
         {
@@ -379,6 +379,16 @@ namespace MED
                     return _IsRunning = false;
 
                 return _IsRunning = (ProcessState == ThreadState.Running || ProcessState == ThreadState.Suspended);
+            }
+        }
+        public virtual bool IsPaused
+        {
+            get
+            {
+                if (this.IsDisposed || this.Disposing)
+                    return false;
+
+                return ProcessState == ThreadState.Suspended;
             }
         }
 

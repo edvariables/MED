@@ -197,7 +197,6 @@ namespace MED.Imaging
 
             return region;
         }
-
         #endregion
 
         #region Process

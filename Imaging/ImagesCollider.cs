@@ -1,4 +1,5 @@
-﻿using DirectShowLib.DES;
+﻿using DirectShowLib;
+using DirectShowLib.DES;
 using Emgu.CV;
 using System;
 using System.Collections.Generic;
@@ -70,69 +71,67 @@ namespace MED.Imaging
 
             //Process.Performance?.Sub(".Collider.Borders").Resume($"{colliders.Count} colliders", true);
 
-            int nCollider = 0;
             foreach (var item in colliders)
-            {
-                if (item.Speed == 0F)
-                    continue;
-                var location = item.Location;
-                var direction = item.Direction;
-                var region = item.ClipRegionTranslated;
-                if (region == null)
-                    continue;
-                var bounds0 = region.GetBounds(gr);
-
-                if (region != null)
-                {
-                    if (!location.IsEmpty)
-                    {
-                        //region = region.Clone();
-                        //region.Translate(location.X, location.Y);
-                        var bounds = region.GetBounds(gr);
-
-                        //Process.Performance?.Sub(".Collider.Borders").Step($"{item} {bounds}");
-                        bool changed = false;
-                        if (bounds.Top < 0)
-                        {
-                            location.Y = 1;
-                            if (direction.Y < 0)
-                                direction.Y *= -1;
-                            changed = true;
-                        }
-                        if (bounds.Left < 0)
-                        {
-                            location.X = 1;
-                            if (direction.X < 0)
-                                direction.X *= -1;
-                            changed = true;
-                        }
-                        if (bounds.Bottom > image.Height)
-                        {
-                            location.Y = image.Height - bounds.Height;
-                            if (direction.Y > 0)
-                                direction.Y *= -1;
-                            changed = true;
-                        }
-                        if (bounds.Right > image.Width)
-                        {
-                            location.X = image.Width - bounds.Width;
-                            if (direction.X > 0)
-                                direction.X *= -1;
-                            changed = true;
-                        }
-                        if (changed)
-                        {
-                            (item as IImageCollidable).Location = location;
-
-                            (item as IImageCollidable).Direction = direction;
-                        }
-                    }
-                }
-                nCollider++;
-            }
+                ManageItemInBorders(image, gr, item);
             //Process.Performance?.Sub(".Collider.Borders").Pause($"Collider done {colliders.Count}");
 
             return colliders;
+        }
+
+        public bool ManageItemInBorders(Bitmap image, Graphics gr, IImageCollidable item)
+        {
+            if (item.Speed == 0F)
+                return false;
+            var location = item.Location;
+            if (location.IsEmpty)
+                return false;
+            var direction = item.Direction;
+            var region = item.ClipRegionTranslated;
+            if (region == null)
+                return false;
+
+            bool changed = false;
+            //region = region.Clone();
+            //region.Translate(location.X, location.Y);
+            var bounds = region.GetBounds(gr);
+
+            //Process.Performance?.Sub(".Collider.Borders").Step($"{item} {bounds}");
+            if (bounds.Top < 0)
+            {
+                location.Y = 1;
+                if (direction.Y < 0)
+                    direction.Y *= -1;
+                changed = true;
+            }
+            if (bounds.Left < 0)
+            {
+                location.X = 1;
+                if (direction.X < 0)
+                    direction.X *= -1;
+                changed = true;
+            }
+            if (bounds.Bottom > image.Height)
+            {
+                location.Y = image.Height - bounds.Height;
+                if (direction.Y > 0)
+                    direction.Y *= -1;
+                changed = true;
+            }
+            if (bounds.Right > image.Width)
+            {
+                location.X = image.Width - bounds.Width;
+                if (direction.X > 0)
+                    direction.X *= -1;
+                changed = true;
+            }
+            if (changed)
+            {
+                (item as IImageCollidable).Location = location;
+
+                (item as IImageCollidable).Direction = direction;
+            }
+
+            return changed;
         }
         /**
          * Collide
@@ -140,19 +139,23 @@ namespace MED.Imaging
          * */
         public Dictionary<IImageCollidable, Region> Collide(Bitmap image, Graphics gr)
         {
-            var colliders = ManageBorders(image, gr);
+            var colliders = Colliders;// ManageBorders(image, gr);
             if (colliders == null || colliders.Count < 2) return new();
 
             //Process.Performance?.Sub(".Collider").Resume($"{colliders.Count} colliders", true);
 
             Dictionary<IImageCollidable, Region> someChanges = new();
-            for (var i1 = 0; i1 < colliders.Count - 1; i1++)
+            for (var i1 = 0; i1 < colliders.Count; i1++)
             {
                 var item1 = colliders.ElementAt(i1);
 
                 var region1 = item1.ClipRegionTranslated;
                 if (region1 == null)
                     continue;
+
+                if (ManageItemInBorders(image, gr, item1))
+                    continue;//Do not both image borders and collides
+
                 //var location = item1.Location;
                 //region1.Translate(location.X, location.Y);
 
@@ -199,6 +202,8 @@ namespace MED.Imaging
             , Region region, IImageCollidable item2
             , out PointF borderPoint)
         {
+            var itemBounds = region.GetBounds(gr);
+            var itemBoundsCenter = new PointF((itemBounds.Right + itemBounds.Left) / 2, (itemBounds.Bottom + itemBounds.Top) / 2);
 
             var item2partialRegion = item2.ClipRegionTranslated?.Clone();
             if (item2partialRegion == null)
@@ -220,61 +225,199 @@ namespace MED.Imaging
             Vector2 borderVector = new(-moveVector.Y, moveVector.X);
             //Vector2 borderVector = new(intersectBounds.X- bounds.X, intersectBounds.Y- bounds.Y);//Approx
             borderPoint = intersectBoundsCenter;
-            var borderAtTop = expBounds.Bottom == intersectBounds.Bottom;//X = +1
-            var borderAtBottom = expBounds.Top == intersectBounds.Top;//X = -1
-            var borderAtRight = expBounds.Left == intersectBounds.Left;//Y = +1
-            var borderAtLeft = expBounds.Right == intersectBounds.Right;//Y = -1
+            var overBottom = expBounds.Bottom >= gr.VisibleClipBounds.Bottom - nInflate;
+            var overTop = expBounds.Top <= nInflate;
+            var overLeft = expBounds.Left < nInflate;
+            var overRight = expBounds.Right >= gr.VisibleClipBounds.Right - nInflate;
+            var overNO = overLeft && overTop;
+            var overNE = overRight && overTop;
+            var overSE = overRight && overBottom;
+            var overSO = overLeft && overBottom;
+            var overAny = overLeft || overRight || overTop || overBottom;
+            var borderAtTop = overTop || expBounds.Bottom == intersectBounds.Bottom;   // X = +1
+            var borderAtBottom = overBottom || expBounds.Top == intersectBounds.Top;      // X = -1
+            var borderAtRight = overRight || expBounds.Left == intersectBounds.Left;     // Y = +1
+            var borderAtLeft = overLeft || expBounds.Right == intersectBounds.Right;    // Y = -1
 
+            //Closest point
+            if (overTop)
+            {
+                if (overNO)
+                    borderPoint = itemBoundsCenter; // new(intersectBounds.Right, intersectBounds.Bottom);
+                else if (overNE)
+                    borderPoint = itemBoundsCenter;// new(intersectBounds.Left, intersectBounds.Bottom);
+                else
+                    borderPoint.Y = itemBoundsCenter.Y;
+            }
+            else if (overBottom)
+            {
+                if (overSO)
+                    borderPoint = itemBoundsCenter;// new(intersectBounds.Right, intersectBounds.Top);
+                else if (overSE)
+                    borderPoint = itemBoundsCenter;// new(intersectBounds.Left, intersectBounds.Top);
+                else
+                    borderPoint.Y = itemBoundsCenter.Y;
+            }
+            else if (borderAtTop)
+            {
+                if (borderAtBottom)
+                    borderPoint.Y = (intersectBounds.Top + intersectBounds.Bottom) / 2;
+                else
+                    borderPoint.Y = intersectBounds.Bottom;
+            }
+            else if (borderAtBottom)
+                borderPoint.Y = intersectBounds.Top;
+
+            if (overLeft)
+            {
+                if (!(overTop || overBottom))
+                    borderPoint.X = itemBoundsCenter.X;
+            }
+            else if (overRight)
+            {
+                if (!(overTop || overBottom))
+                    borderPoint.X = itemBoundsCenter.X;
+            }
+            else if (borderAtLeft)
+            {
+                if (borderAtRight)
+                    borderPoint.X = (intersectBounds.Left + intersectBounds.Right) / 2;
+                else
+                    borderPoint.X = intersectBounds.Right;
+            }
+            else if (borderAtRight)
+                borderPoint.X = intersectBounds.Left;
+
+            /**
+             * Vector
+             * */
+            //borderAtBottom
             if (borderAtBottom)//(X = -1)
-            {   
-                borderPoint.Y = expBounds.Top;
-
-                if (borderAtTop)
-                    borderVector.X = 0F;
-                else if (borderVector.X == 0)
-                    borderVector.X = -1;
-                else if (borderVector.X > 0)
+            {
+                //Vector
+                if (overBottom)
+                {
+                    if (overLeft)
+                        borderVector.X = +1F;
+                    else
+                        borderVector.X = -1F;
+                    if (borderVector.Y == 0F)
+                        if (overLeft)
+                            borderVector.Y = -1F;
+                        else if (overRight)
+                            borderVector.Y = +1F;
+                }
+                else if (borderAtTop)
+                {
+                    if (overTop)
+                        borderVector.X = +1F;
+                    else if (overBottom)
+                        borderVector.X = -1F;
+                    else if (borderVector.Y == 0F && !borderAtLeft && !borderAtRight)
+                    {
+                        borderVector.X = -item.Direction.Y;
+                    }
+                    else
+                        borderVector.X = 0F;
+                }
+                else if (borderVector.X == 0F)
+                    borderVector.X = -1F;
+                else if (borderVector.X > 0F)
                     borderVector.X *= -1;
-                else if (expBounds.Bottom >= gr.VisibleClipBounds.Bottom - nInflate)
-                    borderVector.X = -1;
-            } 
+            }
+            //borderAtTop
             else if (borderAtTop)//(X = +1)
-            {   
-                borderPoint.Y = expBounds.Bottom;
-
-                if (borderVector.X == 0)
-                    borderVector.X = 1;
-                else if (borderVector.X < 0)
-                    borderVector.X *= -1;
-                else if (expBounds.Top <= nInflate)
-                    borderVector.X = +1;
+            {
+                //Vector
+                if (overTop)
+                {
+                    borderVector.X = +1F;
+                }
+                else if (borderVector.X == 0F)
+                    borderVector.X = +1F;
+                else if (borderVector.X < 0F)
+                    borderVector.X *= -1F;
             }
 
+            //borderAtLeft
             if (borderAtLeft) // (Y = -1)
             {
-                borderPoint.X = expBounds.Right;
+                //Vector
+                if (overLeft)
+                {
+                    borderVector.Y = -1F;
 
-                if (borderAtRight)
-                    borderVector.Y = 0F;
-                else if (borderVector.Y == 0)
-                    borderVector.Y = -1;
-                else if (borderVector.Y > 0)
-                    borderVector.Y *= -1;
-                else if (expBounds.Left < nInflate)
-                    borderVector.Y = -1;
+                    if (borderVector.X == 0F)
+                        if (overBottom)
+                            borderVector.X = -1F;
+                        else if (overTop)
+                            borderVector.X = 1F;
+                }
+                else if (borderAtRight)
+                {
+                    if (overRight)
+                    {
+                        if (overBottom)
+                            borderVector.Y = -1F;
+                        else
+                            borderVector.Y = +1F;
+                    }
+                    else if (overLeft)
+                        borderVector.Y = -1F;
+                    else if (borderVector.X == 0F && !borderAtBottom && !borderAtTop)
+                    {
+                        borderVector.Y = item.Direction.X;
+                    }
+                    else
+                        borderVector.Y = 0F;
+                }
+                else if (borderVector.Y == 0F)
+                    borderVector.Y = -1F;
+                else if (borderVector.Y > 0F)
+                    borderVector.Y *= -1F;
             }
+            //borderAtRight
             else if (borderAtRight) // (Y = +1)
             {
-                borderPoint.X = expBounds.Left;
-
-                if (borderVector.Y == 0)
-                    borderVector.Y = 1;
-                else if (borderVector.Y < 0)
-                    borderVector.Y *= -1;
-                if (expBounds.Right >= gr.VisibleClipBounds.Right - nInflate)
-                    borderVector.Y = +1;
+                //Vector
+                if (overRight)
+                    borderVector.Y = +1F;
+                else if (borderVector.Y == 0F)
+                    borderVector.Y = +1F;
+                else if (borderVector.Y < 0F)
+                    borderVector.Y *= -1F;
             }
-            
+            else if (Vector2.Zero.Equals(borderVector) && !borderAtBottom && !borderAtTop)
+            {
+                borderVector.X = -item.Direction.Y;
+                borderVector.Y = item.Direction.X;
+            }
+            //Analyse des arêtes d'angles
+            if (!overAny && !(borderVector.X == 0F || borderVector.Y == 0F))
+            {
+                if (borderAtTop || borderAtBottom)
+                    if (borderAtRight && itemBoundsCenter.X > expBounds.X)
+                    {
+                        //Arrive par la droite
+                        borderVector.Y = 0F;
+                    }
+                    else if (borderAtLeft && itemBoundsCenter.X < expBounds.X)
+                    {
+                        //Arrive par la gauche
+                        borderVector.Y = 0F;
+                    }
+                if (borderAtLeft || borderAtRight)
+                    if (borderAtBottom && itemBoundsCenter.Y > expBounds.Y)
+                    {
+                        //Arrive par dessous 
+                        borderVector.X = 0F;
+                    }
+                    else if (borderAtTop && itemBoundsCenter.Y < expBounds.Y)
+                    {
+                        //Arrive par dessus
+                        borderVector.X = 0F;
+                    }
+            }
 
             //else if (bounds.Bottom == intersectBounds.Bottom)
             //{
@@ -329,19 +472,23 @@ namespace MED.Imaging
             //}
             if (Vector2.Zero.Equals(borderVector))
             {
-                if (expBounds.Left == 0)
-                    borderVector = new(1, 0);
-                else if (expBounds.Top == 0)
-                    borderVector = new(0, 1);
-                else if (expBounds.Right > gr.VisibleClipBounds.Right - 2)
-                    borderVector = new(-1, 0);
-                else if (expBounds.Bottom > gr.VisibleClipBounds.Bottom - 2)
-                    borderVector = new(0, -1);
-                else
-                    borderVector = new(0, -1);
+                if (expBounds.Left <= nInflate)
+                    borderVector.X = 1F;
+                else if (overRight)
+                    borderVector.X = -1F;
+                else if (!borderAtLeft && !borderAtRight)
+                    borderVector.X = 1F;
+
+                if (overTop)
+                    borderVector.Y = 1F;
+                else if (overBottom)
+                    borderVector.Y = -1F;
+
+                else if (borderVector.X == 0F)
+                    borderVector = new((gr.VisibleClipBounds.X + intersectBoundsCenter.X) / 2, (gr.VisibleClipBounds.Y + intersectBoundsCenter.Y) / 2);
             }
-            else
-                borderVector = Vector2.Normalize(borderVector);
+
+            borderVector = Vector2.Normalize(borderVector);
             return borderVector;
         }
 
@@ -578,11 +725,6 @@ namespace MED.Imaging
 
             location.X += itemVelocity.X;
             location.Y += itemVelocity.Y;
-            //if (penetration > 0)
-            //{
-            //    location.X += item.Direction.X * penetration;
-            //    location.Y += item.Direction.Y * penetration;
-            //}
 
             item.Location = location;
 

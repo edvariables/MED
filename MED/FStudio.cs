@@ -651,7 +651,7 @@ namespace MED
         {
             var currentChecked = btnProcessStepPrevious.Checked;
 
-            if (!btnProcessPause.Enabled)
+            if (ActiveProcess==null || !ActiveProcess.IsPaused)
             {
                 btnProcessStepPrevious.Checked = !currentChecked;
                 return;

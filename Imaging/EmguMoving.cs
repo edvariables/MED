@@ -54,7 +54,7 @@ namespace MED.Imaging
 
         #region Image
 
-        public override Bitmap GetImage(IImageProvider provider = null)
+        public override Bitmap? GetImage(IImageProvider? provider = null)
         {
             Performance?.Resume($"GetImage Transformer #{Transformer}", true);
             var image = FrameToImage((IMatFrameProvider)provider, Frame);
@@ -71,11 +71,11 @@ namespace MED.Imaging
 
         [Browsable(false)]
         public Mat? Frame { get; protected set; }
-        public void FrameChanged(IMatFrameProvider sender, EventArgs e)
+        public void FrameChanged(IMatFrameProvider? sender, EventArgs e)
         {
-            ImageProvider = (IImageProvider)sender;
+            ImageProvider = (IImageProvider?)sender;
 
-            Frame = (ImageProvider as IMatFrameProvider).Frame;
+            Frame = ((IMatFrameProvider?)ImageProvider)?.Frame;
 
             ////Do the job in same thread
             //Performance.Resume($"Process MoveDetectorAction Algorithm #{Transformer}", true);
@@ -90,7 +90,7 @@ namespace MED.Imaging
             ImageChanged((IImageProvider)sender, e);
         }
 
-        public void InvokeFrameChanged(IMatFrameProvider sender, EventArgs e) => InvokePropertyChanged(sender, OnFrameChanged, e);
+        public void InvokeFrameChanged(IMatFrameProvider? sender, EventArgs e) => InvokePropertyChanged(sender, OnFrameChanged, e);
 
         public IMatFrameProvider.FrameChangedDelegate OnFrameChanged;
         #endregion
@@ -164,7 +164,7 @@ namespace MED.Imaging
         #endregion
 
         #region CreateImage
-        public virtual Bitmap FrameToImage(IMatFrameProvider sender, Mat currentFrame)
+        public virtual Bitmap? FrameToImage(IMatFrameProvider sender, Mat currentFrame)
         {
             if (this.Disposing || this.IsDisposed || ImageProvider == null)
                 return null;
@@ -183,9 +183,9 @@ namespace MED.Imaging
             if (currentFrame == null)
                 return null;
 
-            VideoCapture _capture = (ImageProvider as IMatFrameProvider).Capture;
-            Mat frameDiff = null;
-            Mat oldPrev = null;
+            VideoCapture? _capture = ((IMatFrameProvider)ImageProvider).Capture;
+            Mat? frameDiff = null;
+            Mat? oldPrev = null;
 
             switch (Transformer)
             {
@@ -199,10 +199,10 @@ namespace MED.Imaging
                         CvInvoke.AbsDiff(PreviousFrame, currentFrame, frameDiff);
 
                         Object v = CvInvoke.ContourArea(frameDiff, false);
-                        Performance.Log($"ContourArea {v}");
+                        Performance?.Log($"ContourArea {v}");
 
                         v = CvInvoke.Moments(frameDiff, false);
-                        Performance.Log($"Moments {v}");
+                        Performance?.Log($"Moments {v}");
 
                     }
                     break;
@@ -318,40 +318,28 @@ namespace MED.Imaging
                         }
 
                         CvInvoke.Subtract(frameDiff, _ThresholdMat, frameDiff);
+
+                        //Blur TODO
                         CvInvoke.Blur(frameDiff, frameDiff, new Size(8, 8), new Point(-1, -1));
-                        //frameDiff.ConvertTo(grayDiff, Emgu.CV.CvEnum.DepthType.Cv8S);
-                        Region region = GetContourRegion(frameDiff);
-                        //GraphicsPath grPath = new GraphicsPath();
-                        //foreach (var pts in motionDetectionWithFixedBackgroundSubtraction.GetContours(0.01, frameDiff))
-                        //{
-                        //    grPath.AddPolygon(pts);
-                        //    grPath.CloseFigure();
-                        //}
-                        if (!ImageSizeMin.IsEmpty && currentFrame.Size != ImageSizeMin)
+
+                        GraphicsPath grPath;
+                        Region? region = GetContourRegion(frameDiff, out grPath);
+                        if (region != null
+                            && !ImageSizeMin.IsEmpty && currentFrame.Size != ImageSizeMin)
                         {
                             Mat resized = new();
                             CvInvoke.Resize(currentFrame, resized, ImageSizeMin);
 
                             Matrix transformMatrix = new Matrix();
                             transformMatrix.Scale((float)resized.Width / currentFrame.Width, (float)resized.Height / currentFrame.Height);
-                            //grPath.Transform(transformMatrix);
+                            grPath.Transform(transformMatrix);
                             region.Transform(transformMatrix);
                             currentFrame = resized;
                         }
                         ClipRegion = region;
-                        //ClipRegion = new Region(grPath);
+                        ClipPath = grPath;
 
                         return currentFrame.ToBitmap();
-
-                        //var bmpSource = currentFrame.ToBitmap();
-
-                        //Bitmap newBmp = new Bitmap(frameDiff.Width, frameDiff.Height);
-
-                        //Graphics grBmp = Graphics.FromImage(newBmp);
-                        //grBmp.SetClip(grRegion, CombineMode.Replace);
-                        //grBmp.DrawImage(bmpSource, 0, 0);
-                        //grBmp.Dispose();
-                        //return newBmp;
                     }
                     break;
 

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,9 +23,13 @@ namespace MED
         Size ImageSizeMin { get; }
 
         Bitmap? Image { get; }
-        
+
+        [Browsable(false)]
         System.Drawing.Region? ClipRegion { get; }
-        
+
+        [Browsable(false)]
+        GraphicsPath? ClipPath { get; }
+
         System.Drawing.PointF Location { get; set; }
         
         float Rotation { get; }
@@ -34,6 +39,6 @@ namespace MED
 
         delegate void ImageChangedDelegate(IImageProvider sender, EventArgs e);
 
-        void InvokeImageChanged(IImageProvider sender = null, EventArgs e = null);
+        void InvokeImageChanged(IImageProvider? sender = null, EventArgs? e = null);
     }
 }

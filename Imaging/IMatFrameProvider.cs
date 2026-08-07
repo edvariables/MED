@@ -27,6 +27,6 @@ namespace MED
 
         void InvokeFrameChanged(IMatFrameProvider sender, EventArgs e);
 
-        public Bitmap FrameToImage(IMatFrameProvider sender, Mat currentFrame = null);
+        public Bitmap? FrameToImage(IMatFrameProvider? sender, Mat? currentFrame = null);
     }
 }

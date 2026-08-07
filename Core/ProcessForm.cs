@@ -195,7 +195,8 @@ namespace MED
 
         public Performance? Performance { get => Project.Performance; }
 
-        public bool IsRunning { get => Project.ProcessState == ThreadState.Running || Project.ProcessState == ThreadState.Suspended; }
+        public bool IsRunning => Project.IsRunning;
+        public bool IsPaused => Project.IsPaused;
 
 
         public IProcess.ProcessStateChangedDelegate? OnProcessStateChanged;
