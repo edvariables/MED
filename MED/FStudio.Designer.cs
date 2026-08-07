@@ -74,6 +74,8 @@
             helpToolStripButton = new ToolStripButton();
             toolStripSeparator10 = new ToolStripSeparator();
             btnProcessStart = new ToolStripButton();
+            btnProcessStepPrevious = new ToolStripButton();
+            btnProcessStartOneStep = new ToolStripButton();
             btnProcessPause = new ToolStripButton();
             btnProcessStop = new ToolStripButton();
             toolStripSeparator9 = new ToolStripSeparator();
@@ -81,7 +83,6 @@
             statusStrip = new StatusStrip();
             toolStripStatusLabel = new ToolStripStatusLabel();
             toolTip = new ToolTip(components);
-            btnProcessStartOneStep = new ToolStripButton();
             menuStrip.SuspendLayout();
             toolStrip.SuspendLayout();
             statusStrip.SuspendLayout();
@@ -363,7 +364,7 @@
             // 
             // toolStrip
             // 
-            toolStrip.Items.AddRange(new ToolStripItem[] { newToolStripButton, openToolStripButton, saveToolStripButton, toolStripSeparator1, helpToolStripButton, toolStripSeparator10, btnProcessStart, btnProcessStartOneStep, btnProcessPause, btnProcessStop, toolStripSeparator9, toolStripBtnAddToFavorites });
+            toolStrip.Items.AddRange(new ToolStripItem[] { newToolStripButton, openToolStripButton, saveToolStripButton, toolStripSeparator1, helpToolStripButton, toolStripSeparator10, btnProcessStart, btnProcessStartOneStep, btnProcessPause, btnProcessStepPrevious, btnProcessStop, toolStripSeparator9, toolStripBtnAddToFavorites });
             toolStrip.Location = new Point(0, 24);
             toolStrip.Name = "toolStrip";
             toolStrip.Size = new Size(1138, 25);
@@ -428,6 +429,27 @@
             btnProcessStart.Text = "Start";
             btnProcessStart.Click += btnProcessStart_Click;
             // 
+            // btnProcessStepPrevious
+            // 
+            btnProcessStepPrevious.DisplayStyle = ToolStripItemDisplayStyle.Image;
+            btnProcessStepPrevious.Image = (Image)resources.GetObject("btnProcessStepPrevious.Image");
+            btnProcessStepPrevious.ImageTransparentColor = Color.Magenta;
+            btnProcessStepPrevious.Name = "btnProcessStepPrevious";
+            btnProcessStepPrevious.Size = new Size(23, 22);
+            btnProcessStepPrevious.Text = "Rejoue avec les propriétés précédentes";
+            btnProcessStepPrevious.Click += btnProcessStepPrevious_Click;
+            // 
+            // btnProcessStartOneStep
+            // 
+            btnProcessStartOneStep.DisplayStyle = ToolStripItemDisplayStyle.Image;
+            btnProcessStartOneStep.Image = (Image)resources.GetObject("btnProcessStartOneStep.Image");
+            btnProcessStartOneStep.ImageTransparentColor = Color.Magenta;
+            btnProcessStartOneStep.Name = "btnProcessStartOneStep";
+            btnProcessStartOneStep.Size = new Size(23, 22);
+            btnProcessStartOneStep.Text = "1";
+            btnProcessStartOneStep.ToolTipText = "Pas à pas";
+            btnProcessStartOneStep.Click += btnProcessStartOneStep_Click;
+            // 
             // btnProcessPause
             // 
             btnProcessPause.Image = (Image)resources.GetObject("btnProcessPause.Image");
@@ -476,17 +498,6 @@
             toolStripStatusLabel.Name = "toolStripStatusLabel";
             toolStripStatusLabel.Size = new Size(27, 17);
             toolStripStatusLabel.Text = "État";
-            // 
-            // btnProcessStartOneStep
-            // 
-            btnProcessStartOneStep.DisplayStyle = ToolStripItemDisplayStyle.Image;
-            btnProcessStartOneStep.Image = (Image)resources.GetObject("btnProcessStartOneStep.Image");
-            btnProcessStartOneStep.ImageTransparentColor = Color.Magenta;
-            btnProcessStartOneStep.Name = "btnProcessStartOneStep";
-            btnProcessStartOneStep.Size = new Size(23, 22);
-            btnProcessStartOneStep.Text = "1";
-            btnProcessStartOneStep.ToolTipText = "Pas à pas";
-            btnProcessStartOneStep.Click += btnProcessStartOneStep_Click;
             // 
             // FStudio
             // 
@@ -571,6 +582,7 @@
         private ToolStripButton btnProcessStop;
         private ToolStripButton toolStripBtnAddToFavorites;
         private ToolStripButton btnProcessStartOneStep;
+        private ToolStripButton btnProcessStepPrevious;
     }
 }
 

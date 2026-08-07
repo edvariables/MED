@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.Design;
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing.Design;
 using System.Linq;
 using System.Reflection;
@@ -284,7 +285,7 @@ namespace MED
 
         [Editor(typeof(MEDIconSelectorEditor), typeof(UITypeEditor))]
         [TypeConverter(typeof(MEDIconNameConverter))]
-        
+
         public virtual string ProcessIcon { get; set; }
         public virtual string ProcessIconDefault { get; protected set; } = "Process";
 
@@ -314,7 +315,11 @@ namespace MED
                 ProcessIcon = (string)settings.GetValue("ProcessIcon", ProcessIcon);
                 IsAsynchrone = (bool)settings.GetValue("IsAsynchrone", IsAsynchrone);
 
-                Performance?.LoadSettings(settings.ChildSettings("Perf"));
+                if (Performance != null)
+                {
+                    Performance.Name = Name;
+                    Performance.LoadSettings(settings.ChildSettings("Perf"));
+                }
             }
         }
 
@@ -420,9 +425,11 @@ namespace MED
 
             ProcessState = ThreadState.Unstarted;
 
-            ProcessStatic.InvokePropertyChangedReset(this);
-
             Performance?.Start($"Start {this.ToString()}", true);
+
+            UndoClear();
+
+            ProcessStatic.InvokePropertyChangedReset(this);
 
             //Override next :
             /*
@@ -465,9 +472,52 @@ namespace MED
         {
             if (IsRunning)
             {
-                ProcessState = ThreadState.Running;
                 Performance?.Resume("Process.Resume");
+                ProcessState = ThreadState.Running;
             }
+        }
+        #endregion
+
+        #region IUndo
+        private int _UndoStackCountMax = 64;
+        private Stack<Dictionary<string, object>> _UndoStack = new();
+        public virtual void UndoClear() => _UndoStack.Clear();
+        public virtual Dictionary<string, object> UndoModeSaveProperties()
+        {
+            if (_UndoStack == null)
+                _UndoStack = new();
+            if (_UndoStack.Count > _UndoStackCountMax + 8)
+                _UndoStack = new(_UndoStack.SkipLast(_UndoStack.Count - _UndoStackCountMax));
+
+            var dic = new Dictionary<string, object>();
+            _UndoStack.Push(dic);
+
+            return dic;
+        }
+        public virtual Dictionary<string, object>? Undo(int length = 1)
+        {
+            if (_UndoStack==null || _UndoStack.Count == 0)
+                return null;
+
+            Dictionary<string, object>? dic = new();
+            for (int i = 0; i < length; i++)
+                if (!_UndoStack.TryPop(out dic))
+                    break;
+
+            if (dic == null || dic.Count == 0)
+                return dic;
+
+            var type = this.GetType();
+
+            foreach (var (propertyName, propertyValue) in dic)
+            {
+                var property = type.GetProperty(propertyName);
+                if (property == null || ! property.CanWrite)
+                    continue;
+                property.SetValue(this, propertyValue);
+            }
+
+            return dic;
         }
         #endregion
 

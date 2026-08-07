@@ -63,6 +63,7 @@ namespace MED.Imaging
                 if (float.IsNaN(value.X))
                     return;
                 _ClipRegionTranslated = null;
+                Performance?.Debug($"Location _setter {value}");
                 base.Location = value;
             }
         }
@@ -81,6 +82,7 @@ namespace MED.Imaging
                 Rotation = (float)((Rotation + RotationSpeed * elapsedTime) % 360F);
 
             Location = location;
+            Performance?.Debug($"Move sets Location = {Location}");
         }
 
         Vector2 _LocationVector;
@@ -141,7 +143,7 @@ namespace MED.Imaging
             get
             {
                 if (_Velocity.IsEmpty)
-                    return _Velocity = new(Direction.X * Speed, Direction.Y * Speed);
+                    return _Velocity = new(Direction.X * Speed / 1000, Direction.Y * Speed / 1000);
                 return _Velocity;
             }
             set
@@ -225,12 +227,12 @@ namespace MED.Imaging
         {
             base.LoadSettings(settings, fileName);
 
-            Speed = (float)settings.GetValue("Speed", Speed);
-            SpeedMax = (float)settings.GetValue("SpeedMax", SpeedMax);
-            Mass = (float)settings.GetValue("Mass", Mass);
-            RotationSpeedMax = (float)settings.GetValue("RotationSpeedMax", RotationSpeedMax);
+            Speed = (float)(settings.GetValue("Speed", Speed) ?? Speed);
+            SpeedMax = (float)(settings.GetValue("SpeedMax", SpeedMax) ?? SpeedMax);
+            Mass = (float)(settings.GetValue("Mass", Mass) ?? Mass);
+            RotationSpeedMax = (float)(settings.GetValue("RotationSpeedMax", RotationSpeedMax) ?? RotationSpeedMax);
         }
-        public override JsonObject SaveProcess(JsonObject node = null)
+        public override JsonObject SaveProcess(JsonObject? node = null)
         {
             node = base.SaveProcess(node);
             node.Add("Speed", Speed);
@@ -240,5 +242,31 @@ namespace MED.Imaging
             return node;
         }
         #endregion
+
+
+        public override Dictionary<string, object> UndoModeSaveProperties()
+        {
+            Dictionary<string, object> dic = base.UndoModeSaveProperties();
+            if (!(Speed == 0F && Location.IsEmpty))//debug
+            {
+                dic.Add("Speed", Speed);
+                dic.Add("Rotation", Rotation);
+                dic.Add("RotationSpeed", RotationSpeed);
+                dic.Add("Direction", Direction);
+                dic.Add("Location", Location);
+
+                Performance?.Sub("Stack").Debug($"Stack Location = {Location}");
+            }
+            return dic;
+        }
+        public override Dictionary<string, object>? Undo(int length = 1)
+        {
+            var dic = base.Undo(length);
+            if (dic != null && dic.Count > 0 && dic.ContainsKey("Location"))
+            {
+                Performance?.Sub("Stack").Debug($"Restored Location = {dic["Location"]}");
+            }
+            return dic;
+        }
     }
 }

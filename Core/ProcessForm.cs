@@ -13,7 +13,7 @@ namespace MED
      * class ProcessForm : Form, IProcess, IConsumer
      * <summary>A form that hosts a process</summary>
      * */
-    public class ProcessForm : Form, IProcess, IConsumer
+    public class ProcessForm : Form, IProcess, IConsumer, IUndo
     {
         public ProcessForm() : this("ProcessForm") { }
 
@@ -117,9 +117,9 @@ namespace MED
             Project.LoadSettings(processSettings, fileName);
             if (ProcessSettings == null)
                 return;
-            Size = (Size)ProcessSettings.GetValue("Size", Size);
-            Location = (Point)ProcessSettings.GetValue("Location", Location);
-            StartFullScreen = (bool)ProcessSettings.GetValue("StartFullScreen", StartFullScreen);
+            Size = (Size)(ProcessSettings.GetValue("Size", Size) ?? Size);
+            Location = (Point)(ProcessSettings.GetValue("Location", Location) ?? Location);
+            StartFullScreen = (bool)(ProcessSettings.GetValue("StartFullScreen", StartFullScreen) ?? StartFullScreen);
 
             ProcessIcon = Project.ProcessIcon;
         }
@@ -270,5 +270,12 @@ namespace MED
         }
 
         public virtual string ProcessIconDefault { get; protected set; } = "Visual";
+
+
+        #region IUndo
+        public void UndoClear() => Project.UndoClear();
+        public virtual Dictionary<string, object> UndoModeSaveProperties() => Project.UndoModeSaveProperties();
+        public virtual Dictionary<string, object>? Undo(int length = 1) => Project.Undo(length);
+        #endregion
     }
 }

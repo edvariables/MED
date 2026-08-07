@@ -308,12 +308,17 @@ namespace MED
                 return;
             try
             {
+                if ((btnProcessStartOneStep.Checked
+                        || btnProcessStepPrevious.Checked)
+                        && ActiveProcess is IUndo)
+                    ActiveProcess.UndoModeSaveProperties();
+
                 FLogger.Current.RefreshProgress((ImageProcess)sender);
 
                 FLogger.Current.ProgressMessage = $"{((Process)sender).Name} [{((Process)sender).Performance?.Counter}]";
 
                 if (btnProcessStartOneStep.Checked)
-                    btnProcessPause_Click(sender, e);
+                    ProcessPause();
             }
             catch (Exception ex)
             {
@@ -527,6 +532,8 @@ namespace MED
                 btnProcessPause.Enabled = false;
                 btnProcessPause.Checked = false;
                 btnProcessStop.Enabled = false;
+                btnProcessStartOneStep.Checked = false;
+                btnProcessStepPrevious.Enabled = false;
                 return;
             }
 
@@ -540,15 +547,16 @@ namespace MED
             btnProcessPause.Checked = isPaused;
             btnProcessPause.Font = new Font(btnProcessPause.Font, isPaused ? FontStyle.Bold : FontStyle.Regular);
             btnProcessStop.Enabled = isRunning || isPaused;
+            btnProcessStepPrevious.Enabled = true;
 
             if (sender is ProcessForm)
             {
-                if (!(sender as ProcessForm).Project.IsDisposed)
-                    FProperties.CurrentProperties = (object[])[(sender as ProcessForm).Project];
+                if (!((ProcessForm)sender).Project.IsDisposed)
+                    FProperties.CurrentProperties = (object[])[((ProcessForm)sender).Project];
                 //else
                 //    FProperties.RemoveProperties((object[])[(sender as ProcessForm).Project]);
             }
-            else if (!(sender is Process && (sender as Process).IsDisposed))
+            else if (!(sender is Process && ((Process)sender).IsDisposed))
                 FProperties.CurrentProperties = (object[])[sender];
             //else
             //     FProperties.RemoveProperties((object[])[(sender as ProcessForm).Project]);
@@ -562,10 +570,14 @@ namespace MED
 
         void ProcessStateChanged(IProcess sender, System.Threading.ThreadState state)
         {
-            if (ProcessForm.FindProcessForm(sender) == ActiveProcess)
+            var activeProcess = ActiveProcess;
+            if (ProcessForm.FindProcessForm(sender) == activeProcess)
                 ActiveProcessChanged(sender, state);
             if (state == System.Threading.ThreadState.Running)
+            {
                 FLogger.Current?.Start();
+
+            }
             else if (state == System.Threading.ThreadState.Stopped)
             {
                 FLogger.Current?.Stop();
@@ -596,19 +608,27 @@ namespace MED
             btnProcessStartOneStep.Checked = true;
             var p = ActiveProcess;
             if (p != null)
-                p.Start();
+            {
+                if (p.IsRunning)
+                    p.Pause();
+                else
+                    p.Start();
+            }
             else
                 MessageBox.Show("Aucun process actif. Sélectionnez une fenêtre.");
             ActiveProcessChanged(p);
         }
 
-        private void btnProcessPause_Click(object sender, EventArgs e)
+        private void btnProcessPause_Click(object sender, EventArgs e) => ProcessPause();
+        private void ProcessPause()
         {
             var p = ActiveProcess;
             if (p != null)
             {
                 if (p.ProcessState == System.Threading.ThreadState.Running)
+                {
                     p.Pause();
+                }
                 else if (p.ProcessState == System.Threading.ThreadState.Suspended)
                     p.Resume();
             }
@@ -626,52 +646,36 @@ namespace MED
                 MessageBox.Show("Aucun process actif. Sélectionnez une fenêtre.");
             ActiveProcessChanged(p);
         }
+
+        private void btnProcessStepPrevious_Click(object sender, EventArgs e)
+        {
+            var currentChecked = btnProcessStepPrevious.Checked;
+
+            if (!btnProcessPause.Enabled)
+            {
+                btnProcessStepPrevious.Checked = !currentChecked;
+                return;
+            }
+
+            var p = ActiveProcess;
+            if (p is not null and IUndo)
+            {
+                var dic = ((IUndo)p).Undo(2);
+                if (dic == null)
+                {
+                    MessageBox.Show("Rien à rejouer");
+                    return;
+                }
+            }
+            btnProcessStartOneStep.Checked = true;
+
+            ProcessPause();
+
+            //btnProcessStepPrevious.Checked = currentChecked;
+        }
         #endregion
 
 
-
-
-        private void CutToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-        }
-
-        private void CopyToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-        }
-
-        private void PasteToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-        }
-
-        private void ToolBarToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            toolStrip.Visible = toolBarToolStripMenuItem.Checked;
-        }
-
-        private void StatusBarToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            statusStrip.Visible = statusBarToolStripMenuItem.Checked;
-        }
-
-        private void CascadeToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            LayoutMdi(MdiLayout.Cascade);
-        }
-
-        private void TileVerticalToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            LayoutMdi(MdiLayout.TileVertical);
-        }
-
-        private void TileHorizontalToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            LayoutMdi(MdiLayout.TileHorizontal);
-        }
-
-        private void ArrangeIconsToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            LayoutMdi(MdiLayout.ArrangeIcons);
-        }
 
         private void CloseAllToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -732,5 +736,50 @@ namespace MED
                 processForm.Size = bounds.Size;
             }
         }
+
+
+
+        private void CutToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+        }
+
+        private void CopyToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+        }
+
+        private void PasteToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+        }
+
+        private void ToolBarToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            toolStrip.Visible = toolBarToolStripMenuItem.Checked;
+        }
+
+        private void StatusBarToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            statusStrip.Visible = statusBarToolStripMenuItem.Checked;
+        }
+
+        private void CascadeToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            LayoutMdi(MdiLayout.Cascade);
+        }
+
+        private void TileVerticalToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            LayoutMdi(MdiLayout.TileVertical);
+        }
+
+        private void TileHorizontalToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            LayoutMdi(MdiLayout.TileHorizontal);
+        }
+
+        private void ArrangeIconsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            LayoutMdi(MdiLayout.ArrangeIcons);
+        }
     }
+
 }

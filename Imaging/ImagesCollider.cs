@@ -68,12 +68,12 @@ namespace MED.Imaging
             var colliders = Colliders;
             if (colliders == null || colliders.Count == 0) return colliders;
 
-            Process.Performance?.Sub(".Collider.Borders").Resume($"{colliders.Count} colliders", true);
+            //Process.Performance?.Sub(".Collider.Borders").Resume($"{colliders.Count} colliders", true);
 
             int nCollider = 0;
             foreach (var item in colliders)
             {
-                if (item.SpeedMax == 0F)
+                if (item.Speed == 0F)
                     continue;
                 var location = item.Location;
                 var direction = item.Direction;
@@ -130,7 +130,7 @@ namespace MED.Imaging
                 }
                 nCollider++;
             }
-            Process.Performance?.Sub(".Collider.Borders").Pause($"Collider done {colliders.Count}");
+            //Process.Performance?.Sub(".Collider.Borders").Pause($"Collider done {colliders.Count}");
 
             return colliders;
         }
@@ -143,7 +143,7 @@ namespace MED.Imaging
             var colliders = ManageBorders(image, gr);
             if (colliders == null || colliders.Count < 2) return new();
 
-            Process.Performance?.Sub(".Collider").Resume($"{colliders.Count} colliders", true);
+            //Process.Performance?.Sub(".Collider").Resume($"{colliders.Count} colliders", true);
 
             Dictionary<IImageCollidable, Region> someChanges = new();
             for (var i1 = 0; i1 < colliders.Count - 1; i1++)
@@ -179,57 +179,142 @@ namespace MED.Imaging
 
                         var intersectBoundsCenter = new PointF((intersectBounds.Right + intersectBounds.Left) / 2, (intersectBounds.Bottom + intersectBounds.Top) / 2);
 
-                        if (CollideItem(gr, intersectBounds, intersectBoundsCenter, item1, region1, item2))
+                        if (CollideItem(gr, intersectBounds, intersectBoundsCenter, intersect, item1, region1, item2))
                             if (someChanges.ContainsKey(item1)) someChanges[item1] = region1;
                             else someChanges.Add(item1, region1);
 
-                        if (CollideItem(gr, intersectBounds, intersectBoundsCenter, item2, region2, item1))
+                        if (CollideItem(gr, intersectBounds, intersectBoundsCenter, intersect, item2, region2, item1))
                             if (someChanges.ContainsKey(item2)) someChanges[item2] = region2;
                             else someChanges.Add(item2, region2);
 
                     }
                 }
             }
-            Process.Performance?.Sub(".Collider").Pause($"Collider done {colliders.Count}");
+            //Process.Performance?.Sub(".Collider").Pause($"Collider done {colliders.Count}");
 
             return someChanges;
         }
 
-        private PointF[] GetRegionStartAndEnd(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, IImageCollidable item, Region region, IImageCollidable item2, bool exploreItem2Source = true)
+        private Vector2 GetRegionBorderVector(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, Region intersectRegion, IImageCollidable item
+            , Region region, IImageCollidable item2
+            , out PointF borderPoint)
         {
-            if (intersectBounds.Width > intersectBounds.Height * 2)
-            {
-                return new PointF[] { new PointF(intersectBounds.X, intersectBounds.Y+ intersectBounds.Height/2)
-                                    , new PointF(intersectBounds.Right, intersectBounds.Y+ intersectBounds.Height/2) };
-            }
-            if (intersectBounds.Height > intersectBounds.Width * 2)
-            {
-                return new PointF[] { new PointF(intersectBounds.X+intersectBounds.Width/2, intersectBounds.Y)
-                                    , new PointF(intersectBounds.X+intersectBounds.Height/2, intersectBounds.Bottom) };
-            }
-            //Rotate 45
-            var rotateRegion = region.Clone();
-            var matrix = new Matrix();
-            matrix.RotateAt(45, intersectBoundsCenter);
-            rotateRegion.Transform(matrix);
-            var bounds = rotateRegion.GetBounds(gr);
 
-            if (bounds.Width > bounds.Height * 2)
+            var item2partialRegion = item2.ClipRegionTranslated?.Clone();
+            if (item2partialRegion == null)
             {
-                float delta = (1F - (float)Math.Cos(Math.PI / 4)) * bounds.Width;
-
-                return new PointF[] { new PointF(bounds.X-delta, bounds.Y+ bounds.Height/2-delta)
-                                    , new PointF(bounds.Right - delta, bounds.Y + bounds.Height / 2 - delta) };
+                borderPoint = PointF.Empty;
+                return Vector2.Zero;
             }
-            if (bounds.Height > bounds.Width * 2)
+            var inflateBounds = intersectBounds;
+            int nInflate = 1;
+            //inflateBounds.Offset(-nInflate / 2, -nInflate / 2);
+            inflateBounds.Inflate(nInflate, nInflate);
+
+            //Part of item2 in intersectBounds
+            item2partialRegion.Intersect(inflateBounds);
+            RectangleF bounds = item2partialRegion.GetBounds(gr);
+            RectangleF deltaBounds = new(bounds.Left - intersectBounds.Left, bounds.Top - intersectBounds.Top, bounds.Right - intersectBounds.Right, bounds.Bottom - intersectBounds.Bottom);
+            var boundsCenter = new PointF((bounds.Right + bounds.Left) / 2, (bounds.Bottom + bounds.Top) / 2);
+            Vector2 moveVector = new(boundsCenter.X - intersectBoundsCenter.X, boundsCenter.Y - intersectBoundsCenter.Y);
+            Vector2 borderVector = new(-moveVector.Y, moveVector.X);
+            //Vector2 borderVector = new(intersectBounds.X- bounds.X, intersectBounds.Y- bounds.Y);//Approx
+            borderPoint = intersectBoundsCenter;
+            if (bounds.Top == intersectBounds.Top)
+            {   //Border is bottom (X = -1)
+                borderPoint.Y = bounds.Y;
+
+                if (bounds.Left == intersectBounds.Left)
+                {
+                    //Border is right  (Y = +1)
+                    borderVector.X = intersectBounds.Right - bounds.Right;
+                    if (borderVector.Y < 0)
+                        borderVector.Y *= -1;
+
+                }
+                else if (bounds.Right == intersectBounds.Right)
+                {
+                    borderVector.X = bounds.Left - intersectBounds.Left;
+                    //Border is left (Y = -1)
+                    borderVector.Y = intersectBounds.Bottom - bounds.Bottom;
+                }
+                else if (bounds.Bottom > gr.VisibleClipBounds.Bottom - 2 && borderVector.X >= 0)
+                    borderVector.X = -1;
+                else if (borderVector.X >= 0)
+                    borderVector.X = -1;
+            }
+            else if (bounds.Bottom == intersectBounds.Bottom)
             {
-                float delta = (1F - (float)Math.Cos(Math.PI / 4)) * bounds.Width;
+                //Border is top (X = +1)
+                borderPoint.Y = bounds.Bottom;
 
-                return new PointF[] { new PointF(bounds.X+bounds.Width/2-delta, bounds.Y-delta)
-                                    , new PointF(bounds.X+bounds.Height/2-delta, bounds.Bottom-delta) };
+                if (bounds.Left == intersectBounds.Left)
+                {
+                    //Border is right (Y = +1)
+                    borderVector.Y = intersectBounds.Top - bounds.Top;
+
+                    borderVector.X = bounds.Right - intersectBounds.Right;
+
+                }
+                else if (bounds.Right == intersectBounds.Right)
+                {
+                    //Border is left (Y = -1)
+
+                    borderVector.X = intersectBounds.Left - bounds.Left;
+                    if (borderVector.Y > 0)
+                        borderVector.Y *= -1;
+                }
+                else if (bounds.Bottom > gr.VisibleClipBounds.Bottom - 2 && borderVector.X >= 0)
+                    borderVector.X = -1;
+                else if (borderVector.X <= 0)
+                    borderVector.X = 1;
+
+                if (bounds.Top == 0)
+                    borderVector.X = 1;
             }
+            else if (bounds.Left == intersectBounds.Left)
+            {   //Border is right  (Y = +1)
 
-            //Still rectangular
+                borderVector = new(0, intersectBounds.Top - bounds.Top);
+
+                borderPoint.X = bounds.X;
+                if (bounds.Right > gr.VisibleClipBounds.Right - 2 && borderVector.Y >= 0)
+                    borderVector.Y = -1;
+            }
+            else if (bounds.Right == intersectBounds.Right)
+            {
+                //Border is left  (Y = -1)
+                borderVector = new(0, bounds.Top - intersectBounds.Top);
+
+                borderPoint.X = bounds.Right;
+                if (bounds.Left == 0)
+                    borderVector.Y = -1;
+            }
+            else
+            {
+                Console.Error.Write("");
+            }
+            if (Vector2.Zero.Equals(borderVector))
+            {
+                if (bounds.Left == 0)
+                    borderVector = new(1, 0);
+                else if (bounds.Top == 0)
+                    borderVector = new(0, 1);
+                else if (bounds.Right > gr.VisibleClipBounds.Right - 2)
+                    borderVector = new(-1, 0);
+                else if (bounds.Bottom > gr.VisibleClipBounds.Bottom - 2)
+                    borderVector = new(0, -1);
+                else
+                    borderVector = new(0, -1);
+            }
+            else
+                borderVector = Vector2.Normalize(borderVector);
+            return borderVector;
+        }
+
+        private PointF[] GetRegionStartAndEnd(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, Region intersectRegion, IImageCollidable item, Region region, IImageCollidable item2, bool exploreItem2Source = true)
+        {
+
             var item2partialRegion = item2.ClipRegionTranslated?.Clone();
             if (item2partialRegion == null
                 || !exploreItem2Source)
@@ -243,24 +328,118 @@ namespace MED.Imaging
                     return new PointF[] { new PointF(intersectBounds.X, intersectBounds.Y)
                                     , new PointF(intersectBounds.Right, intersectBounds.Bottom) };
 
+            var inflateBounds = intersectBounds;
+            int nInflate = 8;
+            inflateBounds.Offset(-nInflate / 2, -nInflate / 2);
+            inflateBounds.Inflate(nInflate, nInflate);
             //Part of item2 in intersectBounds
-            item2partialRegion.Intersect(intersectBounds);
-            bounds = item2partialRegion.GetBounds(gr);
+            item2partialRegion.Intersect(inflateBounds);
+            RectangleF bounds = item2partialRegion.GetBounds(gr);
             var boundsCenter = new PointF((bounds.Right + bounds.Left) / 2, (bounds.Bottom + bounds.Top) / 2);
+            Vector2 borderVector = new(boundsCenter.X - intersectBoundsCenter.X, boundsCenter.Y - intersectBoundsCenter.Y);
+            if (borderVector.X == 0F && borderVector.Y == 0F)
+            {
+                return GetRegionStartAndEnd(gr, bounds, boundsCenter, item2partialRegion, item, region, item2, false);
+            }
+            if (borderVector.X >= 0F && borderVector.Y >= 0F)
+            {
+                return new PointF[] { new PointF(bounds.X, bounds.Y)
+                                    , new PointF(bounds.X+borderVector.X, bounds.Y+ borderVector.Y) };
+            }
+            if (borderVector.X < 0F && borderVector.Y >= 0F)
+            {
+                return new PointF[] { new PointF(bounds.X-borderVector.X, bounds.Y)
+                                    , new PointF(bounds.X, bounds.Y+ borderVector.Y) };
+            }
+            if (borderVector.X >= 0F && borderVector.Y < 0F)//Vertical at right side
+            {
+                return new PointF[] { new PointF(bounds.X, bounds.Y- borderVector.Y)
+                                    , new PointF(bounds.X, bounds.Y) };
+            }
 
-            return GetRegionStartAndEnd(gr, bounds, boundsCenter, item, region, item2, false);
+            //if (borderVector.X < 0F && borderVector.Y < 0F)
+            //{
+            return new PointF[] { new PointF(bounds.X-borderVector.X, bounds.Y- borderVector.Y)
+                                    , new PointF(bounds.X, bounds.Y) };
+            //}
+            //if (intersectBounds.Width > intersectBounds.Height * 2)
+            //{
+            //    return new PointF[] { new PointF(intersectBounds.X, intersectBounds.Y+ intersectBounds.Height/2)
+            //                        , new PointF(intersectBounds.Right, intersectBounds.Y+ intersectBounds.Height/2) };
+            //}
+            //if (intersectBounds.Height > intersectBounds.Width * 2)
+            //{
+            //    return new PointF[] { new PointF(intersectBounds.X+intersectBounds.Width/2, intersectBounds.Y)
+            //                        , new PointF(intersectBounds.X+intersectBounds.Height/2, intersectBounds.Bottom) };
+            //}
+            ////Rotate 45
+            //var rotateRegion = intersectRegion.Clone();
+            //var matrix = new Matrix();
+            //matrix.RotateAt(45, intersectBoundsCenter);
+            //rotateRegion.Transform(matrix);
+            //bounds = rotateRegion.GetBounds(gr);
+
+            //if (bounds.Width > bounds.Height * 2)
+            //{
+            //    float delta = (1F - (float)Math.Cos(Math.PI / 4)) * bounds.Width;
+
+            //    return new PointF[] { new PointF(bounds.X-delta, bounds.Y+ bounds.Height/2-delta)
+            //                        , new PointF(bounds.Right - delta, bounds.Y + bounds.Height / 2 - delta) };
+            //}
+            //if (bounds.Height > bounds.Width * 2)
+            //{
+            //    float delta = (1F - (float)Math.Cos(Math.PI / 4)) * bounds.Width;
+
+            //    return new PointF[] { new PointF(bounds.X+bounds.Width/2-delta, bounds.Y-delta)
+            //                        , new PointF(bounds.X+bounds.Height/2-delta, bounds.Bottom-delta) };
+            //}
+
+            //Still rectangular
+            //var inflateBounds = intersectBounds;
+            //int nInflate = 8;
+            //inflateBounds.Offset(-nInflate / 2, -nInflate / 2);
+            //inflateBounds.Inflate(nInflate, nInflate);
+            ////Part of item2 in intersectBounds
+            //item2partialRegion.Intersect(inflateBounds);
+            //bounds = item2partialRegion.GetBounds(gr);
+            //var boundsCenter = new PointF((bounds.Right + bounds.Left) / 2, (bounds.Bottom + bounds.Top) / 2);
+            //Vector2 borderVector = new(boundsCenter.X - intersectBoundsCenter.X, boundsCenter.Y - intersectBoundsCenter.Y);
+            //if (borderVector.X == 0F && borderVector.Y == 0F)
+            //{
+            //    return GetRegionStartAndEnd(gr, bounds, boundsCenter, item2partialRegion, item, region, item2, false);
+            //}
+            //if (borderVector.X >= 0F && borderVector.Y >= 0F)
+            //{
+            //    return new PointF[] { new PointF(bounds.X, bounds.Y)
+            //                        , new PointF(bounds.X+borderVector.X, bounds.Y+ borderVector.Y) };
+            //}
+            //if (borderVector.X < 0F && borderVector.Y >= 0F)
+            //{
+            //    return new PointF[] { new PointF(bounds.X-borderVector.X, bounds.Y)
+            //                        , new PointF(bounds.X, bounds.Y+ borderVector.Y) };
+            //}
+            //if (borderVector.X >= 0F && borderVector.Y < 0F)//Vertical at right side
+            //{
+            //    return new PointF[] { new PointF(bounds.X, bounds.Y- borderVector.Y)
+            //                        , new PointF(bounds.X, bounds.Y) };
+            //}
+            ////if (borderVector.X < 0F && borderVector.Y < 0F)
+            ////{
+            //return new PointF[] { new PointF(bounds.X-borderVector.X, bounds.Y- borderVector.Y)
+            //                        , new PointF(bounds.X, bounds.Y) };
+            ////}
         }
 
-        private bool CollideItem(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, IImageCollidable item, Region region, IImageCollidable item2)
+        private bool CollideItem(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, Region intersectRegion, IImageCollidable item, Region region, IImageCollidable item2)
         {
             var location = item.Location;
             if (location.IsEmpty)
                 return false;
             if (item2.Speed == 0F)
-                return CollideMoverAndWall(gr, intersectBounds, intersectBoundsCenter, item, region, item2);
-            return CollideMovingItems(gr, intersectBounds, intersectBoundsCenter, item, region, item2);
+                return CollideMoverAndWall(gr, intersectBounds, intersectBoundsCenter, intersectRegion, item, region, item2);
+            return CollideMovingItems(gr, intersectBounds, intersectBoundsCenter, intersectRegion, item, region, item2);
         }
-        private bool CollideMoverAndWall(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, IImageCollidable item, Region region, IImageCollidable item2)
+        private bool CollideMoverAndWall(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, Region intersectRegion, IImageCollidable item, Region region, IImageCollidable item2)
         {
             var location = item.Location;
             if (location.IsEmpty)
@@ -272,9 +451,9 @@ namespace MED.Imaging
             if (move.IsEmpty)
                 return false;
 
-            var wallPoints = GetRegionStartAndEnd(gr, intersectBounds, intersectBoundsCenter, item, region, item2);
-            PointF wallStart = wallPoints[0];
-            PointF wallEnd = wallPoints[1];
+            //var wallPoints = GetRegionStartAndEnd(gr, intersectBounds, intersectBoundsCenter, intersectRegion, item, region, item2);
+            //PointF wallStart = wallPoints[1];
+            //PointF wallEnd = wallPoints[0];
 
             #region Closest Point
 
@@ -282,26 +461,33 @@ namespace MED.Imaging
 
             //**Calculating the Dot Product for the Closest Point
             // Vector from the start of the wall to the ball's centre
-            Vector2 vector_to_point = new(-move.X, -move.Y);
+            //Vector2 vector_to_point = new(itemBoundsCenter.X - wallStart.X, itemBoundsCenter.Y - wallStart.Y);
+            //vector_to_point = item.DirectionVector* itemBounds.Width/2;// new(itemBoundsCenter.X- wallStart.X, itemBoundsCenter.Y- wallStart.Y);
 
             // Vector representing the direction and length of the wall
-            Vector2 line_vector = new(wallStart.X - wallEnd.X, wallEnd.Y - wallEnd.Y);
+            //Vector2 wallBorder_vector = new(wallEnd.X - wallStart.X, wallEnd.Y - wallStart.Y);
 
             // Calculate the dot product between the two vectors
-            double dot_product_result = Vector2.Dot(vector_to_point, line_vector);
+            //double dot_product_result = Vector2.Dot(vector_to_point, wallBorder_vector);
 
             //**Normalising the Wall and Calculating the Parameter t
             // Square of the wall's length for normalisation
-            double line_length_squared = line_vector.X * line_vector.X + line_vector.Y * line_vector.Y;
+            //double line_length_squared = wallBorder_vector.X * wallBorder_vector.X + wallBorder_vector.Y * wallBorder_vector.Y;
             // Calculate the normalised parameter 't' for the closest point along the wall
-            float t = (float)(dot_product_result / line_length_squared);
+            //float t = (float)(dot_product_result / line_length_squared);
 
             //**Clamping t to Constrain the Closest Point Within Wall Bounds
             // Clamp 't' to ensure the closest point remains within the wall's bounds
-            t = Math.Max(0, Math.Min(1, t));
+            //t = Math.Max(0, Math.Min(1, t));
 
             // Return the coordinates of the closest point on the wall
-            PointF closest = new(wallStart.X + line_vector.X * t, wallStart.Y + line_vector.Y * t);
+            //PointF closest = new(wallStart.X + wallBorder_vector.X * t, wallStart.Y + wallBorder_vector.Y * t);
+
+            PointF closest;
+            var wallBorder_vector = GetRegionBorderVector(gr, intersectBounds, intersectBoundsCenter, intersectRegion, item, region, item2, out closest);
+            if (Vector2.Zero.Equals(wallBorder_vector) || float.IsNaN(wallBorder_vector.X))
+                return false;
+
             #endregion
 
             #region Detecting Ball and Wall Overlap
@@ -317,16 +503,19 @@ namespace MED.Imaging
             #region Resolving Ball and Wall Collision
 
             //Normal
-            Vector2 collision_normal = new(closest.X - itemBoundsCenter.X, closest.Y - itemBoundsCenter.Y);
+            Vector2 wallNormal = new(-wallBorder_vector.Y, wallBorder_vector.X);
+
+            Vector2 collision_normal = wallNormal;// new(closest.X - itemBoundsCenter.X, closest.Y - itemBoundsCenter.Y);
             collision_normal = Vector2.Normalize(collision_normal);
 
             //Determine the Penetration Depth
-            float distance = (float)Math.Sqrt(dx * dx + dy * dy);   // The actual distance between the ball's center and the closest point
+            float distance = (float)Math.Sqrt(distance_squared);   // The actual distance between the ball's center and the closest point
             float penetration = radius_sum - distance;
 
             //Push the Ball Out of the Wall
             if (penetration > 0)
             {
+                item.Performance?.Step($"Penetration {penetration}");
                 location.X += collision_normal.X * penetration;
                 location.Y += collision_normal.Y * penetration;
             }
@@ -334,34 +523,40 @@ namespace MED.Imaging
             #endregion
 
             #region Reflect and Dampen the Velocity
-
             float velocity_dot_normal = Vector2.Dot(item.VelocityVector, collision_normal);
             Vector2 velocity_normal = collision_normal * velocity_dot_normal;
             Vector2 velocity_tangent = item.VelocityVector - velocity_normal;
 
             // Reverse and dampen the normal component of the velocity
             // Damping factor is arbitrarily chosen as 0.6
-            var itemVelocity = velocity_tangent - velocity_normal * 1F;
+            var itemVelocity = Vector2.Normalize(velocity_tangent - velocity_normal * 1F);
 
             #endregion
 
-            location.X += itemVelocity.X;
-            location.Y += itemVelocity.Y;
-
-            //location.X += item.Velocity.X;
-            //location.Y += item.Velocity.Y;
-            if (float.IsNaN(location.X))
+            if (float.IsNaN(itemVelocity.X))
             {
                 item.Performance?.Error("location.X IsNaN !");
                 return false;
             }
+
+            item.Direction = new PointF(itemVelocity.X, itemVelocity.Y);
+
+            itemVelocity *= item.Speed / 1000;
+
+            location.X += itemVelocity.X;
+            location.Y += itemVelocity.Y;
+            //if (penetration > 0)
+            //{
+            //    location.X += item.Direction.X * penetration;
+            //    location.Y += item.Direction.Y * penetration;
+            //}
 
             item.Location = location;
 
             return true;
         }
 
-        private bool CollideMovingItems(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, IImageCollidable item, Region region, IImageCollidable item2)
+        private bool CollideMovingItems(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, Region intersectRegion, IImageCollidable item, Region region, IImageCollidable item2)
         {
             var location = item.Location;
             if (location.IsEmpty)

@@ -240,6 +240,15 @@ namespace MED
         #endregion
 
         #region Process
+        //public override System.Threading.ThreadState ProcessState
+        //{
+        //    get => base.ProcessState;
+        //    set
+        //    {
+        //        base.ProcessState = value;
+        //        Performance?.Step($"{value}");
+        //    }
+        //}
 
         /**
          * 
@@ -322,5 +331,45 @@ namespace MED
                 return dict;
             }
         }
+
+        #region IUndo
+        private long _UndoStackId = 0L;
+        public override void UndoClear()
+        {
+            //Performance?.Step("UndoClear");
+            foreach (var item in Items)
+                item.UndoClear();
+            base.UndoClear();
+            _UndoStackId = 0L;
+        }
+        public override Dictionary<string, object> UndoModeSaveProperties()
+        {
+            //Performance?.Step("UndoStack");
+            var dic = base.UndoModeSaveProperties();
+            dic.Add("_UndoStackId", ++_UndoStackId);
+
+            foreach (var item in Items)
+                item.UndoModeSaveProperties();
+
+            Performance?.Sub(".Stack").Step($"........................ Stack #{dic["_UndoStackId"]} ........................");
+            Performance?.Sub(".Stack").Step($"...........................................................");
+
+            return dic;
+        }
+        public override Dictionary<string, object>? Undo(int length = 1)
+        {
+            var dic = base.Undo(length);
+            if (dic != null && dic.ContainsKey("_UndoStackId"))
+            {
+                Performance?.Sub(".Stack").Step($"...........................................................");
+                Performance?.Sub(".Stack").Step($"........................  Undo #{dic["_UndoStackId"]} ..............................");
+            }
+
+            foreach (var item in Items)
+                item.Undo(length);
+
+            return dic;
+        }
+        #endregion
     }
 }

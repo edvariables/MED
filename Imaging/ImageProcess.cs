@@ -297,7 +297,7 @@ namespace MED.Imaging
             else
                 ImageSizeMin = Size.Empty;
         }
-        public override JsonObject SaveProcess(JsonObject node = null)
+        public override JsonObject SaveProcess(JsonObject? node = null)
         {
             node = base.SaveProcess(node);
 

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MED.Core;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -13,7 +14,7 @@ namespace MED
      * interface IProcess
      * <summary>A process with a process state</summary>
      * */
-    public interface IProcess : IDisposable
+    public interface IProcess : IDisposable, IUndo
     {
         string Name { get; set; }
         bool Enabled { get; set; }

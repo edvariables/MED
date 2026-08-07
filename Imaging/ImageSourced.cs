@@ -17,6 +17,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using System.Windows.Forms.Design;
 
 namespace MED.Imaging
@@ -66,7 +67,7 @@ namespace MED.Imaging
 
             ImageFile = (String)settings.GetValue("ImageFile", ImageFile);
         }
-        public override JsonObject SaveProcess(JsonObject node = null)
+        public override JsonObject SaveProcess(JsonObject? node = null)
         {
             node = base.SaveProcess(node);
             node.Add("ImageFile", ImageFile);
@@ -106,11 +107,14 @@ namespace MED.Imaging
             {
                 if (File.Exists(ImageFile))
                 {
-                    image = (Bitmap)Bitmap.FromFile(ImageFile);
-                    if (!size.IsEmpty
-                        /*&& image.Size != size*/)//Needed to normalize file format (and free file ressource)
+                    using (FileStream stream = new FileStream(ImageFile, FileMode.Open, FileAccess.Read))
                     {
-                        var imageSrc = (Bitmap)Bitmap.FromFile(ImageFile);
+                        image = (Bitmap)Bitmap.FromStream(stream);
+                    }
+                    if (!size.IsEmpty
+                        /*&& image.Size != size*/)//Needed to normalize file format
+                    {
+                        var imageSrc = image;
                         image = new Bitmap(size.Width, size.Height);
                         Graphics graphics = Graphics.FromImage(image);
 

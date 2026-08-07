@@ -181,15 +181,18 @@ namespace MED
          * 
          */
         #region Run and Stop
+        public System.Threading.ThreadState ProcessState;
         public void Start()
         {
-            if (chkClearLogOnRun.Checked)
+            if (ProcessState != System.Threading.ThreadState.Running
+            && chkClearLogOnRun.Checked)
             {
                 rtbLog.Clear();
                 Logger.Clear();
                 Logger.AppendLine($"------ Log start at {DateTime.Now.ToString()}-------");
             }
             Performance?.Start();
+            ProcessState = System.Threading.ThreadState.Running;
         }
 
         /**
@@ -201,6 +204,8 @@ namespace MED
             Performance?.Stop();
 
             RefreshProgress(null);
+
+            ProcessState = System.Threading.ThreadState.Stopped;
         }
         #endregion
 

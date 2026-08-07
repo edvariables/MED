@@ -159,7 +159,7 @@ namespace MED.Imaging
                     return null;
             }
 
-            image = new Bitmap(size.Width, size.Height);
+            image = new System.Drawing.Bitmap(size.Width, size.Height);
 
             Graphics graphics = Graphics.FromImage(image);
 
@@ -244,6 +244,11 @@ namespace MED.Imaging
                         var font = new Font(FontFamily.GenericMonospace, 8F);
                         var brush = new SolidBrush(SystemColors.WindowText);
                         graphics.DrawString(((IImageMover)item).Speed.ToString("#.##"), font, brush, location.X, location.Y + imageSrc.Height);
+
+                        var pen = new Pen(brush);
+                        var center = new PointF(item.Location.X + imageSrc.Width / 2, item.Location.Y + imageSrc.Height / 2);
+                        var direction = new PointF(center.X + ((IImageMover)item).Velocity.X* imageSrc.Width*2, center.Y + ((IImageMover)item).Velocity.Y * imageSrc.Height*2);
+                        graphics.DrawLine(pen, center, direction);
                     }
                 }
                 else
@@ -272,16 +277,24 @@ namespace MED.Imaging
         void MoveItems()
         {
             if (_MoveItemsTimePaused != 0L)
+            {
+                Performance?.Debug($"_MoveItemsTimePaused = {_MoveItemsTimePaused}. Skip MoveItems");
                 return;
+            }
 
             long now = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
-            long elapsedTime = now - _MoveItemsTime;
+            long elapsedTime = _MoveItemsTime == 0L ? long.MaxValue : now - _MoveItemsTime;
             _MoveItemsTime = now;
 
-            Performance?.Step($"MoveItems {elapsedTime} msec");
-
-            if (elapsedTime > 1000 || elapsedTime == 0)
+            if (elapsedTime > 100000)
+                elapsedTime = _MoveItemsTimePauseDuration;
+            else if (elapsedTime > 1000 || elapsedTime == 0)
+            {
+                Performance?.Debug($"(elapsedTime > 1000 || elapsedTime == 0) <= {elapsedTime}");
                 return;
+            }
+
+            Performance?.Step($"MoveItems {elapsedTime} msec");
 
             foreach (var item in Items)
             {
@@ -289,7 +302,10 @@ namespace MED.Imaging
                     continue;
                 ((IImageMover)item).Move(elapsedTime);
             }
+        
         }
+        long _MoveItemsTimePauseDuration = 40;//msec
+
         long _MoveItemsTimePaused = 0;
         void MoveItemsTimeOnProcessStateChanged(System.Threading.ThreadState state)
         {
@@ -302,7 +318,9 @@ namespace MED.Imaging
             {
                 if (_MoveItemsTimePaused != 0L)
                 {
-                    _MoveItemsTime += now - _MoveItemsTimePaused;
+                    Performance?.Step($"_MoveItemsTime Resume => MoveItems({_MoveItemsTimePauseDuration})");
+
+                    _MoveItemsTime = 0L;
                 }
                 _MoveItemsTimePaused = 0L;
             }
@@ -312,151 +330,26 @@ namespace MED.Imaging
             }
         }
 
-        /**
-         * Collide
-         * 
-         * */
-        //public void Collide(Bitmap image)
-        //{
-        //    if (Items.Count < 2) return;
-
-        //    Performance.Sub(".Collider").Resume($"{Items.Count} Items", true);
-
-        //    Dictionary<IImageCollidable, Region> itemsRegions = new();
-
-        //    Graphics gr = Graphics.FromImage(image);
-        //    foreach (var prov in Items)
-        //    {
-        //        if (prov is not IImageCollidable)
-        //            continue;
-
-        //        var clipRegion = (prov as IImageCollidable).ClipRegion;
-
-        //        var location = (prov as IImageCollidable).Location;
-
-        //        var velocity = (prov as IImageCollidable).Direction;
-
-        //        if (clipRegion != null)
-        //        {
-        //            if (!location.IsEmpty)
-        //            {
-        //                clipRegion = clipRegion.Clone();
-        //                clipRegion.Translate(location.X, location.Y);
-
-        //                var bounds = clipRegion.GetBounds(gr);
-        //                bool changed = false;
-        //                if (bounds.Top < 0)
-        //                {
-        //                    location.Y = 0;
-        //                    if (velocity.X < 0)
-        //                        velocity.Y *= -1;
-        //                    changed = true;
-        //                }
-        //                if (bounds.Left < 0)
-        //                {
-        //                    location.X = 0;
-        //                    if (velocity.X < 0)
-        //                        velocity.X *= -1;
-        //                    changed = true;
-        //                }
-        //                if (bounds.Bottom > image.Height)
-        //                {
-        //                    location.Y = image.Height - bounds.Height;
-        //                    if (velocity.Y > 0)
-        //                        velocity.Y *= -1;
-        //                    changed = true;
-        //                }
-        //                if (bounds.Right > image.Width)
-        //                {
-        //                    location.X = image.Width - bounds.Width;
-        //                    if (velocity.X > 0)
-        //                        velocity.X *= -1;
-        //                    changed = true;
-        //                }
-        //                if (changed)
-        //                {
-        //                    (prov as IImageCollidable).Location = location;
-
-        //                    (prov as IImageCollidable).Direction = velocity;
-
-        //                    clipRegion = (prov as IImageCollidable).ClipRegion.Clone();
-        //                    clipRegion.Translate(location.X, location.Y);
-        //                }
-        //            }
-
-        //            if ((prov as IImageCollidable).Mass == 0F)
-        //                continue;
-        //            itemsRegions.Add((IImageCollidable)prov, clipRegion);
-        //        }
-        //    }
-        //    if (itemsRegions.Count > 1)
-        //    {
-        //        var items = itemsRegions.Keys.ToArray();
-        //        for (var i1 = 0; i1 < items.Length - 1; i1++)
-        //        {
-        //            var item1 = items[i1];
-        //            var region1 = itemsRegions[item1];
-        //            for (var i2 = i1 + 1; i2 < items.Length; i2++)
-        //            {
-        //                var item2 = items[i2];
-        //                var region2 = itemsRegions[item2];
-
-        //                var intersect = region1.Clone();
-        //                intersect.Intersect(region2);
-        //                if (!intersect.IsEmpty(gr))
-        //                {
-        //                    var intersectBounds = intersect.GetBounds(gr);
-        //                    var intersectBoundsCenter = new PointF((intersectBounds.Right - intersectBounds.Left) / 2, (intersectBounds.Bottom - intersectBounds.Top) / 2);
-
-        //                    var itemBounds = region1.GetBounds(gr);
-        //                    var itemBoundsCenter = new PointF((itemBounds.Right - itemBounds.Left) / 2, (itemBounds.Bottom - itemBounds.Top) / 2);
-        //                    var speed = item1.Direction;
-        //                    var changed = false;
-        //                    if (!item1.Location.IsEmpty)
-        //                    {
-        //                        if (Math.Abs(itemBoundsCenter.X - intersectBounds.X) > 1)
-        //                        {
-        //                            speed.X *= -1 * item1.Mass;
-        //                            changed = true;
-        //                        }
-        //                        if (Math.Abs(itemBoundsCenter.Y - intersectBounds.Y) > 1)
-        //                        {
-        //                            speed.Y *= -1 * item1.Mass;
-        //                            changed = true;
-        //                        }
-        //                        if (changed)
-        //                            item1.Direction = speed;
-        //                    }
-
-        //                    if (item2.Location.IsEmpty == false)
-        //                    {
-        //                        itemBounds = region2.GetBounds(gr);
-        //                        itemBoundsCenter = new PointF((itemBounds.Right - itemBounds.Left) / 2, (itemBounds.Bottom - itemBounds.Top) / 2);
-        //                        speed = item2.Direction;
-        //                        changed = false;
-        //                        if (Math.Abs(itemBoundsCenter.X - intersectBounds.X) > 1)
-        //                        {
-        //                            speed.X *= -1 * item2.Mass;
-        //                            changed = true;
-        //                        }
-        //                        if (Math.Abs(itemBoundsCenter.Y - intersectBounds.Y) > 1)
-        //                        {
-        //                            speed.Y *= -1 * item2.Mass;
-        //                            changed = true;
-        //                        }
-        //                        if (changed)
-        //                            item2.Direction = speed;
-        //                    }
-
-        //                }
-        //            }
-        //        }
-
-        //    }
-
-        //    gr.Dispose();
-        //    Performance.Sub(".Collider").Pause($"Collider done {itemsRegions.Count}");
-        //}
+        #region IUndo
+        public override void UndoClear()
+        {
+            foreach (var item in Items)
+                item.UndoClear();
+            base.UndoClear();
+        }
+        public override Dictionary<string, object> UndoModeSaveProperties()
+        {
+            foreach (var item in Items)
+                item.UndoModeSaveProperties();
+            return base.UndoModeSaveProperties();
+        }
+        public override Dictionary<string, object>? Undo(int length = 1)
+        {
+            foreach (var item in Items)
+                item.Undo(length);
+            return base.Undo(length);
+        }
+        #endregion
     }
 }
 
