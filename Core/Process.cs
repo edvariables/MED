@@ -487,7 +487,7 @@ namespace MED
             if (_UndoStack == null)
                 _UndoStack = new();
             if (_UndoStack.Count > _UndoStackCountMax + 8)
-                _UndoStack = new(_UndoStack.SkipLast(_UndoStack.Count - _UndoStackCountMax));
+                _UndoStack = new(_UndoStack.SkipLast(_UndoStack.Count - _UndoStackCountMax).Reverse());
 
             var dic = new Dictionary<string, object>();
             _UndoStack.Push(dic);

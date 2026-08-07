@@ -213,96 +213,129 @@ namespace MED.Imaging
 
             //Part of item2 in intersectBounds
             item2partialRegion.Intersect(inflateBounds);
-            RectangleF bounds = item2partialRegion.GetBounds(gr);
-            RectangleF deltaBounds = new(bounds.Left - intersectBounds.Left, bounds.Top - intersectBounds.Top, bounds.Right - intersectBounds.Right, bounds.Bottom - intersectBounds.Bottom);
-            var boundsCenter = new PointF((bounds.Right + bounds.Left) / 2, (bounds.Bottom + bounds.Top) / 2);
+            RectangleF expBounds = item2partialRegion.GetBounds(gr);
+            RectangleF deltaBounds = new(expBounds.Left - intersectBounds.Left, expBounds.Top - intersectBounds.Top, expBounds.Right - intersectBounds.Right, expBounds.Bottom - intersectBounds.Bottom);
+            var boundsCenter = new PointF((expBounds.Right + expBounds.Left) / 2, (expBounds.Bottom + expBounds.Top) / 2);
             Vector2 moveVector = new(boundsCenter.X - intersectBoundsCenter.X, boundsCenter.Y - intersectBoundsCenter.Y);
             Vector2 borderVector = new(-moveVector.Y, moveVector.X);
             //Vector2 borderVector = new(intersectBounds.X- bounds.X, intersectBounds.Y- bounds.Y);//Approx
             borderPoint = intersectBoundsCenter;
-            if (bounds.Top == intersectBounds.Top)
-            {   //Border is bottom (X = -1)
-                borderPoint.Y = bounds.Y;
+            var borderAtTop = expBounds.Bottom == intersectBounds.Bottom;//X = +1
+            var borderAtBottom = expBounds.Top == intersectBounds.Top;//X = -1
+            var borderAtRight = expBounds.Left == intersectBounds.Left;//Y = +1
+            var borderAtLeft = expBounds.Right == intersectBounds.Right;//Y = -1
 
-                if (bounds.Left == intersectBounds.Left)
-                {
-                    //Border is right  (Y = +1)
-                    borderVector.X = intersectBounds.Right - bounds.Right;
-                    if (borderVector.Y < 0)
-                        borderVector.Y *= -1;
+            if (borderAtBottom)//(X = -1)
+            {   
+                borderPoint.Y = expBounds.Top;
 
-                }
-                else if (bounds.Right == intersectBounds.Right)
-                {
-                    borderVector.X = bounds.Left - intersectBounds.Left;
-                    //Border is left (Y = -1)
-                    borderVector.Y = intersectBounds.Bottom - bounds.Bottom;
-                }
-                else if (bounds.Bottom > gr.VisibleClipBounds.Bottom - 2 && borderVector.X >= 0)
+                if (borderAtTop)
+                    borderVector.X = 0F;
+                else if (borderVector.X == 0)
                     borderVector.X = -1;
-                else if (borderVector.X >= 0)
+                else if (borderVector.X > 0)
+                    borderVector.X *= -1;
+                else if (expBounds.Bottom >= gr.VisibleClipBounds.Bottom - nInflate)
                     borderVector.X = -1;
+            } 
+            else if (borderAtTop)//(X = +1)
+            {   
+                borderPoint.Y = expBounds.Bottom;
+
+                if (borderVector.X == 0)
+                    borderVector.X = 1;
+                else if (borderVector.X < 0)
+                    borderVector.X *= -1;
+                else if (expBounds.Top <= nInflate)
+                    borderVector.X = +1;
             }
-            else if (bounds.Bottom == intersectBounds.Bottom)
+
+            if (borderAtLeft) // (Y = -1)
             {
-                //Border is top (X = +1)
-                borderPoint.Y = bounds.Bottom;
+                borderPoint.X = expBounds.Right;
 
-                if (bounds.Left == intersectBounds.Left)
-                {
-                    //Border is right (Y = +1)
-                    borderVector.Y = intersectBounds.Top - bounds.Top;
-
-                    borderVector.X = bounds.Right - intersectBounds.Right;
-
-                }
-                else if (bounds.Right == intersectBounds.Right)
-                {
-                    //Border is left (Y = -1)
-
-                    borderVector.X = intersectBounds.Left - bounds.Left;
-                    if (borderVector.Y > 0)
-                        borderVector.Y *= -1;
-                }
-                else if (bounds.Bottom > gr.VisibleClipBounds.Bottom - 2 && borderVector.X >= 0)
-                    borderVector.X = -1;
-                else if (borderVector.X <= 0)
-                    borderVector.X = 1;
-
-                if (bounds.Top == 0)
-                    borderVector.X = 1;
-            }
-            else if (bounds.Left == intersectBounds.Left)
-            {   //Border is right  (Y = +1)
-
-                borderVector = new(0, intersectBounds.Top - bounds.Top);
-
-                borderPoint.X = bounds.X;
-                if (bounds.Right > gr.VisibleClipBounds.Right - 2 && borderVector.Y >= 0)
+                if (borderAtRight)
+                    borderVector.Y = 0F;
+                else if (borderVector.Y == 0)
+                    borderVector.Y = -1;
+                else if (borderVector.Y > 0)
+                    borderVector.Y *= -1;
+                else if (expBounds.Left < nInflate)
                     borderVector.Y = -1;
             }
-            else if (bounds.Right == intersectBounds.Right)
+            else if (borderAtRight) // (Y = +1)
             {
-                //Border is left  (Y = -1)
-                borderVector = new(0, bounds.Top - intersectBounds.Top);
+                borderPoint.X = expBounds.Left;
 
-                borderPoint.X = bounds.Right;
-                if (bounds.Left == 0)
-                    borderVector.Y = -1;
+                if (borderVector.Y == 0)
+                    borderVector.Y = 1;
+                else if (borderVector.Y < 0)
+                    borderVector.Y *= -1;
+                if (expBounds.Right >= gr.VisibleClipBounds.Right - nInflate)
+                    borderVector.Y = +1;
             }
-            else
-            {
-                Console.Error.Write("");
-            }
+            
+
+            //else if (bounds.Bottom == intersectBounds.Bottom)
+            //{
+            //    //Border is top (X = +1)
+            //    borderPoint.Y = bounds.Bottom;
+
+            //    if (bounds.Left == intersectBounds.Left)
+            //    {
+            //        //Border is right (Y = +1)
+            //        borderVector.Y = intersectBounds.Top - bounds.Top;
+
+            //        borderVector.X = bounds.Right - intersectBounds.Right;
+
+            //    }
+            //    else if (bounds.Right == intersectBounds.Right)
+            //    {
+            //        //Border is left (Y = -1)
+
+            //        borderVector.X = intersectBounds.Left - bounds.Left;
+            //        if (borderVector.Y > 0)
+            //            borderVector.Y *= -1;
+            //    }
+            //    else if (bounds.Bottom > gr.VisibleClipBounds.Bottom - 2 && borderVector.X >= 0)
+            //        borderVector.X = -1;
+            //    else if (borderVector.X <= 0)
+            //        borderVector.X = 1;
+
+            //    if (bounds.Top == 0)
+            //        borderVector.X = 1;
+            //}
+            //else if (bounds.Left == intersectBounds.Left)
+            //{   //Border is right  (Y = +1)
+
+            //    borderVector = new(0, intersectBounds.Top - bounds.Top);
+
+            //    borderPoint.X = bounds.X;
+            //    if (bounds.Right > gr.VisibleClipBounds.Right - 2 && borderVector.Y >= 0)
+            //        borderVector.Y = -1;
+            //}
+            //else if (bounds.Right == intersectBounds.Right)
+            //{
+            //    //Border is left  (Y = -1)
+            //    borderVector = new(0, bounds.Top - intersectBounds.Top);
+
+            //    borderPoint.X = bounds.Right;
+            //    if (bounds.Left == 0)
+            //        borderVector.Y = -1;
+            //}
+            //else
+            //{
+            //    Console.Error.Write("");
+            //}
             if (Vector2.Zero.Equals(borderVector))
             {
-                if (bounds.Left == 0)
+                if (expBounds.Left == 0)
                     borderVector = new(1, 0);
-                else if (bounds.Top == 0)
+                else if (expBounds.Top == 0)
                     borderVector = new(0, 1);
-                else if (bounds.Right > gr.VisibleClipBounds.Right - 2)
+                else if (expBounds.Right > gr.VisibleClipBounds.Right - 2)
                     borderVector = new(-1, 0);
-                else if (bounds.Bottom > gr.VisibleClipBounds.Bottom - 2)
+                else if (expBounds.Bottom > gr.VisibleClipBounds.Bottom - 2)
                     borderVector = new(0, -1);
                 else
                     borderVector = new(0, -1);
