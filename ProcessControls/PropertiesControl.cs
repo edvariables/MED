@@ -29,7 +29,7 @@ namespace MED
             ProcessClasses.Add("ScreenSplitter", typeof(MED.Imaging.ScreenSplitter).FullName ?? "");
             ProcessClasses.Add("Project", typeof(MED.Processes).FullName ?? "");
             ProcessClasses.Add("Images", typeof(MED.Imaging.Images).FullName ?? "");
-            ProcessClasses.Add("Collider", typeof(MED.Imaging.Mover).FullName ?? "");
+            ProcessClasses.Add("Mover/Collider", typeof(MED.Imaging.Mover).FullName ?? "");
             ProcessClasses.Add("EmguMoving", typeof(MED.Imaging.EmguMoving).FullName ?? "");
             ProcessClasses.Add("VideoCapture", typeof(MED.Imaging.EDVideoCapture).FullName ?? "");
             ProcessClasses.Add("Background", typeof(MED.Imaging.Background).FullName ?? "");

@@ -11,6 +11,7 @@ using System.Runtime.InteropServices.Marshalling;
 using System.Runtime.Intrinsics;
 using System.Text;
 using System.Threading.Tasks;
+using System.Transactions;
 using static Emgu.Util.Platform;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.ToolTip;
 
@@ -268,7 +269,7 @@ namespace MED.Imaging
             , IImageCollidable item, PointF offset, Region region
             , IImageCollidable item2, PointF offset2)
         {
-            if (item.Location.IsEmpty)
+            if (item.Location.IsEmpty && item.Speed == 0)
                 return false;
             if (item2.Speed == 0F)
                 return CollideMoverAndWall(gr, intersectBounds, intersectBoundsCenter, intersectRegion, item, offset, region, item2, PointF.Empty);
@@ -287,6 +288,11 @@ namespace MED.Imaging
             var location = item.Location;
             if (location.IsEmpty)//TODO abuse
                 return false;
+            if (!offset.IsEmpty)
+            {
+                location.X += offset.X;
+                location.Y += offset.Y;
+            }
             var itemBounds = region.GetBounds(gr);
             var itemBoundsCenter = new PointF((itemBounds.Right + itemBounds.Left) / 2, (itemBounds.Bottom + itemBounds.Top) / 2);
             PointF move = new(itemBoundsCenter.X - intersectBoundsCenter.X, itemBoundsCenter.Y - intersectBoundsCenter.Y);
@@ -343,10 +349,9 @@ namespace MED.Imaging
             var itemVelocity = Vector2.Normalize(velocity_tangent - velocity_normal * 1F);
 
             #endregion
-
-            if (float.IsNaN(itemVelocity.X))
+            if (float.IsNaN(itemVelocity.X) || float.IsInfinity(itemVelocity.X))
             {
-                item.Performance?.Error("location.X IsNaN !");
+                item.Performance?.Error($"location.X IsNaN == {float.IsNaN(itemVelocity.X)} or IsInfinity == {float.IsInfinity(itemVelocity.X)}");
                 return false;
             }
 
@@ -605,6 +610,11 @@ namespace MED.Imaging
             {
                 borderVector.X = -item.Direction.Y;
                 borderVector.Y = item.Direction.X;
+                borderVector = Vector2.Normalize(borderVector);
+                if (float.IsInfinity(borderVector.X) || float.IsNaN(borderVector.X))
+                {
+                    borderVector = Vector2.Zero;
+                }
             }
             //Analyse des arêtes d'angles
             if (!overAny && !(borderVector.X == 0F || borderVector.Y == 0F))
@@ -633,57 +643,7 @@ namespace MED.Imaging
                     }
             }
 
-            //else if (bounds.Bottom == intersectBounds.Bottom)
-            //{
-            //    //Border is top (X = +1)
-            //    borderPoint.Y = bounds.Bottom;
 
-            //    if (bounds.Left == intersectBounds.Left)
-            //    {
-            //        //Border is right (Y = +1)
-            //        borderVector.Y = intersectBounds.Top - bounds.Top;
-
-            //        borderVector.X = bounds.Right - intersectBounds.Right;
-
-            //    }
-            //    else if (bounds.Right == intersectBounds.Right)
-            //    {
-            //        //Border is left (Y = -1)
-
-            //        borderVector.X = intersectBounds.Left - bounds.Left;
-            //        if (borderVector.Y > 0)
-            //            borderVector.Y *= -1;
-            //    }
-            //    else if (bounds.Bottom > gr.VisibleClipBounds.Bottom - 2 && borderVector.X >= 0)
-            //        borderVector.X = -1;
-            //    else if (borderVector.X <= 0)
-            //        borderVector.X = 1;
-
-            //    if (bounds.Top == 0)
-            //        borderVector.X = 1;
-            //}
-            //else if (bounds.Left == intersectBounds.Left)
-            //{   //Border is right  (Y = +1)
-
-            //    borderVector = new(0, intersectBounds.Top - bounds.Top);
-
-            //    borderPoint.X = bounds.X;
-            //    if (bounds.Right > gr.VisibleClipBounds.Right - 2 && borderVector.Y >= 0)
-            //        borderVector.Y = -1;
-            //}
-            //else if (bounds.Right == intersectBounds.Right)
-            //{
-            //    //Border is left  (Y = -1)
-            //    borderVector = new(0, bounds.Top - intersectBounds.Top);
-
-            //    borderPoint.X = bounds.Right;
-            //    if (bounds.Left == 0)
-            //        borderVector.Y = -1;
-            //}
-            //else
-            //{
-            //    Console.Error.Write("");
-            //}
             if (Vector2.Zero.Equals(borderVector))
             {
                 if (expBounds.Left <= nInflate)
@@ -713,15 +673,20 @@ namespace MED.Imaging
             var location = item.Location;
             if (location.IsEmpty)
                 return false;
+            if (!offset.IsEmpty)
+            {
+                location.X += offset.X;
+                location.Y += offset.Y;
+            }
             var itemBounds = region.GetBounds(gr);
             var itemBoundsCenter = new PointF((itemBounds.Right + itemBounds.Left) / 2, (itemBounds.Bottom + itemBounds.Top) / 2);
             var overRatio = Math.Abs((intersectBounds.Width * intersectBounds.Height) / (itemBounds.Width * itemBounds.Height));
             var changed = false;
             PointF move = new(itemBoundsCenter.X - intersectBoundsCenter.X, itemBoundsCenter.Y - intersectBoundsCenter.Y);
             PointF moveRatio = new(Math.Abs(move.X / itemBounds.Width), Math.Abs(move.Y / itemBounds.Height));
-            Vector2 oldVector = new Vector2((float)(item.Direction.X), (float)(item.Direction.Y));
+            Vector2 oldVector = item.DirectionVector;
             Vector2 normal = Vector2.Normalize(new Vector2((float)(intersectBounds.X), (float)(intersectBounds.Y)));
-            Vector2 dirNormal = Vector2.Normalize(new Vector2(item.Direction.X, item.Direction.Y));
+            Vector2 dirNormal = Vector2.Normalize(item.DirectionVector);
             Vector2 vector = new Vector2((float)(move.X), (float)(move.Y));
             vector = Vector2.Normalize(vector);
             float speed = item.Speed;
@@ -780,7 +745,6 @@ namespace MED.Imaging
                 }
 
                 //Physics.PositionalCorrection((IImageCollidable)item, (IImageCollidable)item2, intersectBounds, intersectBoundsCenter);
-                dirNormal = Vector2.Normalize(new Vector2(item.Direction.X, item.Direction.Y));
                 normal += (normal - dirNormal);
                 vector = Vector2.Normalize(-normal);
 
@@ -834,14 +798,20 @@ namespace MED.Imaging
                 //double radius_sum = itemBounds.Width + w.radius;  // The combined radius of the ball and the wall's thickness
                 Vector2 collision_normal = new(-move.X, -move.Y);
                 collision_normal = Vector2.Normalize(collision_normal);
-                double distance = Math.Sqrt(dx * dx + dy * dy);   // The actual distance between the ball's center and the closest point
-                float penetration = (float)Math.Sqrt(intersectBounds.Width * intersectBounds.Width + intersectBounds.Height * intersectBounds.Height);
+                float distance = (float)Math.Sqrt(dx * dx + dy * dy);   // The actual distance between the ball's center and the closest point
+                var radius_sum = itemBounds.Width;
+                float penetration = radius_sum-distance;
 
 
-                Vector2 ball_1_velocity = new Vector2(item.Velocity.X, item.Velocity.Y);
+                Vector2 ball_1_velocity = item.VelocityVector;
 
-                location.X -= penetration * ball_1_velocity.X;
-                location.Y -= penetration * ball_1_velocity.Y;
+                //Push the Ball Out of the Wall
+                if (penetration > 0)
+                {
+                    item.Performance?.Step($"Penetration {penetration}");
+                    location.X += collision_normal.X * penetration;
+                    location.Y += collision_normal.Y * penetration;
+                }
 
                 float velocity_dot_normal = (float)Vector2.Dot(ball_1_velocity, collision_normal);
 
@@ -852,15 +822,21 @@ namespace MED.Imaging
                 // Damping factor is arbitrarily chosen as 0.6
                 ball_1_velocity = velocity_tangent - velocity_normal * 0.6F;
 
+                if (Vector2.Zero.Equals(ball_1_velocity))
+                {
+                    return false;
+                }
+                else
+                    ball_1_velocity = Vector2.Normalize(ball_1_velocity);
                 var direction = item.Direction = new PointF(ball_1_velocity.X, ball_1_velocity.Y);
 
-                location.X += ball_1_velocity.X;
-                location.Y += ball_1_velocity.Y;
-
-                //location.X += item.Velocity.X;
-                //location.Y += item.Velocity.Y;
-
-                item.Location = location;
+                if (!offset.IsEmpty)
+                {
+                    int duration = 20;//TODO Part of rebound
+                    location.X += item.Velocity.X * duration;
+                    location.Y += item.Velocity.Y * duration;
+                    item.Location = location;
+                }
 
             }
             return changed;

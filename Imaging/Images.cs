@@ -191,7 +191,8 @@ namespace MED.Imaging
 
                 try
                 {
-                    AppendImage(graphics, size, (IImageProvider)item);
+                    bool drawEdges = false;
+                    AppendImage(graphics, size, (IImageProvider)item, drawEdges);
                 }
                 catch (Exception ex)
                 {
@@ -201,7 +202,7 @@ namespace MED.Imaging
                 nProvider++;
             }
             graphics.Dispose();
-            Performance.Pause($"Get Image done => " + (image == null ? "<null>" : "Bitmap"));
+            Performance?.Pause($"Get Image done => " + (image == null ? "<null>" : "Bitmap"));
             return image;
         }
 

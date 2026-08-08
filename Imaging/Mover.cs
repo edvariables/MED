@@ -60,7 +60,7 @@ namespace MED.Imaging
             }
             set
             {
-                if (float.IsNaN(value.X))
+                if (float.IsNaN(value.X) || float.IsInfinity(value.X))
                     return;
                 _ClipRegionTranslated = null;
                 if (base.Location != value)
@@ -131,7 +131,10 @@ namespace MED.Imaging
             get => _Direction;
             set
             {
-                _Direction = value;
+                if (float.IsInfinity(value.X) || float.IsInfinity(value.Y) || float.IsNaN(value.X))
+                    RandomizeDirection();
+                else
+                    _Direction = value;
                 DirectionVector = Vector2.Zero;
             }
         }
