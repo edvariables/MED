@@ -126,27 +126,40 @@ namespace MED.Imaging
 
         protected ImagesCollider Collider { get; set; }
 
+        public override Bitmap? Image
+        {
+            get => base.Image;
+            set
+            {
+                if (_Image != null)
+                    PreviousImage = _Image;
+                _Image = value;
+            }
+        }
+
+        public virtual Bitmap? PreviousImage { get; set; }
+
         /**
          * GetImage
          * 
          * */
-        public override Bitmap? GetImage(IImageProvider provider = null)
+        public override Bitmap? GetImage(IImageProvider? provider = null)
         {
-            Performance.Resume($"Make Image from {Items.Count}", true);
+            Performance?.Resume($"Make Image from {Items.Count}", true);
 
-            Bitmap image;
+            Bitmap? image;
             Size size = ImageSizeMin;
             if (size.IsEmpty)
             {
                 if (Consumer is IImageConsumer)
-                    size = (Consumer as IImageConsumer).ImageSizeMin;
+                    size = ((IImageConsumer)Consumer).ImageSizeMin;
 
                 if (size.IsEmpty)
                     foreach (var prov in Items)
                     {
                         if (prov is not IImageProvider)
                             continue;
-                        image = (prov as IImageProvider).Image;
+                        image = ((IImageProvider)prov).Image;
                         if (image == null)
                             continue;
                         size = image.Size;
@@ -165,7 +178,7 @@ namespace MED.Imaging
 
             MoveItems();
 
-            Collider.Collide(image, graphics);
+            //Collider.Collide(image, graphics);
 
             int nProvider = 0;
             foreach (var item in Items)
@@ -182,7 +195,7 @@ namespace MED.Imaging
                 }
                 catch (Exception ex)
                 {
-                    Performance.Error($"AppendImage Image {item}", ex);
+                    Performance?.Error($"AppendImage Image {item}", ex);
                 }
 
                 nProvider++;
@@ -193,7 +206,7 @@ namespace MED.Imaging
         }
 
         /**
-         * Append item image to global one
+         * Append item image to the global one
          * 
          * */
         private void AppendImage(Graphics graphics, Size size, IImageProvider item, bool drawEdges = true)
@@ -334,6 +347,19 @@ namespace MED.Imaging
             }
         }
 
+        public PointF CollideItem(IImageCollidable item, PointF offset)
+        {
+            if (PreviousImage != null)
+                if (Collider.Collide(PreviousImage, item, offset).Count > 0)
+                    return item.Location;
+
+            var location = item.Location;
+
+            location.X += offset.X;
+            location.Y += offset.Y;
+
+            return location;
+        }
         #region IUndo
         public override void UndoClear()
         {

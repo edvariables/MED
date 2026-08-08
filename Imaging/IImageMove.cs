@@ -17,6 +17,9 @@ namespace MED.Imaging
         void Move(long elapsedTime);
 
         System.Drawing.Region? ClipRegionTranslated { get; }
+
+        System.Drawing.Region? ClipEdgesRegionTranslated { get; }
+
         Vector2 LocationVector { get; }
 
         float SpeedMax { get; }

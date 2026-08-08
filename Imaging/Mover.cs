@@ -75,9 +75,13 @@ namespace MED.Imaging
                 || Speed == 0)
                 return;
 
-            location.X += Velocity.X * elapsedTime;
-            location.Y += Velocity.Y * elapsedTime;
-
+            if (this.Consumer is Images)
+                location = ((Images)this.Consumer).CollideItem(this, new PointF(Velocity.X * elapsedTime, Velocity.Y * elapsedTime));
+            else
+            {
+                location.X += Velocity.X * elapsedTime;
+                location.Y += Velocity.Y * elapsedTime;
+            }
             if (RotationSpeed != 0F)
                 Rotation = (float)((Rotation + RotationSpeed * elapsedTime) % 360F);
 
@@ -179,6 +183,22 @@ namespace MED.Imaging
                 if (_ClipRegionTranslated != null || Image == null || ClipRegion == null)
                     return _ClipRegionTranslated;
                 return _ClipRegionTranslated = TranslateRegion(ClipRegion, Location, Rotation, Image.Size);
+            }
+        }
+
+        Region? _ClipEdgesRegionTranslated;
+        /**
+         * 
+         * Returns ClipEdgesRegion.Clone().Translate(Location.X, Location.Y);
+        */
+        [Browsable(false)]
+        public virtual Region? ClipEdgesRegionTranslated
+        {
+            get
+            {
+                if (_ClipEdgesRegionTranslated != null || Image == null || ClipEdgesRegion == null)
+                    return _ClipEdgesRegionTranslated;
+                return _ClipEdgesRegionTranslated = TranslateRegion(ClipEdgesRegion, Location, Rotation, Image.Size);
             }
         }
 
