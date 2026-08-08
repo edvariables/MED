@@ -320,7 +320,7 @@ namespace MED.Imaging
                         CvInvoke.Subtract(frameDiff, _ThresholdMat, frameDiff);
 
                         //Blur TODO
-                        CvInvoke.Blur(frameDiff, frameDiff, new Size(8, 8), new Point(-1, -1));
+                        CvInvoke.Blur(frameDiff, frameDiff, new Size(4, 4), new Point(-1, -1));
 
                         GraphicsPath grPath;
                         Region? region = GetContourRegion(frameDiff, out grPath);
@@ -337,6 +337,8 @@ namespace MED.Imaging
                             currentFrame = resized;
                         }
                         ClipRegion = region;
+                        //Performance?.Debug($"Set ClipRegion {region}");
+                        //Performance?.Debug($"Set ClipRegionTranslated {ClipRegionTranslated}");
                         ClipPath = grPath;
 
                         return currentFrame.ToBitmap();

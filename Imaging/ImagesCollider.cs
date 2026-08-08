@@ -189,9 +189,9 @@ namespace MED.Imaging
                         if (someChanges.ContainsKey(item1)) someChanges[item1] = region1;
                         else someChanges.Add(item1, region1);
 
-                    //if (CollideItemPair(gr, intersectBounds, intersectBoundsCenter, intersect, item2, PointF.Empty, region2, item1, offset))
-                    //    if (someChanges.ContainsKey(item2)) someChanges[item2] = region2;
-                    //    else someChanges.Add(item2, region2);
+                    if (CollideItemPair(gr, intersectBounds, intersectBoundsCenter, intersect, item2, PointF.Empty, region2, item1, offset))
+                        if (someChanges.ContainsKey(item2)) someChanges[item2] = region2;
+                        else someChanges.Add(item2, region2);
 
                 }
             }

@@ -63,8 +63,20 @@ namespace MED.Imaging
                 if (float.IsNaN(value.X))
                     return;
                 _ClipRegionTranslated = null;
-                Performance?.Debug($"Location _setter {value}");
+                if (base.Location != value)
+                    Performance?.Debug($"Location _setter {value}");
                 base.Location = value;
+            }
+        }
+
+        public override Region? ClipRegion
+        {
+            get => base.ClipRegion;
+            set
+            {
+                _ClipRegionTranslated = null;
+                _ClipEdgesRegionTranslated = null;
+                base.ClipRegion = value;
             }
         }
 
