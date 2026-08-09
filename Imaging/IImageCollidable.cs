@@ -17,5 +17,8 @@ namespace MED.Imaging
 
         [Browsable(false)]
         System.Drawing.Region? ClipEdgesRegion { get;} 
+
+        [Browsable(true)]
+        float SurfaceFriction { get;} 
     }
 }

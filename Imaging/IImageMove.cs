@@ -23,12 +23,17 @@ namespace MED.Imaging
         Vector2 LocationVector { get; }
 
         float SpeedMax { get; }
-        float Speed { get; set; }
+        float Speed { get; }
+        float Speed_msec{ get; set; }
+
         PointF Direction { get; set; }
         Vector2 DirectionVector { get; }
         PointF Velocity { get; set; }
         Vector2 VelocityVector { get; }
+
         float RotationSpeed { get; set; }
         float RotationSpeedMax { get; set; }
+
+        float SurfaceFriction { get; }
     }
 }

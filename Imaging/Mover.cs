@@ -34,19 +34,43 @@ namespace MED.Imaging
 
         public virtual float SpeedMax { get; set; }
         public virtual float Mass { get; set; } = 1F;
-        public virtual float RotationSpeed { get; set; }
+        float _RotationSpeed = 0F;
+        public virtual float RotationSpeed { 
+            get=> _RotationSpeed;
+            set
+            {
+                if (value > RotationSpeedMax)
+                    _RotationSpeed = RotationSpeedMax;
+                else
+                    _RotationSpeed = value;
+            }
+        }
         public virtual float RotationSpeedMax { get; set; } = 0.5F;
 
-        float _Speed = 0F;
+        /**
+         * Speed
+         * <summary>Vitesse mesurée en pixel par seconde</summary>
+         * */
         public virtual float Speed
         {
-            get => _Speed;
+            get => _Speed_msec * 1000;
+            set => Speed_msec = value / 1000;
+        }
+
+        float _Speed_msec = 0F;
+        /**
+         * Speed
+         * <summary>Vitesse mesurée en pixel par milliseconde</summary>
+         * */
+        public float Speed_msec
+        {
+            get => _Speed_msec;
             set
             {
                 if (SpeedMax == 0)
-                    _Speed = value;
+                    _Speed_msec = value;
                 else
-                    _Speed = Math.Min(value, SpeedMax);
+                    _Speed_msec = Math.Min(value, SpeedMax / 1000);
                 Direction = _Direction;//Reset Velocity and Vector
             }
         }
@@ -63,8 +87,8 @@ namespace MED.Imaging
                 if (float.IsNaN(value.X) || float.IsInfinity(value.X))
                     return;
                 _ClipRegionTranslated = null;
-                if (base.Location != value)
-                    Performance?.Debug($"Location _setter {value}");
+                //if (base.Location != value)
+                //    Performance?.Debug($"Location _setter {value}");
                 base.Location = value;
             }
         }
@@ -95,10 +119,10 @@ namespace MED.Imaging
                 location.Y += Velocity.Y * elapsedTime;
             }
             if (RotationSpeed != 0F)
-                Rotation = (float)((Rotation + RotationSpeed * elapsedTime) % 360F);
+                RotationAngle = (float)((RotationAngle + RotationSpeed * elapsedTime) % 360F);
 
             Location = location;
-            Performance?.Debug($"Move sets Location = {Location}");
+            //Performance?.Debug($"Move sets Location = {Location}");
         }
 
         Vector2 _LocationVector;
@@ -115,15 +139,39 @@ namespace MED.Imaging
         }
 
         [Browsable(false)]
-        public override float Rotation
+        public override float RotationAngle
         {
-            get => base.Rotation;
+            get => base.RotationAngle;
             set
             {
                 _ClipRegionTranslated = null;
-                base.Rotation = value;
+                _RotationVector = Vector2.Zero;
+                base.RotationAngle = value;
             }
         }
+
+        Vector2 _RotationVector;
+        /**
+         * Rotation angle as a vector (cos, -sin) * RotationSpeed
+         * <summary>Rotation angle as a vector (cos, -sin)</summary>
+         * */
+        [Browsable(false)]
+        public virtual Vector2 RotationVector
+        {
+            get
+            {
+                if (_RotationVector.Equals(Vector2.Zero))
+                    return _RotationVector = new(RotationSpeed * (float)Math.Cos(base.RotationAngle), -RotationSpeed * (float)Math.Sin(base.RotationAngle));
+                return _RotationVector;
+            }
+            private set { _RotationVector = value; }
+        }
+
+        /**
+         * Surface friction in collision
+         * 
+         * */
+        public virtual float SurfaceFriction { get; set; } = 0F;
 
         PointF _Direction;
         public virtual PointF Direction
@@ -162,7 +210,7 @@ namespace MED.Imaging
             get
             {
                 if (_Velocity.IsEmpty)
-                    return _Velocity = new(Direction.X * Speed / 1000, Direction.Y * Speed / 1000);
+                    return _Velocity = new(Direction.X * Speed_msec, Direction.Y * Speed_msec);
                 return _Velocity;
             }
             set
@@ -197,7 +245,7 @@ namespace MED.Imaging
             {
                 if (_ClipRegionTranslated != null || Image == null || ClipRegion == null)
                     return _ClipRegionTranslated;
-                return _ClipRegionTranslated = TranslateRegion(ClipRegion, Location, Rotation, Image.Size);
+                return _ClipRegionTranslated = TranslateRegion(ClipRegion, Location, RotationAngle, Image.Size);
             }
         }
 
@@ -213,7 +261,7 @@ namespace MED.Imaging
             {
                 if (_ClipEdgesRegionTranslated != null || Image == null || ClipEdgesRegion == null)
                     return _ClipEdgesRegionTranslated;
-                return _ClipEdgesRegionTranslated = TranslateRegion(ClipEdgesRegion, Location, Rotation, Image.Size);
+                return _ClipEdgesRegionTranslated = TranslateRegion(ClipEdgesRegion, Location, RotationAngle, Image.Size);
             }
         }
 
@@ -238,7 +286,7 @@ namespace MED.Imaging
         public override void Start()
         {
             Location = PointF.Empty;
-            Rotation = 0F;
+            RotationAngle = 0F;
 
             RandomizeDirection();
 
@@ -265,6 +313,7 @@ namespace MED.Imaging
             SpeedMax = (float)(settings.GetValue("SpeedMax", SpeedMax) ?? SpeedMax);
             Mass = (float)(settings.GetValue("Mass", Mass) ?? Mass);
             RotationSpeedMax = (float)(settings.GetValue("RotationSpeedMax", RotationSpeedMax) ?? RotationSpeedMax);
+            SurfaceFriction = (float)(settings.GetValue("SurfaceFriction", SurfaceFriction) ?? SurfaceFriction);
         }
         public override JsonObject SaveProcess(JsonObject? node = null)
         {
@@ -273,6 +322,7 @@ namespace MED.Imaging
             node.Add("SpeedMax", SpeedMax);
             node.Add("Mass", Mass);
             node.Add("RotationSpeedMax", RotationSpeedMax);
+            node.Add("SurfaceFriction", SurfaceFriction);
             return node;
         }
         #endregion
@@ -284,12 +334,13 @@ namespace MED.Imaging
             if (!(Speed == 0F && Location.IsEmpty))//debug
             {
                 dic.Add("Speed", Speed);
-                dic.Add("Rotation", Rotation);
+                dic.Add("Rotation", RotationAngle);
                 dic.Add("RotationSpeed", RotationSpeed);
+                dic.Add("SurfaceFriction", SurfaceFriction);
                 dic.Add("Direction", Direction);
                 dic.Add("Location", Location);
 
-                Performance?.Sub("Stack").Debug($"Stack Location = {Location}");
+                //Performance?.Sub("Stack").Debug($"Stack Location = {Location}");
             }
             return dic;
         }

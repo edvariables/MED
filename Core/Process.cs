@@ -311,9 +311,10 @@ namespace MED
                 LoadProcess(settings.Root);
             if (settings != null)
             {
-                Name = (string)settings.GetValue("Name", Name);
-                ProcessIcon = (string)settings.GetValue("ProcessIcon", ProcessIcon);
-                IsAsynchrone = (bool)settings.GetValue("IsAsynchrone", IsAsynchrone);
+                Name = (string)(settings.GetValue("Name", Name) ?? Name);
+                ProcessIcon = (string)(settings.GetValue("ProcessIcon", ProcessIcon) ?? ProcessIcon);
+                IsAsynchrone = (bool)(settings.GetValue("IsAsynchrone", IsAsynchrone) ?? IsAsynchrone);
+                Enabled = (bool)(settings.GetValue("Enabled", Enabled) ?? Enabled);
 
                 if (Performance != null)
                 {
@@ -360,6 +361,7 @@ namespace MED
                 node["ProcessLib"] = assembly;
             node["Name"] = Name;
             node["IsAsynchrone"] = IsAsynchrone;
+            node["Enabled"] = Enabled;
             if (ProcessIcon != ProcessIconDefault)
                 node["ProcessIcon"] = ProcessIcon;
 
@@ -506,7 +508,7 @@ namespace MED
         }
         public virtual Dictionary<string, object>? Undo(int length = 1)
         {
-            if (_UndoStack==null || _UndoStack.Count == 0)
+            if (_UndoStack == null || _UndoStack.Count == 0)
                 return null;
 
             Dictionary<string, object>? dic = new();
@@ -522,7 +524,7 @@ namespace MED
             foreach (var (propertyName, propertyValue) in dic)
             {
                 var property = type.GetProperty(propertyName);
-                if (property == null || ! property.CanWrite)
+                if (property == null || !property.CanWrite)
                     continue;
                 property.SetValue(this, propertyValue);
             }

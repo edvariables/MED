@@ -147,7 +147,7 @@ namespace MED.Imaging
         public virtual System.Drawing.PointF Location { get; set; } = System.Drawing.PointF.Empty;
 
         [Browsable(false)]
-        public virtual float Rotation { get; set; }
+        public virtual float RotationAngle { get; set; }
 
         [Browsable(true)]
         public virtual int FPSMax { get; set; } = 25;

@@ -41,7 +41,9 @@ namespace MED.Imaging
 
                 foreach (var prov in Process.Items)
                 {
-                    if (prov is not IImageCollidable)
+                    if (prov is not IImageCollidable
+                        || !prov.Enabled
+                        )
                         continue;
 
                     var clipRegion = (prov as IImageCollidable).ClipRegionTranslated;
@@ -85,10 +87,13 @@ namespace MED.Imaging
             if (item.Speed == 0F)
                 return false;
             var location = item.Location;
-            if (location.IsEmpty)
+            if (!offset.IsEmpty)
+            {
+                location.X += offset.X;
+                location.Y += offset.Y;
+            }
+            else if (location.IsEmpty)
                 return false;
-            location.X += offset.X;
-            location.Y += offset.Y;
             var direction = item.Direction;
             var region = item.ClipRegionTranslated;
             if (region == null)
@@ -100,39 +105,46 @@ namespace MED.Imaging
             bool changed = false;
             var bounds = region.GetBounds(gr);
 
+            Vector2 overlap = Vector2.Zero;
+
             //Process.Performance?.Sub(".Collider.Borders").Step($"{item} {bounds}");
             if (bounds.Top < 0)
             {
-                location.Y = 1;
+                overlap.Y = -bounds.Top + 1;
                 if (direction.Y < 0)
                     direction.Y *= -1;
                 changed = true;
             }
             if (bounds.Left < 0)
             {
-                location.X = 1;
+                overlap.X = -bounds.Left + 1;
+                //location.X = 1;
                 if (direction.X < 0)
                     direction.X *= -1;
                 changed = true;
             }
             if (bounds.Bottom > image.Height)
             {
-                location.Y = image.Height - bounds.Height;
+                overlap.Y = image.Height - bounds.Bottom;
                 if (direction.Y > 0)
                     direction.Y *= -1;
                 changed = true;
             }
             if (bounds.Right > image.Width)
             {
-                location.X = image.Width - bounds.Width;
+                overlap.X = image.Width - bounds.Right;
+                //location.X = image.Width - bounds.Width;
                 if (direction.X > 0)
                     direction.X *= -1;
                 changed = true;
             }
             if (changed)
             {
-                //TODO rebound of partial offset
-
+                if (!Vector2.Zero.Equals(overlap))
+                {
+                    location.X += overlap.X;
+                    location.Y += overlap.Y;
+                }
                 (item as IImageCollidable).Location = location;
 
                 (item as IImageCollidable).Direction = direction;
@@ -162,7 +174,7 @@ namespace MED.Imaging
             if (CollideItemWithImageBorders(image, gr, item1, offset))
             {
                 someChanges.Add(item1, region1);
-                return new();//Do not both image borders and collides
+                return someChanges;//Do not both image borders and collides
             }
             foreach (var item2 in colliders)
             {
@@ -190,7 +202,7 @@ namespace MED.Imaging
                         if (someChanges.ContainsKey(item1)) someChanges[item1] = region1;
                         else someChanges.Add(item1, region1);
 
-                    if (CollideItemPair(gr, intersectBounds, intersectBoundsCenter, intersect, item2, PointF.Empty, region2, item1, offset))
+                    else if (CollideItemPair(gr, intersectBounds, intersectBoundsCenter, intersect, item2, PointF.Empty, region2, item1, offset))
                         if (someChanges.ContainsKey(item2)) someChanges[item2] = region2;
                         else someChanges.Add(item2, region2);
 
@@ -666,7 +678,136 @@ namespace MED.Imaging
             return borderVector;
         }
 
+        /**
+         * Colliide 2 items
+         * */
         private bool CollideMovingItems(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, Region intersectRegion
+            , IImageCollidable item1, PointF offset, Region region
+            , IImageCollidable item2, PointF offset2)
+        {
+            var location = item1.Location;
+            if (location.IsEmpty)
+                return false;
+
+            if (!offset.IsEmpty)
+            {
+                location.X += offset.X;
+                location.Y += offset.Y;
+            }
+            var item1Bounds = region.GetBounds(gr);
+            var item1BoundsCenter = new PointF((item1Bounds.Right + item1Bounds.Left) / 2, (item1Bounds.Bottom + item1Bounds.Top) / 2);
+
+            float dx = (item1BoundsCenter.X - intersectBoundsCenter.X);
+            float dy = (item1BoundsCenter.Y - intersectBoundsCenter.Y);
+            float distance_squared = dx * dx + dy * dy; // Square of the distance between the centers
+            float distance = (float)Math.Sqrt(distance_squared);    // Actual distance between the centers
+            float radius_sum = (item1Bounds.Width + item1Bounds.Height) / 2F;
+            float overlap = (radius_sum - distance) / 2F; // Amount of overlap between the balls
+
+            //Collision Direction
+            Vector2 normalised_collision = new(dx / distance, dy / distance);
+
+            //Resolve Overlap
+            location.X += overlap * normalised_collision.X;
+            location.Y += overlap * normalised_collision.Y;
+            if (!item2.Location.IsEmpty && item2.Speed != 0F)
+            {
+                var location2 = item2.Location;
+                if (!offset2.IsEmpty)
+                {
+                    location2.X += offset2.X;
+                    location2.Y += offset2.Y;
+                }
+                location2.X -= overlap * normalised_collision.X;
+                location2.Y -= overlap * normalised_collision.Y;
+
+                location2.X -= overlap * item2.Direction.X;
+                location2.Y -= overlap * item2.Direction.Y;
+
+                item2.Location = location2;//TODO if( !offset2.IsEmpty) ?
+
+                //item2.Speed = item1EnergyRatio * item2.Speed + item2EnergyRatio * item.Speed;
+            }
+            //item.Speed = item1EnergyRatio * item.Speed + item2EnergyRatio * item2.Speed;
+
+            //Calculate Vector Normal
+            Vector2 collision_normal = new(-normalised_collision.Y, normalised_collision.X);
+
+            //Project Responses
+            float ball_1_normal_dot_product = Vector2.Dot(item1.VelocityVector, collision_normal);
+            float ball_2_normal_dot_product = Vector2.Dot(item2.VelocityVector, collision_normal);
+
+            float ball_1_collision_dot_product = Vector2.Dot(item1.VelocityVector, normalised_collision);
+            float ball_2_collision_dot_product = Vector2.Dot(item2.VelocityVector, normalised_collision);
+
+            //Caclulate Resulting Velocities
+            float ball_1_momentum = (ball_1_collision_dot_product * (item1.Mass - item2.Mass) + 2.0f * item2.Mass * ball_2_collision_dot_product) / (item1.Mass + item2.Mass);
+            float ball_2_momentum = (ball_2_collision_dot_product * (item2.Mass - item1.Mass) + 2.0f * item1.Mass * ball_1_collision_dot_product) / (item1.Mass + item2.Mass);
+
+            // Set the new velocities after collision
+            //Apply Velocities
+            var item1PreviousAngle = Math.Atan2(item1.Direction.Y, item1.Direction.X);
+            var item1Velocity = (collision_normal * ball_1_normal_dot_product) + (normalised_collision * ball_1_momentum);
+            var item1Direction = Vector2.Normalize(item1Velocity);
+            item1.Direction = new PointF(item1Direction);
+
+            var friction = Math.Max(0, item1.SurfaceFriction);
+            if (!item2.Location.IsEmpty && item2.Speed != 0F)
+            {
+                var item2Velocity = (collision_normal * ball_2_normal_dot_product) + (normalised_collision * ball_2_momentum);
+
+                var item2PreviousAngle = Math.Atan2(item1.Direction.Y, item1.Direction.X);
+
+                var item2Direction = Vector2.Normalize(item2Velocity);
+                item2.Direction = new PointF(item2Direction);
+                item1.Speed_msec = item1Velocity.Length();
+                item2.Speed_msec = item2Velocity.Length();
+
+                friction = Math.Max(friction, item2.SurfaceFriction);
+                if (item2.RotationSpeedMax > 0F){
+                    item2.RotationAngle += item2.RotationAngle * ball_2_collision_dot_product * (1 + friction);
+
+                    var angle = Math.Atan2(item2Direction.Y, item2Direction.X);
+                    item2.RotationSpeed += (float)(angle - item2PreviousAngle);
+                }
+            }
+
+            //Rotation
+            if (item1.RotationSpeedMax > 0F)
+            {
+                item1.RotationAngle += item1.RotationAngle * ball_1_collision_dot_product * (1 + friction);
+
+                var angle = Math.Atan2(item1Direction.Y, item1Direction.X);
+                item1.RotationSpeed += (float)(angle - item1PreviousAngle);
+            }
+
+            //collisionReaction = Vector2.Normalize(collisionReaction);
+
+            //if (item.RotationSpeedMax != 0)
+            //{
+            //    //var oldAngle = Math.Atan2(item.Direction.Y, item.Direction.X);
+            //    //var angle = Math.Atan2(vector.Y, vector.X);
+            //    //item.RotationSpeed += (float)(angle - oldAngle);
+            //    //if (item.RotationSpeed > item.RotationSpeedMax)
+            //    //    item.RotationSpeed = item.RotationSpeedMax;
+            //    //else if (item.RotationSpeed < -item.RotationSpeedMax)
+            //    //    item.RotationSpeed = -item.RotationSpeedMax;
+            //}
+
+            //item.Direction = new(collisionReaction.X, collisionReaction.Y);
+
+            if (!offset.IsEmpty)
+            {
+                int duration = 20;//TODO Part of rebound
+                location.X += item1.Velocity.X * duration;
+                location.Y += item1.Velocity.Y * duration;
+                item1.Location = location;
+            }
+
+            return true;
+        }
+
+        private bool CollideMovingItemsOLD(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, Region intersectRegion
             , IImageCollidable item, PointF offset, Region region
             , IImageCollidable item2, PointF offset2)
         {
@@ -689,6 +830,8 @@ namespace MED.Imaging
             Vector2 dirNormal = Vector2.Normalize(item.DirectionVector);
             Vector2 vector = new Vector2((float)(move.X), (float)(move.Y));
             vector = Vector2.Normalize(vector);
+
+
             float speed = item.Speed;
             if (move.X > 0)
             {
@@ -740,7 +883,7 @@ namespace MED.Imaging
                 if (item2.Speed != 0 && item2.Mass != 0 && item.Speed != 0 && item.Mass != 0)
                 {
                     var energyRatio = (item2.Speed * item2.Mass) / (item.Speed * item.Mass);
-                    item.Speed *= energyRatio;
+                    item.Speed_msec *= energyRatio;
                     //item2.Speed /= energyRatio;
                 }
 
@@ -748,50 +891,7 @@ namespace MED.Imaging
                 normal += (normal - dirNormal);
                 vector = Vector2.Normalize(-normal);
 
-                //float dx = itemBounds.Width;//2* ( itemBoundsCenter.X - intersectBoundsCenter.X);
-                //float dy = itemBounds.Height;// 2*(itemBoundsCenter.Y - intersectBoundsCenter.Y);
-                //float distance_squared = dx * dx + dy * dy; // Square of the distance between the centers
-                //float distance = (float)Math.Sqrt(distance_squared);    // Actual distance between the centers
-                //float radius_sum = distance;
-                //float overlap = (float)Math.Sqrt(intersectBounds.Width * intersectBounds.Width + intersectBounds.Height * intersectBounds.Height);// 0.5f * (radius_sum - distance); // Amount of overlap between the balls
-                //Vector2 normalised_collision = new Vector2(dx / distance, dy / distance);
-
-                //location.X -= overlap * normalised_collision.X;
-                //location.Y -= overlap * normalised_collision.Y;
-
-                //Vector2 collision_normal = Vector2.Normalize(normalised_collision);
-                //Vector2 ball_1_velocity = new Vector2(item.Velocity.X, item.Velocity.Y);
-                //Vector2 ball_2_velocity = new Vector2(item2.Velocity.X, item2.Velocity.Y);
-                //float ball_1_normal_dot_product = Vector2.Dot(ball_1_velocity, collision_normal);
-                //float ball_1_collision_dot_product = Vector2.Dot(ball_1_velocity, normalised_collision);
-                //float ball_2_normal_dot_product = Vector2.Dot(ball_2_velocity, collision_normal);
-                //float ball_2_collision_dot_product = Vector2.Dot(ball_2_velocity, normalised_collision);
-                //float ball_1_momentum = (float)(ball_1_collision_dot_product * (item.Mass - item2.Mass) + 2.0f * item2.Mass * ball_2_collision_dot_product) / (item.Mass + item2.Mass);
-                //ball_1_velocity = collision_normal * ball_1_normal_dot_product + normalised_collision * ball_1_momentum;
-
-                //// Vector from the start of the wall to the ball's centre
-                //Vector2 vector_to_point = new(-move.X, -move.Y);
-
-                //// Vector representing the direction and length of the wall
-                //Vector2 line_vector = new(intersectBounds.Width, intersectBounds.Height);
-
-                //// Calculate the dot product between the two vectors
-                //double dot_product_result = Vector2.Dot(vector_to_point, line_vector);
-
-                //var direction = item.Direction = new PointF(collision_normal.X, collision_normal.Y);
-
-                //// Square of the wall's length for normalisation
-                //double line_length_squared = line_vector.Xx * line_vector.X + line_vector.Y * line_vector.Y;
-
-                //// Calculate the normalised parameter 't' for the closest point along the wall
-                //double t = dot_product_result / line_length_squared;
-                //// Clamp 't' to ensure the closest point remains within the wall's bounds
-                //t = Math.Max (0, Math.Min(1, t));
-
-                //// Return the coordinates of the closest point on the wall
-                //PointF contactPoint = intersectBoundsCenter;// start.x + line_vector.x * t, start.y + line_vector.y * t;
-
-                PointF closest = intersectBoundsCenter;
+                PointF closest = intersectBoundsCenter;//Approx
                 double dx = itemBoundsCenter.X - closest.X;
                 double dy = itemBoundsCenter.Y - closest.Y;
                 //double distance_squared = dx * dx + dy * dy;  // Using squared distance to avoid unnecessary square root calculations
@@ -800,10 +900,13 @@ namespace MED.Imaging
                 collision_normal = Vector2.Normalize(collision_normal);
                 float distance = (float)Math.Sqrt(dx * dx + dy * dy);   // The actual distance between the ball's center and the closest point
                 var radius_sum = itemBounds.Width;
-                float penetration = radius_sum-distance;
-
+                float penetration = radius_sum - distance;
 
                 Vector2 ball_1_velocity = item.VelocityVector;
+
+                Vector2 collision = item.VelocityVector + item2.VelocityVector;
+                var collisionReaction = new Vector2(-collision.Y, collision.X);
+                collision_normal = Vector2.Normalize(collisionReaction);
 
                 //Push the Ball Out of the Wall
                 if (penetration > 0)
@@ -821,6 +924,8 @@ namespace MED.Imaging
                 // Reverse and dampen the normal component of the velocity
                 // Damping factor is arbitrarily chosen as 0.6
                 ball_1_velocity = velocity_tangent - velocity_normal * 0.6F;
+
+                ball_1_velocity = collision_normal;
 
                 if (Vector2.Zero.Equals(ball_1_velocity))
                 {

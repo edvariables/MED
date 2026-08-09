@@ -32,7 +32,7 @@ namespace MED
 
         System.Drawing.PointF Location { get; set; }
         
-        float Rotation { get; }
+        float RotationAngle { get; set; }
 
 
         List<IImageProvider> ImageProviders { get; set; }

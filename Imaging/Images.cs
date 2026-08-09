@@ -223,7 +223,7 @@ namespace MED.Imaging
 
                 var location = item.Location;
 
-                var rotation = item.Rotation;
+                var rotation = item.RotationAngle;
 
                 if (clipRegion != null)
                 {

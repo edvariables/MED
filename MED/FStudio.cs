@@ -81,7 +81,7 @@ namespace MED
             v = Core.Settings.GetValue("Size", settingsSection, this.Size);
             this.Size = (Size)v;
 
-            EnsureFormLocationAndSize();
+            SecureFormLocationAndSize();
 
             LoadFavorites(settingsSection);
 
@@ -133,12 +133,16 @@ namespace MED
                 return;
 
             string favorites = (string)v;
+            HashSet<string> favoriteFiles = new();
             foreach (var fileName in favorites.Split(";"))
-                if (fileName != "" && File.Exists(fileName))
+                if (fileName != "" && File.Exists(fileName) && !favoriteFiles.Contains(fileName))
+                {
                     CreateProcessFavorite(fileName, Path.GetFileNameWithoutExtension(fileName), "Process");
+                    favoriteFiles.Add(fileName);
+                }
         }
 
-        private void EnsureFormLocationAndSize()
+        private void SecureFormLocationAndSize()
         {
             var screen = Screen.FromHandle(this.Handle);
             if (screen == null)
@@ -651,7 +655,7 @@ namespace MED
         {
             var currentChecked = btnProcessStepPrevious.Checked;
 
-            if (ActiveProcess==null || !ActiveProcess.IsPaused)
+            if (ActiveProcess == null || !ActiveProcess.IsPaused)
             {
                 btnProcessStepPrevious.Checked = !currentChecked;
                 return;
