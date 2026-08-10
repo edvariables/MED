@@ -35,12 +35,15 @@ namespace MED.Imaging
         public virtual float SpeedMax { get; set; }
         public virtual float Mass { get; set; } = 1F;
         float _RotationSpeed = 0F;
-        public virtual float RotationSpeed { 
-            get=> _RotationSpeed;
+        public virtual float RotationSpeed
+        {
+            get => _RotationSpeed;
             set
             {
                 if (value > RotationSpeedMax)
                     _RotationSpeed = RotationSpeedMax;
+                else if (value < -RotationSpeedMax)
+                    _RotationSpeed = -RotationSpeedMax;
                 else
                     _RotationSpeed = value;
             }
@@ -62,6 +65,7 @@ namespace MED.Imaging
          * Speed
          * <summary>Vitesse mesurée en pixel par milliseconde</summary>
          * */
+        [Browsable(false)]
         public float Speed_msec
         {
             get => _Speed_msec;
@@ -171,7 +175,7 @@ namespace MED.Imaging
          * Surface friction in collision
          * 
          * */
-        public virtual float SurfaceFriction { get; set; } = 0F;
+        public virtual float SurfaceFriction { get; set; } = 1F;
 
         PointF _Direction;
         public virtual PointF Direction

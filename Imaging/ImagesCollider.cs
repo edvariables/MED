@@ -764,21 +764,24 @@ namespace MED.Imaging
                 item2.Speed_msec = item2Velocity.Length();
 
                 friction = Math.Max(friction, item2.SurfaceFriction);
-                if (item2.RotationSpeedMax > 0F){
-                    item2.RotationAngle += item2.RotationAngle * ball_2_collision_dot_product * (1 + friction);
+                if (item2.RotationSpeedMax > 0F && item1.RotationSpeedMax > 0F)
+                {
+                    var item2RotationSpeed = item2.RotationSpeed;
+                    item2.RotationSpeed -= item1.RotationSpeed * ball_1_momentum * friction;
+                    item1.RotationSpeed -= item2RotationSpeed * ball_2_momentum * friction;
 
-                    var angle = Math.Atan2(item2Direction.Y, item2Direction.X);
-                    item2.RotationSpeed += (float)(angle - item2PreviousAngle);
+                    //var angle = Math.Atan2(item2Direction.Y, item2Direction.X);
+                    //item2.RotationSpeed += (float)(angle - item2PreviousAngle);
                 }
             }
 
             //Rotation
             if (item1.RotationSpeedMax > 0F)
             {
-                item1.RotationAngle += item1.RotationAngle * ball_1_collision_dot_product * (1 + friction);
+                item1.RotationAngle += item1.RotationAngle * ball_1_collision_dot_product * friction;
 
-                var angle = Math.Atan2(item1Direction.Y, item1Direction.X);
-                item1.RotationSpeed += (float)(angle - item1PreviousAngle);
+                //var angle = Math.Atan2(item1Direction.Y, item1Direction.X);
+                //item1.RotationSpeed += (float)(angle - item1PreviousAngle);
             }
 
             //collisionReaction = Vector2.Normalize(collisionReaction);
