@@ -34,6 +34,7 @@ namespace MED.Imaging
         private Color _BackgroundColor = Color.Black;
         [Browsable(true)]
         [ReadOnly(false)]
+        [Category("Image")]
         public Color BackgroundColor
         {
             get => _BackgroundColor;
@@ -48,7 +49,7 @@ namespace MED.Imaging
         {
             base.LoadSettings(settings, fileName);
 
-            BackgroundColor = (Color)settings.GetValue("BackgroundColor", BackgroundColor);
+            BackgroundColor = (Color)(settings.GetValue("BackgroundColor", BackgroundColor)?? BackgroundColor);
         }
         public override JsonObject SaveProcess(JsonObject node = null)
         {

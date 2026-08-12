@@ -16,7 +16,7 @@ namespace MED.Imaging
     //isAsynchrone = true
     public class EDVideoCapture : ImageProcess, IImageProvider, IMatFrameProvider
     {
-        public EDVideoCapture(string name = "VideoCapture", Performance performance = null, Control invokeHandler = null, IImageConsumer imageConsumer = null, bool isAsynchrone = true)
+        public EDVideoCapture(string name = "VideoCapture", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
         : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
         {
             ProcessIcon = ProcessIconDefault = "Object";
@@ -32,20 +32,19 @@ namespace MED.Imaging
         #region Properties
 
         [Browsable(true)]
-        public override Size ImageSizeMin { get; set; }
-
-
-        [Browsable(true)]
         [ReadOnly(false)]
+        [Category("Video capture")]
         public int CameraIndex { get; set; }
 
-        public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
+        public override void LoadSettings(ProcessSettings? settings = null, string fileName = "")
         {
             base.LoadSettings(settings, fileName);
+            if (settings == null && (settings = ProcessSettings) == null)
+                return;
 
-            CameraIndex = (int)settings.GetValue("CameraIndex", CameraIndex);
+            CameraIndex = (int)(settings.GetValue("CameraIndex", CameraIndex)?? CameraIndex);
         }
-        public override JsonObject SaveProcess(JsonObject node = null)
+        public override JsonObject SaveProcess(JsonObject? node = null)
         {
             node = base.SaveProcess(node);
             node.Add("CameraIndex", CameraIndex);
@@ -58,8 +57,9 @@ namespace MED.Imaging
 
         //public bool HasFrameChanged { get; set; }
 
-        private Mat _Frame = null;
-        public Mat Frame
+        private Mat? _Frame = null;
+        [Category("Video capture")]
+        public Mat? Frame
         {
             get
             {
@@ -67,7 +67,7 @@ namespace MED.Imaging
                 {
                     if (ImageProvider != null && ImageProvider is IMatFrameProvider && ImageProvider != this)
                     {
-                        _Frame = (ImageProvider as IMatFrameProvider).Frame;
+                        _Frame = ((IMatFrameProvider)ImageProvider).Frame;
 
                     }
                 }
@@ -115,13 +115,13 @@ namespace MED.Imaging
          */
         private void Capture_ImageGrabbed(object? sender, EventArgs e)
         {
-            if (IsDisposed || Disposing)
+            if (IsDisposed || Disposing || Capture==null)
             {
                 Stop();
                 return;
             }
-            Performance.Step("------------------");
-            Performance.Resume($"Capture_ImageGrabbed. Sleep : {sleep}", true);//increment
+            Performance?.Step("------------------");
+            Performance?.Resume($"Capture_ImageGrabbed. Sleep : {sleep}", true);//increment
             Mat frame = new();
             if (Capture.Retrieve(frame))
             {
@@ -133,7 +133,7 @@ namespace MED.Imaging
                 return;
             }
 
-            if (Performance.Average_msec < FPSMaxDuration)
+            if (Performance?.Average_msec < FPSMaxDuration)
                 sleep += 5;
             else if (sleep > 0)
                 sleep -= 5;
@@ -170,7 +170,7 @@ namespace MED.Imaging
             return null;
         }
 
-        public Bitmap? FrameToImage(IMatFrameProvider? sender, Mat currentFrame = null)
+        public Bitmap? FrameToImage(IMatFrameProvider? sender, Mat? currentFrame = null)
         {
             if (ImageSizeMin.IsEmpty || currentFrame == null || currentFrame.Size == ImageSizeMin)
                 return currentFrame?.ToBitmap();
@@ -187,6 +187,7 @@ namespace MED.Imaging
          * 
          */
         [Browsable(true)]
+        [Category("Video capture")]
         public VideoCapture? Capture { get; protected set; }
 
         public bool Initialize_Capture()
@@ -198,10 +199,9 @@ namespace MED.Imaging
 
             if (!ImageSizeMin.IsEmpty)
             {
-                Performance?.Step($"ImageSizeMin From {Capture.Get(Emgu.CV.CvEnum.CapProp.FrameWidth)} x {Capture.Get(Emgu.CV.CvEnum.CapProp.FrameHeight)}");
                 Capture.Set(Emgu.CV.CvEnum.CapProp.FrameWidth, ImageSizeMin.Width);
                 Capture.Set(Emgu.CV.CvEnum.CapProp.FrameHeight, ImageSizeMin.Height);
-                Performance?.Step($"To {Capture.Get(Emgu.CV.CvEnum.CapProp.FrameWidth)} x {Capture.Get(Emgu.CV.CvEnum.CapProp.FrameHeight)}");
+                Performance?.Step($"ImageSizeMin {Capture.Get(Emgu.CV.CvEnum.CapProp.FrameWidth)} x {Capture.Get(Emgu.CV.CvEnum.CapProp.FrameHeight)}");
             }
 
             return true;

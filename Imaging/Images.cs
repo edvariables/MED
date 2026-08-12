@@ -32,7 +32,9 @@ namespace MED.Imaging
             Collider = new(this);
         }
 
+        [Category("Processes")]
         public Processes ImageProcesses { get; set; }
+        [Browsable(false)]
         public Logger? Logger { get => ImageProcesses.Logger; set => ImageProcesses.Logger = value; }
 
 
@@ -122,6 +124,7 @@ namespace MED.Imaging
             get => ImageProcesses.ObjectsProperties;
         }
 
+        [Category("Processes")]
         public virtual List<IProcess> Items => ImageProcesses.Items;
 
         protected ImagesCollider Collider { get; set; }
@@ -137,7 +140,15 @@ namespace MED.Imaging
             }
         }
 
+        [Browsable(false)]
         public virtual Bitmap? PreviousImage { get; set; }
+
+        [Browsable(false)]
+        public virtual Bitmap? DebugImage { get; set; }
+        [Category("Debug")]
+        public virtual bool DebugImageEnabled { get; set; }
+        [Category("Debug")]
+        public virtual bool DrawEdges { get; set; }
 
         /**
          * GetImage
@@ -174,9 +185,14 @@ namespace MED.Imaging
 
             image = new System.Drawing.Bitmap(size.Width, size.Height);
 
-            Graphics graphics = Graphics.FromImage(image);
+            if (DebugImageEnabled)
+                DebugImage = (Bitmap)image.Clone();
+            else
+                DebugImage = null;
 
             MoveItems();
+
+            Graphics graphics = Graphics.FromImage(image);
 
             //Collider.Collide(image, graphics);
 
@@ -191,8 +207,7 @@ namespace MED.Imaging
 
                 try
                 {
-                    bool drawEdges = false;
-                    AppendImage(graphics, size, (IImageProvider)item, drawEdges);
+                    AppendImage(graphics, size, (IImageProvider)item);
                 }
                 catch (Exception ex)
                 {
@@ -200,6 +215,10 @@ namespace MED.Imaging
                 }
 
                 nProvider++;
+            }
+            if (DebugImageEnabled && DebugImage != null)
+            {
+                graphics.DrawImage(DebugImage, 0, 0);
             }
             graphics.Dispose();
             Performance?.Pause($"Get Image done => " + (image == null ? "<null>" : "Bitmap"));
@@ -210,13 +229,13 @@ namespace MED.Imaging
          * Append item image to the global one
          * 
          * */
-        private void AppendImage(Graphics graphics, Size size, IImageProvider item, bool drawEdges = true)
+        private void AppendImage(Graphics graphics, Size size, IImageProvider item)
         {
             Bitmap? imageSrc = item.Image;
             if (imageSrc != null)
             {
                 Region? clipRegion;
-                if (drawEdges && item is IImageCollidable)
+                if (DrawEdges && item is IImageCollidable)
                     clipRegion = ((IImageCollidable)item).ClipEdgesRegion;
                 else
                     clipRegion = item.ClipRegion;
@@ -237,37 +256,34 @@ namespace MED.Imaging
 
                         clipRegion.Translate(-imageSrc.Width / 2, -imageSrc.Height / 2);
 
-                        graphics.SetClip(clipRegion, CombineMode.Replace);
+                        if (DrawEdges)
+                            graphics.FillRegion(Brushes.Black, clipRegion);
+                        else
+                        {
+                            graphics.SetClip(clipRegion, CombineMode.Replace);
 
-                        graphics.DrawImageUnscaled(imageSrc, -imageSrc.Width / 2, -imageSrc.Height / 2/*, imageSrc.Width, imageSrc.Height*/);
+                            graphics.DrawImageUnscaled(imageSrc, -imageSrc.Width / 2, -imageSrc.Height / 2/*, imageSrc.Width, imageSrc.Height*/);
+                        }
                     }
                     else
                     {
                         if (!location.IsEmpty)
                             graphics.TranslateTransform(location.X, location.Y); //clipRegion.Translate(location.X, location.Y);
 
-                        graphics.SetClip(clipRegion, CombineMode.Replace);
-
-                        if (location.IsEmpty && imageSrc.Size != size && item.ImageSizeMin.IsEmpty)
-                            graphics.DrawImage(imageSrc, 0, 0, size.Width, size.Height);
+                        if (DrawEdges)
+                            graphics.FillRegion(Brushes.Black, clipRegion);
                         else
-                            graphics.DrawImageUnscaled(imageSrc, 0, 0);
+                        {
+                            graphics.SetClip(clipRegion, CombineMode.Replace);
+
+                            if (location.IsEmpty && imageSrc.Size != size && item.ImageSizeMin.IsEmpty)
+                                graphics.DrawImage(imageSrc, 0, 0, size.Width, size.Height);
+                            else
+                                graphics.DrawImageUnscaled(imageSrc, 0, 0);
+                        }
                     }
                     graphics.ResetTransform();
                     graphics.ResetClip();
-
-                    //DEBUG
-                    if (true && item is IImageMover && !location.IsEmpty)
-                    {
-                        var font = new Font(FontFamily.GenericMonospace, 8F);
-                        var brush = new SolidBrush(SystemColors.WindowText);
-                        graphics.DrawString(((IImageMover)item).Speed.ToString("#.##"), font, brush, location.X, location.Y + imageSrc.Height);
-
-                        var pen = new Pen(brush);
-                        var center = new PointF(item.Location.X + imageSrc.Width / 2, item.Location.Y + imageSrc.Height / 2);
-                        var direction = new PointF(center.X + ((IImageMover)item).Velocity.X * imageSrc.Width * 2, center.Y + ((IImageMover)item).Velocity.Y * imageSrc.Height * 2);
-                        graphics.DrawLine(pen, center, direction);
-                    }
                 }
                 else
                 {
@@ -319,6 +335,25 @@ namespace MED.Imaging
                 if (!item.Enabled || item is not IImageMover)
                     continue;
                 ((IImageMover)item).Move(elapsedTime);
+
+                //DEBUG
+                if (DebugImage != null && item is IImageMover && !((IImageMover)item).Location.IsEmpty)
+                {
+                    PointF location = ((IImageMover)item).Location;
+                    Bitmap? imageSrc = ((IImageMover)item).Image;
+                    if (imageSrc != null)
+                    {
+                        var graphics = Graphics.FromImage(DebugImage);
+                        var font = new Font(FontFamily.GenericMonospace, 8F);
+                        var brush = new SolidBrush(SystemColors.WindowText);
+                        graphics.DrawString(((IImageMover)item).Speed.ToString("#.##"), font, brush, location.X, location.Y + imageSrc.Height);
+
+                        var pen = new Pen(brush);
+                        var center = new PointF(location.X + imageSrc.Width / 2, location.Y + imageSrc.Height / 2);
+                        var direction = new PointF(center.X + ((IImageMover)item).Velocity.X * imageSrc.Width * 2, center.Y + ((IImageMover)item).Velocity.Y * imageSrc.Height * 2);
+                        graphics.DrawLine(pen, center, direction);
+                    }
+                }
             }
 
         }
@@ -350,8 +385,11 @@ namespace MED.Imaging
 
         public PointF CollideItem(IImageCollidable item, PointF offset)
         {
-            if (PreviousImage != null)
-                if (Collider.Collide(PreviousImage, item, offset).Count > 0)
+            Bitmap? modelImage = DebugImage;
+            if (modelImage == null)
+                modelImage = PreviousImage;
+            if (modelImage != null)
+                if (Collider.Collide(modelImage, item, offset).Count > 0)
                     return item.Location;
 
             var location = item.Location;

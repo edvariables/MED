@@ -664,9 +664,11 @@ namespace MED
             var p = ActiveProcess;
             if (p is not null and IUndo)
             {
+                FProperties.Current.ProcessesControl.SuspendLayout();
                 var dic = ((IUndo)p).Undo(2);
                 if (dic == null)
                 {
+                    FProperties.Current.ProcessesControl.ResumeLayout();
                     MessageBox.Show("Rien à rejouer");
                     return;
                 }
@@ -674,6 +676,8 @@ namespace MED
             btnProcessStartOneStep.Checked = true;
 
             ProcessPause();
+
+            FProperties.Current.ProcessesControl.ResumeLayout();
 
             //btnProcessStepPrevious.Checked = currentChecked;
         }

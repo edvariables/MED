@@ -24,8 +24,9 @@ namespace MED
         {
 
         }
+        public ProcessesControl ProcessesControl { get => propertiesControl1.ProcessesControl; }
 
-        public static object CurrentProperty
+        public static object? CurrentProperty
         {
             get => Current?.propertiesControl1.CurrentProperty;
             set => Current?.ShowProperty(value);

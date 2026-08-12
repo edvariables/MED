@@ -38,8 +38,8 @@
             splitContainer1 = new SplitContainer();
             contextMenuProcesses = new ContextMenuStrip(components);
             toolStripMenuProcAdd = new ToolStripMenuItem();
-            toolStripCboProcAddClasses = new ToolStripComboBox();
             toolStripMenuProcRemove = new ToolStripMenuItem();
+            contextMenuAddProcess = new ContextMenuStrip(components);
             panCboObjects.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
@@ -125,9 +125,9 @@
             // 
             // contextMenuProcesses
             // 
-            contextMenuProcesses.Items.AddRange(new ToolStripItem[] { toolStripMenuProcAdd, toolStripCboProcAddClasses, toolStripMenuProcRemove });
+            contextMenuProcesses.Items.AddRange(new ToolStripItem[] { toolStripMenuProcAdd, toolStripMenuProcRemove });
             contextMenuProcesses.Name = "contextMenuProcesses";
-            contextMenuProcesses.Size = new Size(183, 75);
+            contextMenuProcesses.Size = new Size(183, 48);
             contextMenuProcesses.Text = "Processes";
             // 
             // toolStripMenuProcAdd
@@ -138,15 +138,6 @@
             toolStripMenuProcAdd.Text = "Ajouter un process...";
             toolStripMenuProcAdd.Click += toolStripMenuProcAdd_Click;
             // 
-            // toolStripCboProcAddClasses
-            // 
-            toolStripCboProcAddClasses.DropDownStyle = ComboBoxStyle.DropDownList;
-            toolStripCboProcAddClasses.Name = "toolStripCboProcAddClasses";
-            toolStripCboProcAddClasses.Size = new Size(121, 23);
-            toolStripCboProcAddClasses.Visible = false;
-            toolStripCboProcAddClasses.KeyPress += toolStripCboProcAddClasses_KeyPress;
-            toolStripCboProcAddClasses.KeyUp += toolStripCboProcAddClasses_KeyUp;
-            // 
             // toolStripMenuProcRemove
             // 
             toolStripMenuProcRemove.Image = (Image)resources.GetObject("toolStripMenuProcRemove.Image");
@@ -154,6 +145,11 @@
             toolStripMenuProcRemove.Size = new Size(182, 22);
             toolStripMenuProcRemove.Text = "Supprimer...";
             toolStripMenuProcRemove.Click += toolStripMenuProcRemove_Click;
+            // 
+            // contextMenuAddProcess
+            // 
+            contextMenuAddProcess.Name = "contextMenuAddProcess";
+            contextMenuAddProcess.Size = new Size(61, 4);
             // 
             // PropertiesControl
             // 
@@ -182,6 +178,6 @@
         private ContextMenuStrip contextMenuProcesses;
         private ToolStripMenuItem toolStripMenuProcAdd;
         private ToolStripMenuItem toolStripMenuProcRemove;
-        private ToolStripComboBox toolStripCboProcAddClasses;
+        private ContextMenuStrip contextMenuAddProcess;
     }
 }

@@ -36,6 +36,8 @@ namespace MED
                                          miHandler);
             //TODO  
             //eventInfo.RemoveEventHandler(this, handler);
+            var currentEventValue=eventInfo.GetValue(handler_obj);
+            handler = Delegate.Combine((Delegate)currentEventValue, handler);
             eventInfo.SetValue(handler_obj, handler);
         }
         public static void RemoveHandler(IProvider handler_obj, string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
@@ -58,6 +60,7 @@ namespace MED
                  Delegate.CreateDelegate(eventInfo.FieldType,
                                          consumer,
                                          miHandler);
+            
             //eventInfo.RemoveEventHandler(this, miHandler);
             //TODO eventInfo.SetValue(handler_obj, handler);
 
@@ -177,7 +180,7 @@ namespace MED
             }
         }
 
-        public static void InvokePropertyChanged(IProcess process, IProvider sender, Delegate? delegateMethod, EventArgs e)
+        public static void InvokePropertyChanged(IProcess? process, IProvider? sender, Delegate? delegateMethod, EventArgs e)
         {
             if (process == null || ((IProvider)process).InvokeHandler == null || ((IProvider)process).InvokeHandler.Disposing || ((IProvider)process).InvokeHandler.IsDisposed)
                 return;
@@ -205,12 +208,12 @@ namespace MED
                     {
                         var consumer = consumerDelegate.Target as IConsumer;
                         //IsAsynchrone but if next Consumer is also asynchrone
-                        bool invoke = (process as IConsumer).IsAsynchrone && !consumer.IsAsynchrone;
+                        bool invoke = ((IConsumer)process).IsAsynchrone && !consumer.IsAsynchrone;
                         string invoke_str = invoke ? "Invoke" : "Call";
 
-                        if ((process as IProvider).InvokeHandler.Disposing || (process as IProvider).InvokeHandler.IsDisposed
-                            || (consumerDelegate.Target is Control && (consumerDelegate.Target as Control).IsDisposed)
-                            || (consumerDelegate.Target is IProcess && (consumerDelegate.Target as IProcess).IsDisposed)
+                        if (((IProvider)(process)).InvokeHandler.Disposing || ((IProvider)process).InvokeHandler.IsDisposed
+                            || (consumerDelegate.Target is Control && ((Control)consumerDelegate.Target).IsDisposed)
+                            || (consumerDelegate.Target is IProcess && ((IProcess)consumerDelegate.Target).IsDisposed)
                             )
                         {
                             process.Performance.Alert($"IsDisposed ({consumer.GetType().Name}.{consumerDelegate.Method.Name})"
@@ -274,7 +277,7 @@ namespace MED
         }
 
 
-        public static IProcess FindItem(IProcess processRef, string relativePath)
+        public static IProcess? FindItem(IProcess processRef, string relativePath)
         {
             IProcess processItem = processRef;
             foreach (var itemName in relativePath.Split('/'))
@@ -282,14 +285,14 @@ namespace MED
                 if (itemName == "..")
                 {
                     if (processItem is Process)
-                        processItem = (IProcess)(processItem as Process).Consumer;
+                        processItem = (IProcess)((Process)processItem).Consumer;
                     else
                         throw new Exception("Impossible de trouver le process parent");
                     continue;
                 }
                 bool found = false;
                 if (processItem is IProcesses)
-                    foreach (var item in (processItem as IProcesses).Items)
+                    foreach (var item in ((IProcesses)processItem).Items)
                         if (item.Name == itemName)
                         {
                             found = true;
@@ -307,14 +310,14 @@ namespace MED
                 return ".";
 
             if (processRef is Process)
-                if ((processRef as Process).Consumer == processTo)
+                if (((Process)processRef).Consumer == processTo)
                     return "..";
                 else if (processTo is Process)
-                    if ((processRef as Process).Consumer == (processTo as Process).Consumer)
+                    if (((Process)processRef).Consumer == ((Process)processTo).Consumer)
                         return processTo.Name;
-                    else if ((processTo as Process).Consumer is Process)
-                        if ((processRef as Process).Consumer == ((processTo as Process).Consumer as Process).Consumer)
-                            return ((processTo as Process).Consumer as Process).Name + "/" + processTo.Name;
+                    else if (((Process)processTo).Consumer is Process)
+                        if (((Process)processRef).Consumer == ((Process)((Process)processTo).Consumer).Consumer)
+                            return ((Process)(processTo as Process).Consumer).Name + "/" + processTo.Name;
             return processTo.Name;
         }
     }

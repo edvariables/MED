@@ -32,9 +32,12 @@ namespace MED.Imaging
 
         #region Properties
 
+        [Category("Mover")]
         public virtual float SpeedMax { get; set; }
+        [Category("Mover")]
         public virtual float Mass { get; set; } = 1F;
         float _RotationSpeed = 0F;
+        [Category("Mover")]
         public virtual float RotationSpeed
         {
             get => _RotationSpeed;
@@ -48,12 +51,14 @@ namespace MED.Imaging
                     _RotationSpeed = value;
             }
         }
+        [Category("Mover")]
         public virtual float RotationSpeedMax { get; set; } = 0.5F;
 
         /**
          * Speed
          * <summary>Vitesse mesurée en pixel par seconde</summary>
          * */
+        [Category("Mover")]
         public virtual float Speed
         {
             get => _Speed_msec * 1000;
@@ -80,6 +85,7 @@ namespace MED.Imaging
         }
 
         [Browsable(true)]
+        [Category("Image")]
         public override System.Drawing.PointF Location
         {
             get
@@ -110,11 +116,11 @@ namespace MED.Imaging
 
         public virtual void Move(long elapsedTime)
         {
-            var location = Location;
             if (ProcessState != ThreadState.Running
                 || Speed == 0)
                 return;
 
+            var location = Location;
             if (this.Consumer is Images)
                 location = ((Images)this.Consumer).CollideItem(this, new PointF(Velocity.X * elapsedTime, Velocity.Y * elapsedTime));
             else
@@ -123,7 +129,7 @@ namespace MED.Imaging
                 location.Y += Velocity.Y * elapsedTime;
             }
             if (RotationSpeed != 0F)
-                RotationAngle = (float)((RotationAngle + RotationSpeed * elapsedTime) % 360F);
+                RotationAngle += (float)((RotationSpeed * elapsedTime) % 360F);
 
             Location = location;
             //Performance?.Debug($"Move sets Location = {Location}");
@@ -175,9 +181,11 @@ namespace MED.Imaging
          * Surface friction in collision
          * 
          * */
+        [Category("Mover")]
         public virtual float SurfaceFriction { get; set; } = 1F;
 
         PointF _Direction;
+        [Category("Mover")]
         public virtual PointF Direction
         {
             get => _Direction;
@@ -209,6 +217,7 @@ namespace MED.Imaging
         }
 
         PointF _Velocity;
+        [Category("Mover")]
         public virtual PointF Velocity
         {
             get
@@ -309,10 +318,11 @@ namespace MED.Imaging
         #endregion
 
         #region Settings
-        public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
+        public override void LoadSettings(ProcessSettings? settings = null, string fileName = "")
         {
             base.LoadSettings(settings, fileName);
-
+            if (settings == null && (settings = ProcessSettings) == null)
+                return;
             Speed = (float)(settings.GetValue("Speed", Speed) ?? Speed);
             SpeedMax = (float)(settings.GetValue("SpeedMax", SpeedMax) ?? SpeedMax);
             Mass = (float)(settings.GetValue("Mass", Mass) ?? Mass);
@@ -338,9 +348,8 @@ namespace MED.Imaging
             if (!(Speed == 0F && Location.IsEmpty))//debug
             {
                 dic.Add("Speed", Speed);
-                dic.Add("Rotation", RotationAngle);
+                dic.Add("RotationAngle", RotationAngle);
                 dic.Add("RotationSpeed", RotationSpeed);
-                dic.Add("SurfaceFriction", SurfaceFriction);
                 dic.Add("Direction", Direction);
                 dic.Add("Location", Location);
 

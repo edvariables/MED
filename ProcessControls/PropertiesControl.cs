@@ -35,10 +35,11 @@ namespace MED
             ProcessClasses.Add("Background", typeof(MED.Imaging.Background).FullName ?? "");
             ProcessClasses.Add("ImageSourced", typeof(MED.Imaging.ImageSourced).FullName ?? "");
 
-            toolStripCboProcAddClasses.Items.Clear();
+            contextMenuAddProcess.Items.Clear();
             foreach (var proc in ProcessClasses)
             {
-                var item = toolStripCboProcAddClasses.Items.Add(proc.Key);
+                var item = contextMenuAddProcess.Items.Add(proc.Key);
+                item.Click += contextMenuAddProcessItem_Click;
             }
         }
 
@@ -49,6 +50,8 @@ namespace MED
             get => splitContainer1.SplitterDistance;
             set => splitContainer1.SplitterDistance = value;
         }
+
+        public ProcessesControl ProcessesControl { get => processesControl1; }
 
         public object CurrentProperty
         {
@@ -67,8 +70,10 @@ namespace MED
             processesControl1.ShowProperty(o);
         }
 
-        public void ShowProperties(object[] items, TreeNode rootNode = null, bool clear = false)
+        public void ShowProperties(object[] items, TreeNode? rootNode = null, bool clear = false)
         {
+            processesControl1.SuspendLayout();
+
             processesControl1.ShowProperties(items, rootNode, clear);
             if (processesControl1.SelectedNode != null)
                 ShowNodeProperties(processesControl1.SelectedNode);
@@ -76,6 +81,8 @@ namespace MED
                 ShowNodeProperties(null);
             else
                 ShowNodeProperties(items[0]);
+
+            processesControl1.ResumeLayout();
         }
 
         /**
@@ -150,7 +157,6 @@ namespace MED
          * TODO
          * 
          * */
-
         private void processesControl1_MouseClick(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Right)
@@ -165,8 +171,6 @@ namespace MED
             {
 
                 toolStripMenuProcAdd.Visible = e.Node.Tag != null;
-                toolStripCboProcAddClasses.Visible = e.Node.Tag != null;
-                toolStripMenuProcAdd.Visible = e.Node.Tag != null;
                 toolStripMenuProcRemove.Visible = e.Node.Tag != null;
                 processesControl1.SelectedNode = e.Node;
                 contextMenuProcesses.Show((Control)sender, e.Location);
@@ -177,18 +181,16 @@ namespace MED
 
         private void toolStripMenuProcAdd_Click(object sender, EventArgs e)
         {
-            if (toolStripCboProcAddClasses.SelectedIndex == -1 || toolStripCboProcAddClasses.SelectedItem == null)
-            {
-                MessageBox.Show("Veuillez sélectionner un type de process.");
-                contextMenuProcesses.Show(processesControl1, processesControl1.SelectedNode == null ? Point.Empty : processesControl1.SelectedNode.Bounds.Location);
-                toolStripCboProcAddClasses.Visible = true;
-                toolStripCboProcAddClasses.Focus();
-                return;
-            }
+            contextMenuAddProcess.Show(contextMenuProcesses.Left, contextMenuProcesses.Top);
+        }
 
+        private void contextMenuAddProcessItem_Click(object? sender, EventArgs e)
+        {
+            if (sender == null)
+                return;
+            var processName = ((ToolStripMenuItem)sender).ToString();
             try
             {
-                var processName = toolStripCboProcAddClasses.SelectedItem.ToString();
                 var processClass = ProcessClasses[processName];
                 var process = ProcessStatic.CreateProcess(processClass, "", processName, true, Performance.Empty(), null);
 
@@ -213,7 +215,7 @@ namespace MED
 
                 if (selectedProcess is IProcesses)
                 {
-                    var items = (selectedProcess as IProcesses).Items;
+                    var items = ((IProcesses)selectedProcess).Items;
 
                     //Name
                     int processNameIndex = 0;
@@ -232,9 +234,9 @@ namespace MED
                         var render = items.First();
                         var provider = items.Last();
                         if ((provider is IProvider) && (process is IConsumer))
-                            (provider as IProvider).AddConsumer((IConsumer)process, "Image");//TODO default property
+                            ((IProvider)provider).AddConsumer((IConsumer)process, "Image");//TODO default property
                     }
-                    ShowProperties([selectedProcess], selectedNode.Parent);
+                    ShowProperties([selectedProcess], selectedNode?.Parent);
                     return;
                 }
                 MessageBox.Show("Impossible de déterminer un jeu de process parent.", "Ajouter un process");
@@ -242,21 +244,9 @@ namespace MED
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Impossible de créer ce process {toolStripCboProcAddClasses.SelectedItem.ToString()} : \n{ex.ToString()}", "Ajout d'un process");
+                MessageBox.Show($"Impossible de créer ce process {processName} : \n{ex.ToString()}", "Ajout d'un process");
                 return;
             }
-        }
-
-        private void toolStripCboProcAddClasses_KeyPress(object sender, KeyPressEventArgs e)
-        {
-            if (e.KeyChar == '\n')
-                toolStripMenuProcAdd_Click(sender, e);
-        }
-
-        private void toolStripCboProcAddClasses_KeyUp(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Escape)
-                contextMenuProcesses.Visible = false;
         }
 
         private void toolStripMenuProcRemove_Click(object sender, EventArgs e)
@@ -277,10 +267,10 @@ namespace MED
                                             : (IProcess)processesControl1.SelectedNode.Parent.Tag;
             if (selectedParentProcess != null)
                 if (selectedParentProcess is IProcesses)
-                    (selectedParentProcess as IProcesses).Items.Remove(process);
+                    ((IProcesses)selectedParentProcess).Items.Remove(process);
             process.Dispose();
             if (selectedParentProcess != null)
-                ShowProperties([selectedParentProcess], selectedParentNode.Parent);
+                ShowProperties([selectedParentProcess], selectedParentNode?.Parent);
         }
     }
 }

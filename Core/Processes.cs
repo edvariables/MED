@@ -117,6 +117,7 @@ namespace MED
         #region Processes
 
         [Browsable(true)]
+        [Category("Processes")]
         public virtual List<IProcess> Items { get; protected set; }
         public virtual void DisposeProcesses()
         {
@@ -314,6 +315,7 @@ namespace MED
         /**
          * ObjectsProperties
          */
+        [Category("Process")]
         public override Dictionary<string, object> ObjectsProperties
         {
             get

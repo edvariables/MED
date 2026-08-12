@@ -278,15 +278,20 @@ namespace MED
         }
 
         #region Properties & Settings
+        [Category("Process")]
         public virtual bool Enabled { get; set; }
+        [Category("Process")]
         public virtual bool IsAsynchrone { get; set; }
 
+        [Category("Process")]
         public virtual string Name { get; set; }
 
         [Editor(typeof(MEDIconSelectorEditor), typeof(UITypeEditor))]
         [TypeConverter(typeof(MEDIconNameConverter))]
 
+        [Category("Process")]
         public virtual string ProcessIcon { get; set; }
+        [Category("Process")]
         public virtual string ProcessIconDefault { get; protected set; } = "Process";
 
         [Browsable(false)]
@@ -296,9 +301,11 @@ namespace MED
         public virtual IConsumer? Consumer { get; set; }
 
         [Browsable(true)]
+        [Category("Process")]
         public virtual Performance? Performance { get; set; }
 
         [Browsable(true)]
+        [Category("Process")]
         public virtual ProcessSettings? ProcessSettings { get; set; }
 
         public virtual void LoadSettings(ProcessSettings? settings = null, string fileName = "")
@@ -373,6 +380,7 @@ namespace MED
 
 
         private bool _IsRunning;
+        [Category("Process")]
         public virtual bool IsRunning
         {
             get
@@ -383,6 +391,7 @@ namespace MED
                 return _IsRunning = (ProcessState == ThreadState.Running || ProcessState == ThreadState.Suspended);
             }
         }
+        [Category("Process")]
         public virtual bool IsPaused
         {
             get
@@ -458,6 +467,7 @@ namespace MED
 
         private ThreadState _ProcessState = ThreadState.Unstarted;
         [ReadOnly(true)]
+        [Category("Process")]
         public virtual ThreadState ProcessState
         {
             get => _ProcessState;

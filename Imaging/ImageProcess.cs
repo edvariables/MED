@@ -42,12 +42,13 @@ namespace MED.Imaging
         /**
          * Unique ImageConsumer
          */
+        [Category("Image")]
         public virtual IImageConsumer? ImageConsumer
         {
             get => _ImageConsumer;
             set
             {
-                IImageConsumer consumer = value;
+                IImageConsumer? consumer = value;
                 if (consumer == null)
                 {
                     if (InvokeHandler is IImageConsumer)
@@ -58,9 +59,10 @@ namespace MED.Imaging
                 {
                     OnImageChanged -= _ImageConsumer.ImageChanged;
                     if (this is IMatFrameProvider
-                        && _ImageConsumer is IMatFrameConsumer)
+                        && _ImageConsumer is IMatFrameConsumer
+                        && consumer != null)
                     {
-                        RemoveHandler("OnFrameChanged", consumer, typeof(IMatFrameConsumer), "FrameChanged");
+                        RemoveHandler("OnFrameChanged", _ImageConsumer, typeof(IMatFrameConsumer), "FrameChanged");
                     }
                 }
                 //New Consumer
@@ -81,14 +83,16 @@ namespace MED.Imaging
         }
 
         [Browsable(true)]
+        [Category("Process")]
         public List<IProcess> ImageConsumers { get => GetConsumers("Image"); }
 
         [Browsable(true)]
+        [Category("Process")]
         public List<IProcess> FrameConsumers { get => GetConsumers("Frame"); }
-
 
         public override bool AddConsumer(IConsumer consumer, string property = "ProcessState") => base.AddConsumer(consumer, property);
 
+        [Category("Process")]
         public override Dictionary<string, object> ObjectsProperties
         {
             get
@@ -132,9 +136,11 @@ namespace MED.Imaging
         #region Image
 
         [Browsable(false)]
+        [Category("Image")]
         public virtual Size ImageSizeMax { get; set; }
 
         [Browsable(true)]
+        [Category("Image")]
         public virtual Size ImageSizeMin { get; set; }
 
         [Browsable(false)]
@@ -150,6 +156,7 @@ namespace MED.Imaging
         public virtual float RotationAngle { get; set; }
 
         [Browsable(true)]
+        [Category("Process")]
         public virtual int FPSMax { get; set; } = 25;
         protected int FPSMaxDuration
         {
@@ -165,6 +172,7 @@ namespace MED.Imaging
 
         [Browsable(true)]
         [ReadOnly(true)]
+        [Category("Process")]
         /**
          * ResetOnImageChanged
          * <summary>in ImageChanged(){ ... if (ResetOnImageChanged)  Image = null;</summary>
@@ -173,6 +181,7 @@ namespace MED.Imaging
 
         [Browsable(true)]
         [ReadOnly(true)]
+        [Category("Process")]
         /**
          * ImageIsProvided
          * <summary>ImageIsProvided means the image is provided by a IImageProvider process.
@@ -250,6 +259,7 @@ namespace MED.Imaging
 
         #region ImageProviders
         [Browsable(true)]
+        [Category("Process")]
         public List<IImageProvider> ImageProviders { get; set; }
 
         [Browsable(false)]
@@ -270,7 +280,7 @@ namespace MED.Imaging
          * InvokeImageChanged
          * 
          */
-        public virtual void InvokeImageChanged(IImageProvider sender, EventArgs e) => InvokePropertyChanged(sender, OnImageChanged, e);
+        public virtual void InvokeImageChanged(IImageProvider? sender, EventArgs? e) => InvokePropertyChanged(sender, OnImageChanged, e);
 
         #endregion
 
@@ -449,7 +459,7 @@ namespace MED.Imaging
                         size = new Size(256, 128);
                 }
 
-                string msg = "En attente";
+                //string msg = "En attente";
 
                 return _EmptyImage = new Bitmap(size.Width, size.Height);
             }

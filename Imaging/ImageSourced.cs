@@ -37,6 +37,7 @@ namespace MED.Imaging
 
         Size _ImageSizeMin = new Size(320, 240);
         [Browsable(true)]
+        [Category("Image")]
         public override Size ImageSizeMin
         {
             get => _ImageSizeMin;
@@ -51,6 +52,7 @@ namespace MED.Imaging
         [Browsable(true)]
         [EditorAttribute(typeof(FileNameEditor), typeof(UITypeEditor))]
         [ReadOnly(false)]
+        [Category("Image")]
         public string ImageFile
         {
             get => _ImageFile;
@@ -64,8 +66,10 @@ namespace MED.Imaging
         public override void LoadSettings(ProcessSettings? settings = null, string fileName = "")
         {
             base.LoadSettings(settings, fileName);
+            if (settings == null && (settings = ProcessSettings) == null)
+                return;
 
-            ImageFile = (String)settings.GetValue("ImageFile", ImageFile);
+            ImageFile = (String)(settings.GetValue("ImageFile", ImageFile)?? ImageFile);
         }
         public override JsonObject SaveProcess(JsonObject? node = null)
         {
@@ -80,7 +84,7 @@ namespace MED.Imaging
          * GetImage
          * 
          * */
-        public override Bitmap GetImage(IImageProvider provider = null)
+        public override Bitmap? GetImage(IImageProvider provider = null)
         {
             if (_Image != null)
                 return _Image;
@@ -155,10 +159,24 @@ namespace MED.Imaging
                 if (_ClipRegionEdges != null || ClipRegion == null)
                     return _ClipRegionEdges;
 
-                System.Drawing.Region clipRegionEdges= ClipRegion.Clone();
-                float offset = 2F;// 1.5F;
-                clipRegionEdges.Translate(offset, offset);
-                clipRegionEdges.Xor(ClipRegion);
+                //System.Drawing.Region clipRegionEdges= ClipRegion.Clone();
+                //float offset = 1F;// 1.5F;
+                //clipRegionEdges.Translate(offset, 0);
+                //clipRegionEdges.Xor(ClipRegion);
+
+                //System.Drawing.Region clipRegionEdgesV = ClipRegion.Clone();
+                //clipRegionEdgesV.Translate(-offset, offset);
+                //clipRegionEdgesV.Xor(ClipRegion);
+
+                //clipRegionEdges.Union(clipRegionEdgesV);
+
+                float penWidth = 2F;
+                Pen pen = new Pen(Brushes.Black, penWidth);
+                GraphicsPath grPath = (GraphicsPath)ClipPath.Clone();
+                grPath.Widen(pen);
+                System.Drawing.Region clipRegionEdges = new(grPath);
+                clipRegionEdges.Exclude(ClipPath);
+                clipRegionEdges.Translate(-penWidth/2, -penWidth/2);
                 return _ClipRegionEdges = clipRegionEdges;
 
             }

@@ -70,6 +70,7 @@ namespace MED.Imaging
         private Mat? PreviousFrame;
 
         [Browsable(false)]
+        [Category("Video capture")]
         public Mat? Frame { get; protected set; }
         public void FrameChanged(IMatFrameProvider? sender, EventArgs e)
         {
@@ -114,40 +115,51 @@ namespace MED.Imaging
         }
 
         [Browsable(true)]
+        [Category("Motion")]
         public CvInvokeTransformers Transformer { get; set; }
 
+        [Category("Motion")]
         public int MotionThreshold { get; set; } = 1000;
+        [Category("Motion")]
         public bool MotionCalculateInfo { get; set; } = true;
+        [Category("Motion")]
         public double MotionPixelCountThresholdPerCentArea { get; set; } = 0.05;
 
+        [Category("Motion")]
         public bool MhiReset { get; set; }
+        [Category("Motion")]
         public double MhiDuration { get; set; } = 2;
+        [Category("Motion")]
         public double MhiMinTimeDelta { get; set; } = 0.05;
+        [Category("Motion")]
         public double MhiMaxTimeDelta { get; set; } = 0.5;
 
+        [Category("Motion")]
         public bool FixedBackground { get; set; }
+        [Category("Motion")]
         public bool FixedBackgroundNow { get; set; }
 
-        private Mat _ThresholdMat = null;
+        private Mat? _ThresholdMat = null;
 
         /**
          * DetectionLimit = 1 to 255
          * */
         [Browsable(true)]
+        [Category("Motion")]
         public int DetectionLimit { get; set; } = 1;
 
 
-        public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
+        public override void LoadSettings(ProcessSettings? settings = null, string fileName = "")
         {
             base.LoadSettings(settings, fileName);
 
-            FixedBackground = (bool)ProcessSettings.GetValue("FixedBackground", FixedBackground);
-            DetectionLimit = (int)ProcessSettings.GetValue("DetectionLimit", DetectionLimit);
+            FixedBackground = (bool)(ProcessSettings.GetValue("FixedBackground", FixedBackground)?? FixedBackground);
+            DetectionLimit = (int)(ProcessSettings.GetValue("DetectionLimit", DetectionLimit)?? DetectionLimit);
             CvInvokeTransformers a;
-            if (Enum.TryParse<CvInvokeTransformers>(ProcessSettings.GetValue("Transformer", Transformer).ToString(), out a))
+            if (Enum.TryParse<CvInvokeTransformers>((ProcessSettings.GetValue("Transformer", Transformer)?? Transformer).ToString(), out a))
                 Transformer = a;
         }
-        public override JsonObject SaveProcess(JsonObject node = null)
+        public override JsonObject SaveProcess(JsonObject? node = null)
         {
             node = base.SaveProcess(node);
             node.Add("Transformer", Transformer.ToString());
@@ -164,7 +176,7 @@ namespace MED.Imaging
         #endregion
 
         #region CreateImage
-        public virtual Bitmap? FrameToImage(IMatFrameProvider sender, Mat currentFrame)
+        public virtual Bitmap? FrameToImage(IMatFrameProvider? sender, Mat? currentFrame)
         {
             if (this.Disposing || this.IsDisposed || ImageProvider == null)
                 return null;
@@ -618,6 +630,7 @@ namespace MED.Imaging
         }
 
         [Browsable(true)]
+        [Category("Video capture")]
         public VideoCapture Capture
         {
             get

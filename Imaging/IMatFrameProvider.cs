@@ -21,7 +21,7 @@ namespace MED
         [Browsable(true)]
         VideoCapture? Capture { get;}
 
-        Mat Frame { get; }
+        Mat? Frame { get; }
 
         delegate void FrameChangedDelegate(IMatFrameProvider sender, EventArgs e);
 
