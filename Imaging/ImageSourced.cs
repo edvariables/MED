@@ -105,9 +105,10 @@ namespace MED.Imaging
             if (size.IsEmpty)
                 size = EmptyImage.Size;
 
-            Bitmap image = null;
+            Bitmap? image = null;
             ClipRegion = null;
             ClipPath = null;
+            ClipPathsBounds = null;
             if (!string.IsNullOrEmpty(_ImageFile))
             {
                 if (File.Exists(ImageFile))
@@ -128,8 +129,10 @@ namespace MED.Imaging
                         imageSrc.Dispose();
                     }
                     GraphicsPath grPath;
-                    ClipRegion = GetContourRegion(image, out grPath);
+                    Dictionary<GraphicsPath, RectangleF> grPathsBounds;
+                    ClipRegion = GetContourRegion(image, out grPath, out grPathsBounds);
                     ClipPath = grPath;
+                    ClipPathsBounds = grPathsBounds;
                 }
                 else
                     throw new FileNotFoundException($"Fichier introuvable dans {this} : {ImageFile}", ImageFile);

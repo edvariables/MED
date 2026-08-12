@@ -126,7 +126,6 @@ namespace MED.Imaging
             Performance?.Log($"isAsynchrone = {IsAsynchrone}");
             Performance?.Log($"ResetOnImageChanged = {ResetOnImageChanged}");
             Performance?.Log($"ImageIsProvided = {ImageIsProvided}");
-
         }
 
         /**
@@ -148,6 +147,9 @@ namespace MED.Imaging
 
         [Browsable(false)]
         public virtual GraphicsPath? ClipPath { get; set; } = null;
+
+        [Browsable(false)]
+        public virtual Dictionary<GraphicsPath, RectangleF>? ClipPathsBounds { get; set; } = null;
 
         [Browsable(false)]
         public virtual System.Drawing.PointF Location { get; set; } = System.Drawing.PointF.Empty;
@@ -347,18 +349,18 @@ namespace MED.Imaging
 
         #region Contours Region
 
-        public Region? GetContourRegion(Bitmap image, out GraphicsPath grPath)
+        public Region? GetContourRegion(Bitmap image, out GraphicsPath grPath, out Dictionary<GraphicsPath, RectangleF> grPathsBounds)
         {
             //Mat mat = Emgu.CV.BitmapExtension.ToMat(image);
             //Mat grayCurrent = new();
             //CvInvoke.CvtColor(mat, grayCurrent, Emgu.CV.CvEnum.ColorConversion.Bgra2Gray);
             Mat grayCurrent = ConvertRgbA2AlphaGray(image, Color.Transparent);
-            var clipRegion = GetContourRegion(grayCurrent, out grPath);
+            var clipRegion = GetContourRegion(grayCurrent, out grPath, out grPathsBounds);
             if (clipRegion == null)
             {
                 Mat white = Mat.Ones(grayCurrent.Rows, grayCurrent.Cols, grayCurrent.Depth, grayCurrent.NumberOfChannels);
                 Mat dst = white - grayCurrent;
-                clipRegion = GetContourRegion(dst, out grPath);
+                clipRegion = GetContourRegion(dst, out grPath, out grPathsBounds);
                 if (clipRegion != null)
                 {
                     Region regionNot = new(new RectangleF(0, 0, image.Width, image.Height));
@@ -373,9 +375,10 @@ namespace MED.Imaging
             return clipRegion;
         }
 
-        public Region? GetContourRegion(Mat grayCurrent, out GraphicsPath grPath)
+        public Region? GetContourRegion(Mat grayCurrent, out GraphicsPath grPath, out Dictionary<GraphicsPath, RectangleF> grPathsBounds)
         {
             grPath = new GraphicsPath();
+            grPathsBounds = new();
             try
             {
                 using (VectorOfVectorOfPoint contours = new VectorOfVectorOfPoint())
@@ -388,10 +391,13 @@ namespace MED.Imaging
                         var contour = contours[i].ToArray();
                         if (contour.Length < 3)
                             continue;
-                        grPath.AddPolygon(contour);
+                        GraphicsPath grPathU = new();
+                        grPathU.AddPolygon(contour);
+                        grPath.AddPath(grPathU, false);
+                        grPathsBounds.Add(grPathU, grPathU.GetBounds());
                     }
 
-                    grPath.CloseFigure();
+                    //grPath.CloseFigure();
                     var bounds = grPath.GetBounds();
                     //Region region;
                     if (bounds.Width >= grayCurrent.Width - 1 && bounds.Height >= grayCurrent.Height - 1)

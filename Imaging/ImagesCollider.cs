@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices.Marshalling;
@@ -437,7 +438,7 @@ namespace MED.Imaging
             return new PointF(b.X, b.Y/*(b.Right + b.Left) / 2, (b.Bottom + b.Top) / 2*/); ;
         }
 
-        private Vector2 IntersectPath(GraphicsPath grPath, PointF offset, RectangleF intersectBounds, out PointF borderPoint)
+        private Vector2 IntersectPath(IImageMover item, PointF offset, RectangleF intersectBounds, out PointF borderPoint)
         {
             Vector2 vector = Vector2.Zero;
             borderPoint = PointF.Empty;
@@ -445,58 +446,89 @@ namespace MED.Imaging
             if (intersectBounds.Width == 1F || intersectBounds.Height == 1F)
                 return new(intersectBounds.Width, intersectBounds.Height);
 
-            intersectBounds.Offset(offset);
+            //var grPath = item.ClipPath;
+            if (item.ClipPathsBounds == null)
+                return new(intersectBounds.Width, intersectBounds.Height);
+
+            if (!item.Location.IsEmpty)//TODO Rotation
+                intersectBounds.Offset(-item.Location.X, -item.Location.Y);
+            else if (!offset.IsEmpty)
+                intersectBounds.Offset(offset);
 
             byte typeIsLast = (byte)0x80;
-            int nPoint = 0;
             List<PointF[]> lines = new();
-            PointF undefinedPoint = new(-1, -1);
-            PointF previousPoint = undefinedPoint;
-            PointF firstOfFigure = undefinedPoint;
-            foreach (var point in grPath.PathPoints)
+            PointF undefinedPoint = new(-1F, -1F);
+            int foundRegions = 0;
+            foreach (var (grPath, pathBounds) in item.ClipPathsBounds)
             {
-                byte pointType = grPath.PathTypes[nPoint];
-                if (nPoint == 386)
-                    Console.WriteLine("CIIC DEBUG");
-                if (pointType == 0)
-                    firstOfFigure = point;
-                else if (!previousPoint.Equals(undefinedPoint))
-                {
-                    var lineRect = new RectangleF(Math.Min(previousPoint.X, point.X) - 1F, Math.Min(previousPoint.Y, point.Y) - 1F, Math.Abs(previousPoint.X - point.X) + 2F, Math.Abs(previousPoint.Y - point.Y) + 2F);
-                    if (intersectBounds.IntersectsWith(lineRect))
-                    {
-                        lineRect.Intersect(intersectBounds);
-                        borderPoint.X += lineRect.X + lineRect.Width / 2;
-                        borderPoint.Y += lineRect.Y + lineRect.Height / 2;
 
-                        lines.Add([previousPoint, point]);
-                    }
-                }
-                if (((int)pointType & typeIsLast) == typeIsLast)
+                if (!pathBounds.IntersectsWith(intersectBounds))
+                    continue;
+
+                //var intersectBoundsTest = intersectBounds;
+                //intersectBoundsTest.Intersect(pathBounds);
+                //if (intersectBoundsTest.Equals(intersectBounds))
+                //    continue;
+
+                //var grPath = item.ClipPath;
+
+                int nPoint = 0;
+                int nAddedLines = 0;
+                PointF previousPoint = undefinedPoint;
+                PointF firstOfFigure = undefinedPoint;
+
+                foreach (var point in grPath.PathPoints)
                 {
-                    if (!firstOfFigure.Equals(undefinedPoint))
+                    byte pointType = grPath.PathTypes[nPoint];
+                    //if (nPoint == 386)
+                    //    Console.WriteLine("CIIC DEBUG");
+                    if (pointType == 0)
+                        firstOfFigure = point;
+                    else if (!previousPoint.Equals(undefinedPoint))
                     {
-                        var lineRect = new RectangleF(Math.Min(point.X, firstOfFigure.X) - 1F, Math.Min(point.Y, firstOfFigure.Y) - 1F, Math.Abs(point.X - firstOfFigure.X) + 2F, Math.Abs(point.Y - firstOfFigure.Y) + 2F);
+                        var lineRect = new RectangleF(Math.Min(previousPoint.X, point.X) - 1F, Math.Min(previousPoint.Y, point.Y) - 1F, Math.Abs(previousPoint.X - point.X) + 2F, Math.Abs(previousPoint.Y - point.Y) + 2F);
                         if (intersectBounds.IntersectsWith(lineRect))
                         {
                             lineRect.Intersect(intersectBounds);
                             borderPoint.X += lineRect.X + lineRect.Width / 2;
                             borderPoint.Y += lineRect.Y + lineRect.Height / 2;
 
-                            lines.Add([point, firstOfFigure]);
+                            lines.Add([previousPoint, point]);
+                            nAddedLines++;
                         }
-                        firstOfFigure = undefinedPoint;
                     }
-                    previousPoint = undefinedPoint;
+                    if (((int)pointType & typeIsLast) == typeIsLast)
+                    {
+                        if (!firstOfFigure.Equals(undefinedPoint))
+                        {
+                            var lineRect = new RectangleF(Math.Min(point.X, firstOfFigure.X) - 1F, Math.Min(point.Y, firstOfFigure.Y) - 1F, Math.Abs(point.X - firstOfFigure.X) + 2F, Math.Abs(point.Y - firstOfFigure.Y) + 2F);
+                            if (intersectBounds.IntersectsWith(lineRect))
+                            {
+                                lineRect.Intersect(intersectBounds);
+                                borderPoint.X += lineRect.X + lineRect.Width / 2;
+                                borderPoint.Y += lineRect.Y + lineRect.Height / 2;
+
+                                lines.Add([point, firstOfFigure]);
+                                nAddedLines++;
+                            }
+                            firstOfFigure = undefinedPoint;
+                        }
+                        previousPoint = undefinedPoint;
+                    }
+                    else
+                        previousPoint = point;
+                    nPoint++;
                 }
-                else
-                    previousPoint = point;
-                nPoint++;
+                if (nAddedLines > 0)
+                    foundRegions++;
+                //break;
             }
             if (lines.Count == 0)
                 Console.WriteLine("LALALALACIIC DEBUG");
             else
             {
+                //if (foundRegions > 1)
+                //    Console.WriteLine($"LALALALACIIC {foundRegions} DEBUG");
                 int nLine = 0;
                 foreach (PointF[] line in lines)
                 {
@@ -507,6 +539,12 @@ namespace MED.Imaging
                 borderPoint.X /= nLine;
                 borderPoint.Y /= nLine;
             }
+            if (!item.Location.IsEmpty)
+            {//TODO Rotation ?
+                borderPoint.X += item.Location.X;
+                borderPoint.Y += item.Location.Y;
+            }
+
             return vector;
         }
 
@@ -547,7 +585,7 @@ namespace MED.Imaging
 
             if (item2.ClipPath != null)
             {
-                borderVector = IntersectPath(item2.ClipPath, offset2, intersectBounds, out borderPoint);
+                borderVector = IntersectPath(item2, offset2, intersectBounds, out borderPoint);
             }
 
             // Inflate scan of the wall
@@ -832,6 +870,10 @@ namespace MED.Imaging
                 location2.X += offset2.X;
                 location2.Y += offset2.Y;
             }
+
+            //Debug
+            gr.FillRegion(Brushes.Red, intersectRegion);
+            gr.FillClosedCurve(Brushes.Green, new PointF(intersectBoundsCenter.X - 2, intersectBoundsCenter.Y - 2), new PointF(intersectBoundsCenter.X - 2, intersectBoundsCenter.Y + 2), new PointF(intersectBoundsCenter.X + 2, intersectBoundsCenter.Y + 2), new PointF(intersectBoundsCenter.X + 2, intersectBoundsCenter.Y - 2));
 
             var item1Bounds = region.GetBounds(gr);
             var item1BoundsCenter = new PointF((item1Bounds.Right + item1Bounds.Left) / 2, (item1Bounds.Bottom + item1Bounds.Top) / 2);

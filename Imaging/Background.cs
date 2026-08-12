@@ -49,9 +49,9 @@ namespace MED.Imaging
         {
             base.LoadSettings(settings, fileName);
 
-            BackgroundColor = (Color)(settings.GetValue("BackgroundColor", BackgroundColor)?? BackgroundColor);
+            BackgroundColor = (Color)(settings.GetValue("BackgroundColor", BackgroundColor) ?? BackgroundColor);
         }
-        public override JsonObject SaveProcess(JsonObject node = null)
+        public override JsonObject SaveProcess(JsonObject? node = null)
         {
             node = base.SaveProcess(node);
             node.Add("BackgroundColor", BackgroundColor.ToString());
@@ -70,7 +70,7 @@ namespace MED.Imaging
             Size size = ImageSizeMin;
             if (size.IsEmpty)
                 if (Consumer is ImageProcess)
-                    size = (Consumer as ImageProcess).ImageSizeMin;
+                    size = ((ImageProcess)Consumer).ImageSizeMin;
             if (size.IsEmpty)
                 size = EmptyImage.Size;
 
@@ -138,7 +138,7 @@ namespace MED.Imaging
                     return;
                 }
 
-                if (Performance.Average_msec < FPSMaxDuration)
+                if (Performance != null && Performance.Average_msec < FPSMaxDuration)
                     sleep += 5;
                 else if (sleep > 0)
                     sleep -= 5;

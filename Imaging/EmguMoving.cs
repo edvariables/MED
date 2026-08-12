@@ -335,7 +335,8 @@ namespace MED.Imaging
                         CvInvoke.Blur(frameDiff, frameDiff, new Size(4, 4), new Point(-1, -1));
 
                         GraphicsPath grPath;
-                        Region? region = GetContourRegion(frameDiff, out grPath);
+                        Dictionary<GraphicsPath, RectangleF> grPathsBounds;
+                        Region? region = GetContourRegion(frameDiff, out grPath, out grPathsBounds);
                         if (region != null
                             && !ImageSizeMin.IsEmpty && currentFrame.Size != ImageSizeMin)
                         {
@@ -344,7 +345,15 @@ namespace MED.Imaging
 
                             Matrix transformMatrix = new Matrix();
                             transformMatrix.Scale((float)resized.Width / currentFrame.Width, (float)resized.Height / currentFrame.Height);
+
                             grPath.Transform(transformMatrix);
+                            
+                            foreach (var (grPathU, grPathBounds) in grPathsBounds)
+                            {
+                                grPathU.Transform(transformMatrix);
+                                grPathsBounds[grPathU] = grPathU.GetBounds();
+                            }
+                            
                             region.Transform(transformMatrix);
                             currentFrame = resized;
                         }
@@ -352,6 +361,7 @@ namespace MED.Imaging
                         //Performance?.Debug($"Set ClipRegion {region}");
                         //Performance?.Debug($"Set ClipRegionTranslated {ClipRegionTranslated}");
                         ClipPath = grPath;
+                        ClipPathsBounds = grPathsBounds;
 
                         return currentFrame.ToBitmap();
                     }

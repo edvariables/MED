@@ -29,6 +29,8 @@ namespace MED
 
         [Browsable(false)]
         GraphicsPath? ClipPath { get; }
+        [Browsable(false)]
+        Dictionary<GraphicsPath, RectangleF>? ClipPathsBounds { get; }
 
         System.Drawing.PointF Location { get; set; }
         
