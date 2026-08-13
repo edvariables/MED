@@ -22,36 +22,37 @@ namespace MED.Imaging
         public float GravityConstant { get; set; } = 6.67430F;
         public bool Horizontal { get; set; } = false;
 
-        public override PointF Collide(IImageCollider item, PointF offset)
+        /**
+         * CollideItem
+         * 
+         * <returns>Offseted item2.Location</returns>
+         */
+        public override bool CollideItem(IImageCollider item2, PointF offset2)
         {
             if (ProcessState != ThreadState.Running || GravityConstant == 0F)
-                return Location;
+                return false;
+            if (item2 == this || item2 is not Mover mover)
+                return false;
+            if (mover.SpeedMax == 0F || mover.Location.IsEmpty)
+                return false;
 
-            if (this.Consumer is Images)
-            {
-                //foreach (var item in ((Images)this.Consumer).Items)
-                //{
-                if (item == this || item is not Mover mover)
-                    return Location;
-                if ((mover).SpeedMax == 0F || (mover).Location.IsEmpty)
-                    return Location;
+            var direction = mover.DirectionVector;
+            Vector2 gravityVector = new();
+            if (Horizontal)
+                gravityVector.X = 1F;
+            else
+                gravityVector.Y = 1F;
+            gravityVector *= GravityConstant * mover.Mass;
+            direction += gravityVector;
+            mover.Speed *= direction.Length();
 
-                var direction = (mover).DirectionVector;
-                Vector2 gravityVector = new();
-                if (Horizontal)
-                    gravityVector.X = 1F;
-                else
-                    gravityVector.Y = 1F;
-                gravityVector *= GravityConstant * mover.Mass;
-                direction += gravityVector;
-                mover.Speed *= direction.Length();
+            direction = Vector2.Normalize(direction);
+            mover.Direction = new(direction.X, direction.Y);
 
-                direction = Vector2.Normalize(direction);
-                mover.Direction = new(direction.X, direction.Y);
-                //}
-            }
-            return base.Collide(item, offset);
+            return true;
         }
+
+        #region Settings
         public override void LoadSettings(ProcessSettings? settings = null, string fileName = "")
         {
             base.LoadSettings(settings, fileName);
@@ -67,6 +68,6 @@ namespace MED.Imaging
             node.Add("Horizontal", Horizontal);
             return node;
         }
-
+        #endregion
     }
 }

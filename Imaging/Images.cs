@@ -1,6 +1,4 @@
-﻿using Emgu.CV;
-using MED.Core;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
@@ -8,7 +6,6 @@ using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Text;
 using System.Text.Json.Nodes;
-using System.Threading.Tasks;
 
 namespace MED.Imaging
 {
@@ -327,7 +324,7 @@ namespace MED.Imaging
                 else
                     elapsedTime = _MoveItemsTimePauseDuration;
             }
-            else if (elapsedTime > 1000 || elapsedTime == 0)
+            else if (elapsedTime > 800 || elapsedTime == 0)
             {
                 Performance?.Debug($"(elapsedTime > 1000 || elapsedTime == 0) <= {elapsedTime}");
                 return;
@@ -398,9 +395,16 @@ namespace MED.Imaging
             if (modelImage == null)
                 modelImage = PreviousImage;
             if (modelImage != null)
-                if (Collider.Collide(modelImage, item, offset).Count > 0)
+            {
+                Graphics gr = Graphics.FromImage(modelImage);
+
+                if (item is IImageMover mover
+                    && Collider.CollideItemWithImageBorders(modelImage, gr, mover, offset))
                     return item.Location;
 
+                if (Collider.Collide(modelImage, gr, item, offset).Count > 0)
+                    return item.Location;
+}
             var location = item.Location;
 
             location.X += offset.X;

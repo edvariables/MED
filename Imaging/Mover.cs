@@ -94,14 +94,8 @@ namespace MED.Imaging
                 || Speed == 0)
                 return;
 
-            var location = Location;
-            if (this.Consumer is Images)
-                location = ((Images)this.Consumer).CollideItem(this, new PointF(Velocity.X * elapsedTime, Velocity.Y * elapsedTime));
-            else
-            {
-                location.X += Velocity.X * elapsedTime;
-                location.Y += Velocity.Y * elapsedTime;
-            }
+            var location = Collide(new PointF(Velocity.X * elapsedTime, Velocity.Y * elapsedTime));
+
             if (RotationSpeed != 0F)
                 RotationAngle += (float)((RotationSpeed * elapsedTime) % 360F);
 
@@ -230,18 +224,14 @@ namespace MED.Imaging
                 return;
             Speed = (float)(settings.GetValue("Speed", Speed) ?? Speed);
             SpeedMax = (float)(settings.GetValue("SpeedMax", SpeedMax) ?? SpeedMax);
-            Mass = (float)(settings.GetValue("Mass", Mass) ?? Mass);
             RotationSpeedMax = (float)(settings.GetValue("RotationSpeedMax", RotationSpeedMax) ?? RotationSpeedMax);
-            SurfaceFriction = (float)(settings.GetValue("SurfaceFriction", SurfaceFriction) ?? SurfaceFriction);
         }
         public override JsonObject SaveProcess(JsonObject? node = null)
         {
             node = base.SaveProcess(node);
             node.Add("Speed", Speed);
             node.Add("SpeedMax", SpeedMax);
-            node.Add("Mass", Mass);
             node.Add("RotationSpeedMax", RotationSpeedMax);
-            node.Add("SurfaceFriction", SurfaceFriction);
             return node;
         }
         #endregion

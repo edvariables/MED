@@ -69,24 +69,9 @@ namespace MED.Imaging
         }
 
         /**
-         * ColliderBorders
+         * Collide with image borders
          * 
          * */
-        public List<IImageCollider>? ManageBorders(Bitmap image, Graphics gr)
-        {
-            var colliders = Colliders;
-            if (colliders == null || colliders.Count == 0) return colliders;
-
-            //Process.Performance?.Sub(".Collider.Borders").Resume($"{colliders.Count} colliders", true);
-
-            foreach (var item in colliders)
-                if (item is IImageMover mover)
-                    CollideItemWithImageBorders(image, gr, mover, PointF.Empty);
-            //Process.Performance?.Sub(".Collider.Borders").Pause($"Collider done {colliders.Count}");
-
-            return colliders;
-        }
-
         public bool CollideItemWithImageBorders(Bitmap image, Graphics gr, IImageMover item, PointF offset)
         {
             if (item.Speed == 0F)
@@ -108,7 +93,7 @@ namespace MED.Imaging
             //TODO Rotation
 
             bool changed = false;
-            var bounds = region.GetBounds(gr);
+            var bounds = item.GetClipRegionTranslatedBounds(gr, offset);
 
             Vector2 overlap = Vector2.Zero;
 
@@ -162,7 +147,7 @@ namespace MED.Imaging
          * 
          * <param name="image">Not current drawing image. May be previous one.</param>
          * */
-        public Dictionary<IImageMover, Region> Collide(Bitmap image, IImageCollider item1, PointF offset)
+        public Dictionary<IImageMover, Region> Collide(Bitmap image,Graphics gr, IImageCollider item1, PointF offset)
         {
             Dictionary<IImageMover, Region> someChanges = new();
 
@@ -175,20 +160,12 @@ namespace MED.Imaging
             if (!offset.IsEmpty)
                 (region1 = region1.Clone()).Translate(offset.X, offset.Y);
 
-            Graphics gr = Graphics.FromImage(image);
-
-            var bounds1 = region1.GetBounds(gr);
+            var bounds1 = item1.GetClipRegionTranslatedBounds(gr, offset);
 
             IImageMover? mover1 = null;
             if (item1 is IImageMover)
-            {
                 mover1 = (IImageMover)item1;
-                if (CollideItemWithImageBorders(image, gr, mover1, offset))
-                {
-                    someChanges.Add(mover1, region1);
-                    return someChanges;//Do not both image borders and collides
-                }
-            }
+
             foreach (var item2 in colliders)
             {
                 if (item2 == item1)
@@ -196,8 +173,11 @@ namespace MED.Imaging
 
                 var region2 = item2.ClipRegionTranslated;
                 if (region2 == null)
+                {
+                    item2.CollideItem(item1, offset);
                     continue;
-                var bounds2 = region2.GetBounds(gr);
+                }
+                var bounds2 = item2.GetClipRegionTranslatedBounds(gr, offset);
                 if (bounds2.IsEmpty)
                     continue;
                 var intersect = region1.Clone();
@@ -295,6 +275,8 @@ namespace MED.Imaging
             , IImageMover item, PointF offset, Region region
             , IImageCollider item2, PointF offset2)
         {
+            item.CollideItem(item2, offset2);
+
             if (item.Location.IsEmpty)
                 return false;
             if (item2 is IImageMover mover2)
@@ -917,7 +899,7 @@ namespace MED.Imaging
          * Collide 2 items
          * */
         private bool CollideMovingItems(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, Region intersectRegion
-            , IImageMover item1, PointF offset, Region region
+            , IImageMover item1, PointF offset, Region region1Translated
             , IImageMover item2, PointF offset2)
         {
             var location = item1.Location;
@@ -940,7 +922,7 @@ namespace MED.Imaging
             gr.FillRegion(Brushes.Red, intersectRegion);
             gr.FillClosedCurve(Brushes.Green, new PointF(intersectBoundsCenter.X - 2, intersectBoundsCenter.Y - 2), new PointF(intersectBoundsCenter.X - 2, intersectBoundsCenter.Y + 2), new PointF(intersectBoundsCenter.X + 2, intersectBoundsCenter.Y + 2), new PointF(intersectBoundsCenter.X + 2, intersectBoundsCenter.Y - 2));
 
-            var item1Bounds = region.GetBounds(gr);
+            var item1Bounds = region1Translated.GetBounds(gr);
             var item1BoundsCenter = new PointF((item1Bounds.Right + item1Bounds.Left) / 2, (item1Bounds.Bottom + item1Bounds.Top) / 2);
             var item2BoundsCenter = new PointF(location2.X + item1Bounds.Width / 2, location2.Y + item1Bounds.Height / 2);
 
@@ -1066,146 +1048,6 @@ namespace MED.Imaging
             }
 
             return true;
-        }
-
-        private bool CollideMovingItemsOLD(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, Region intersectRegion
-            , IImageMover item, PointF offset, Region region
-            , IImageMover item2, PointF offset2)
-        {
-            var location = item.Location;
-            if (location.IsEmpty)
-                return false;
-            if (!offset.IsEmpty)
-            {
-                location.X += offset.X;
-                location.Y += offset.Y;
-            }
-            var itemBounds = region.GetBounds(gr);
-            var itemBoundsCenter = new PointF((itemBounds.Right + itemBounds.Left) / 2, (itemBounds.Bottom + itemBounds.Top) / 2);
-            var overRatio = Math.Abs((intersectBounds.Width * intersectBounds.Height) / (itemBounds.Width * itemBounds.Height));
-            var changed = false;
-            PointF move = new(itemBoundsCenter.X - intersectBoundsCenter.X, itemBoundsCenter.Y - intersectBoundsCenter.Y);
-            PointF moveRatio = new(Math.Abs(move.X / itemBounds.Width), Math.Abs(move.Y / itemBounds.Height));
-            Vector2 oldVector = item.DirectionVector;
-            Vector2 normal = Vector2.Normalize(new Vector2((float)(intersectBounds.X), (float)(intersectBounds.Y)));
-            Vector2 dirNormal = Vector2.Normalize(item.DirectionVector);
-            Vector2 vector = new Vector2((float)(move.X), (float)(move.Y));
-            vector = Vector2.Normalize(vector);
-
-
-            float speed = item.Speed;
-            if (move.X > 0)
-            {
-                //speed.X = Math.Abs(speed.X /** move.X*/) * item.Density;
-                //location.X += speedValue * vector.X;
-                //location.Y += speedValue * vector.Y;
-                //location.X += intersectBounds.Width / 2;
-                changed = true;
-            }
-            else if (move.X < 0)
-            {
-                //speed.X = -1 * Math.Abs(speed.X/* * move.X*/) * item.Density;
-                //location.X += speedValue * vector.X;
-                //location.Y += speedValue * vector.Y;
-                //location.X -= intersectBounds.Width / 2;
-                changed = true;
-            }
-            if (move.Y > 0)
-            {
-                //speed.Y = Math.Abs(speed.Y/** move.Y*/) * item.Density;
-                //location.X += speedValue * vector.X;
-                //location.Y += speedValue * vector.Y;
-                //location.Y += intersectBounds.Height / 2;
-                changed = true;
-            }
-            else if (move.Y < 0)
-            {
-                //speed.Y = -1 * Math.Abs(speed.Y /** move.Y*/) * item.Density;
-                //location.X += speedValue * vector.X;
-                //location.Y += speedValue * vector.Y;
-                //location.Y -= intersectBounds.Height / 2;
-                changed = true;
-            }
-            if (changed)
-            {
-                //speed.X = Math.Min(speed.X, item.SpeedMax);
-                //speed.Y = Math.Min(speed.Y, item.SpeedMax);
-
-                if (item.RotationSpeedMax != 0)
-                {
-                    var oldAngle = Math.Atan2(item.Direction.Y, item.Direction.X);
-                    var angle = Math.Atan2(vector.Y, vector.X);
-                    item.RotationSpeed += (float)(angle - oldAngle);
-                    if (item.RotationSpeed > item.RotationSpeedMax)
-                        item.RotationSpeed = item.RotationSpeedMax;
-                    else if (item.RotationSpeed < -item.RotationSpeedMax)
-                        item.RotationSpeed = -item.RotationSpeedMax;
-                }
-                if (item2.Speed != 0 && item2.Mass != 0 && item.Speed != 0 && item.Mass != 0)
-                {
-                    var energyRatio = (item2.Speed * item2.Mass) / (item.Speed * item.Mass);
-                    item.Speed_msec *= energyRatio;
-                    //item2.Speed /= energyRatio;
-                }
-
-                //Physics.PositionalCorrection((IImageCollidable)item, (IImageCollidable)item2, intersectBounds, intersectBoundsCenter);
-                normal += (normal - dirNormal);
-                vector = Vector2.Normalize(-normal);
-
-                PointF closest = intersectBoundsCenter;//Approx
-                double dx = itemBoundsCenter.X - closest.X;
-                double dy = itemBoundsCenter.Y - closest.Y;
-                //double distance_squared = dx * dx + dy * dy;  // Using squared distance to avoid unnecessary square root calculations
-                //double radius_sum = itemBounds.Width + w.radius;  // The combined radius of the ball and the wall's thickness
-                Vector2 collision_normal = new(-move.X, -move.Y);
-                collision_normal = Vector2.Normalize(collision_normal);
-                float distance = (float)Math.Sqrt(dx * dx + dy * dy);   // The actual distance between the ball's center and the closest point
-                var radius_sum = itemBounds.Width;
-                float penetration = radius_sum - distance;
-
-                Vector2 ball_1_velocity = item.VelocityVector;
-
-                Vector2 collision = item.VelocityVector + item2.VelocityVector;
-                var collisionReaction = new Vector2(-collision.Y, collision.X);
-                collision_normal = Vector2.Normalize(collisionReaction);
-
-                //Push the Ball Out of the Wall
-                if (penetration > 0)
-                {
-                    item.Performance?.Step($"Penetration {penetration}");
-                    location.X += collision_normal.X * penetration;
-                    location.Y += collision_normal.Y * penetration;
-                }
-
-                float velocity_dot_normal = (float)Vector2.Dot(ball_1_velocity, collision_normal);
-
-                Vector2 velocity_normal = collision_normal * velocity_dot_normal;
-                Vector2 velocity_tangent = ball_1_velocity - velocity_normal;
-
-                // Reverse and dampen the normal component of the velocity
-                // Damping factor is arbitrarily chosen as 0.6
-                ball_1_velocity = velocity_tangent - velocity_normal * 0.6F;
-
-                ball_1_velocity = collision_normal;
-
-                if (Vector2.Zero.Equals(ball_1_velocity))
-                {
-                    return false;
-                }
-                else
-                    ball_1_velocity = Vector2.Normalize(ball_1_velocity);
-                var direction = item.Direction = new PointF(ball_1_velocity.X, ball_1_velocity.Y);
-
-                if (!offset.IsEmpty)
-                {
-                    int duration = 20;//TODO Part of rebound
-                    location.X += item.Velocity.X * duration;
-                    location.Y += item.Velocity.Y * duration;
-                    item.Location = location;
-                }
-
-            }
-            return changed;
         }
 
         private Vector2 GetRegionBorderVectorQuarters(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, Region intersectRegion

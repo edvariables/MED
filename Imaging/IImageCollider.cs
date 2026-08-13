@@ -19,12 +19,15 @@ namespace MED.Imaging
         System.Drawing.Region? ClipEdgesRegion { get; }
 
         System.Drawing.Region? ClipRegionTranslated { get; }
+        RectangleF GetClipRegionTranslatedBounds(Graphics gr, PointF offset);
 
         System.Drawing.Region? ClipEdgesRegionTranslated { get; }
 
         [Browsable(true)]
-        float SurfaceFriction { get;}
+        float SurfaceFriction { get; }
 
-        PointF Collide(IImageCollider item, PointF offset);
+        PointF Collide(PointF offset);
+
+        bool CollideItem(IImageCollider item2, PointF offset2);
     }
 }

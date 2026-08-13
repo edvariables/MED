@@ -99,7 +99,7 @@ namespace MED.Imaging
 
         Region? _ClipRegionTranslated;
         /**
-         * 
+         * ClipRegionTranslated
          * Returns ClipRegion.Clone().Translate(Location.X, Location.Y);
         */
         [Browsable(false)]
@@ -109,13 +109,28 @@ namespace MED.Imaging
             {
                 if (_ClipRegionTranslated != null || Image == null || ClipRegion == null)
                     return _ClipRegionTranslated;
+                _ClipRegionTranslatedBounds = RectangleF.Empty;
                 return _ClipRegionTranslated = TranslateRegion(ClipRegion, Location, RotationAngle, Image.Size);
             }
         }
 
+        private RectangleF _ClipRegionTranslatedBounds = RectangleF.Empty;
+        public virtual RectangleF GetClipRegionTranslatedBounds(Graphics gr, PointF offset)
+        {
+            if (ClipRegionTranslated == null)
+                return RectangleF.Empty;
+            if (_ClipRegionTranslatedBounds.IsEmpty)
+                _ClipRegionTranslatedBounds = ClipRegionTranslated.GetBounds(gr);
+            if(offset.IsEmpty)
+                return _ClipRegionTranslatedBounds;
+            var rect = _ClipRegionTranslatedBounds;
+            rect.Offset(offset);
+            return rect;
+        }
+
         Region? _ClipEdgesRegionTranslated;
         /**
-         * 
+         * ClipEdgesRegionTranslated
          * Returns ClipEdgesRegion.Clone().Translate(Location.X, Location.Y);
         */
         [Browsable(false)]
@@ -147,19 +162,25 @@ namespace MED.Imaging
         #endregion
 
         #region Collide
-
-        public virtual PointF Collide(IImageCollider item, PointF offset)
+        /**
+         * Collide
+         * 
+         * <returns>Offseted Location</returns>
+         */
+        public virtual PointF Collide(PointF offset)
         {
+            if (this.Consumer is Images)
+                return ((Images)this.Consumer).CollideItem(this, offset);
+
             if (offset.IsEmpty)
                 return Location;
             var location = Location;
             location.X += offset.X;
             location.Y += offset.Y;
-            return Location;
+            return location;
         }
-        #endregion
+        public virtual bool CollideItem(IImageCollider item2, PointF offset2) => false;
 
-        #region Process
         #endregion
 
         #region Settings
