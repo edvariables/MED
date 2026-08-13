@@ -11,7 +11,7 @@ namespace MED.Imaging
     internal static class Physics
     {
 
-        public static void PositionalCorrection(IImageCollidable itemA, IImageCollidable itemB, RectangleF intersectBounds, PointF intersectBoundsCenter)
+        public static void PositionalCorrection(IImageMover itemA, IImageCollider itemB, RectangleF intersectBounds, PointF intersectBoundsCenter)
         {
             if (itemA.SpeedMax == 0f)
                 return;

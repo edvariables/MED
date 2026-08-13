@@ -12,15 +12,9 @@ namespace MED.Imaging
      * interface IImageMover: IImageProvider
      * <summary>Image as a physic object</summary>
      * */
-    public interface IImageMover: IImageProvider
+    public interface IImageMover: IImageCollider
     {
         void Move(long elapsedTime);
-
-        System.Drawing.Region? ClipRegionTranslated { get; }
-
-        System.Drawing.Region? ClipEdgesRegionTranslated { get; }
-
-        Vector2 LocationVector { get; }
 
         float SpeedMax { get; }
         float Speed { get; }
@@ -33,7 +27,5 @@ namespace MED.Imaging
 
         float RotationSpeed { get; set; }
         float RotationSpeedMax { get; set; }
-
-        float SurfaceFriction { get; }
     }
 }

@@ -58,7 +58,9 @@ namespace MED
             if (string.IsNullOrEmpty(processLib))
                 throw new Exception($"Librairie inconnue (argument processLib)");
 
+#pragma warning disable CS8602 // Déréférencement d'une éventuelle référence null.
             var al = new AssemblyLoader(Directory.GetParent(processLib).FullName);
+#pragma warning restore CS8602 // Déréférencement d'une éventuelle référence null.
 
             Assembly assembly = al.LoadFromAssemblyPath(processLib);
 

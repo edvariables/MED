@@ -30,8 +30,8 @@ namespace MED.Imaging
          * Collider
          * 
          * */
-        List<IImageCollidable>? _Colliders;
-        public List<IImageCollidable>? Colliders
+        List<IImageCollider>? _Colliders;
+        public List<IImageCollider>? Colliders
         {
             get
             {
@@ -41,24 +41,24 @@ namespace MED.Imaging
                 if (Process.Items == null)
                     return null;
 
-                var colliders = new List<IImageCollidable>();
+                var colliders = new List<IImageCollider>();
 
                 foreach (var prov in Process.Items)
                 {
-                    if (prov is not IImageCollidable
+                    if (prov is not IImageCollider collider
                         || !prov.Enabled
                         )
                         continue;
 
-                    var clipRegion = ((IImageCollidable)prov).ClipRegionTranslated;
+                    var clipRegion = collider.ClipRegionTranslated;
 
                     //if (clipRegion == null)
                     //    continue;
 
-                    if (((IImageCollidable)prov).Mass == 0F)
+                    if (collider.Mass == 0F)
                         continue;
 
-                    colliders.Add((IImageCollidable)prov);
+                    colliders.Add(collider);
                 }
                 if (colliders.Count == 0)
                     return null;
@@ -72,7 +72,7 @@ namespace MED.Imaging
          * ColliderBorders
          * 
          * */
-        public List<IImageCollidable>? ManageBorders(Bitmap image, Graphics gr)
+        public List<IImageCollider>? ManageBorders(Bitmap image, Graphics gr)
         {
             var colliders = Colliders;
             if (colliders == null || colliders.Count == 0) return colliders;
@@ -80,13 +80,14 @@ namespace MED.Imaging
             //Process.Performance?.Sub(".Collider.Borders").Resume($"{colliders.Count} colliders", true);
 
             foreach (var item in colliders)
-                CollideItemWithImageBorders(image, gr, item, PointF.Empty);
+                if (item is IImageMover mover)
+                    CollideItemWithImageBorders(image, gr, mover, PointF.Empty);
             //Process.Performance?.Sub(".Collider.Borders").Pause($"Collider done {colliders.Count}");
 
             return colliders;
         }
 
-        public bool CollideItemWithImageBorders(Bitmap image, Graphics gr, IImageCollidable item, PointF offset)
+        public bool CollideItemWithImageBorders(Bitmap image, Graphics gr, IImageMover item, PointF offset)
         {
             if (item.Speed == 0F)
                 return false;
@@ -149,9 +150,9 @@ namespace MED.Imaging
                     location.X += overlap.X;
                     location.Y += overlap.Y;
                 }
-                (item as IImageCollidable).Location = location;
+                (item as IImageMover).Location = location;
 
-                (item as IImageCollidable).Direction = direction;
+                (item as IImageMover).Direction = direction;
             }
 
             return changed;
@@ -161,9 +162,9 @@ namespace MED.Imaging
          * 
          * <param name="image">Not current drawing image. May be previous one.</param>
          * */
-        public Dictionary<IImageCollidable, Region> Collide(Bitmap image, IImageCollidable item1, PointF offset)
+        public Dictionary<IImageMover, Region> Collide(Bitmap image, IImageCollider item1, PointF offset)
         {
-            Dictionary<IImageCollidable, Region> someChanges = new();
+            Dictionary<IImageMover, Region> someChanges = new();
 
             var colliders = Colliders;// ManageBorders(image, gr);
             if (colliders == null || colliders.Count < 2) return someChanges;
@@ -176,10 +177,17 @@ namespace MED.Imaging
 
             Graphics gr = Graphics.FromImage(image);
 
-            if (CollideItemWithImageBorders(image, gr, item1, offset))
+            var bounds1 = region1.GetBounds(gr);
+
+            IImageMover? mover1 = null;
+            if (item1 is IImageMover)
             {
-                someChanges.Add(item1, region1);
-                return someChanges;//Do not both image borders and collides
+                mover1 = (IImageMover)item1;
+                if (CollideItemWithImageBorders(image, gr, mover1, offset))
+                {
+                    someChanges.Add(mover1, region1);
+                    return someChanges;//Do not both image borders and collides
+                }
             }
             foreach (var item2 in colliders)
             {
@@ -189,8 +197,8 @@ namespace MED.Imaging
                 var region2 = item2.ClipRegionTranslated;
                 if (region2 == null)
                     continue;
-                var bounds = region2.GetBounds(gr);
-                if (bounds.IsEmpty)
+                var bounds2 = region2.GetBounds(gr);
+                if (bounds2.IsEmpty)
                     continue;
                 var intersect = region1.Clone();
                 intersect.Intersect(region2);
@@ -203,13 +211,14 @@ namespace MED.Imaging
 
                     PointF intersectBoundsCenter = new((intersectBounds.Right + intersectBounds.Left) / 2F, (intersectBounds.Bottom + intersectBounds.Top) / 2F);
 
-                    if (CollideItemPair(gr, intersectBounds, intersectBoundsCenter, intersect, item1, offset, region1, item2, PointF.Empty))
-                        if (someChanges.ContainsKey(item1)) someChanges[item1] = region1;
-                        else someChanges.Add(item1, region1);
+                    if (mover1 != null && CollideItemPair(gr, intersectBounds, intersectBoundsCenter, intersect, mover1, offset, region1, item2, PointF.Empty))
+                        if (someChanges.ContainsKey(mover1)) someChanges[mover1] = region1;
+                        else someChanges.Add(mover1, region1);
 
-                    else if (CollideItemPair(gr, intersectBounds, intersectBoundsCenter, intersect, item2, PointF.Empty, region2, item1, offset))
-                        if (someChanges.ContainsKey(item2)) someChanges[item2] = region2;
-                        else someChanges.Add(item2, region2);
+                    else if (item2 is IImageMover mover2
+                        && CollideItemPair(gr, intersectBounds, intersectBoundsCenter, intersect, mover2, PointF.Empty, region2, item1, offset))
+                        if (someChanges.ContainsKey(mover2)) someChanges[mover2] = region2;
+                        else someChanges.Add(mover2, region2);
 
                 }
             }
@@ -283,14 +292,14 @@ namespace MED.Imaging
         //}
 
         private bool CollideItemPair(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, Region intersectRegion
-            , IImageCollidable item, PointF offset, Region region
-            , IImageCollidable item2, PointF offset2)
+            , IImageMover item, PointF offset, Region region
+            , IImageCollider item2, PointF offset2)
         {
-            if (item.Location.IsEmpty && item.Speed == 0)
+            if (item.Location.IsEmpty)
                 return false;
-            if (item2.Speed == 0F)
-                return CollideMoverAndWall(gr, intersectBounds, intersectBoundsCenter, intersectRegion, item, offset, region, item2, PointF.Empty);
-            return CollideMovingItems(gr, intersectBounds, intersectBoundsCenter, intersectRegion, item, offset, region, item2, PointF.Empty);
+            if (item2 is IImageMover mover2)
+                return CollideMovingItems(gr, intersectBounds, intersectBoundsCenter, intersectRegion, item, offset, region, mover2, PointF.Empty);
+            return CollideMoverAndWall(gr, intersectBounds, intersectBoundsCenter, intersectRegion, item, offset, region, item2, PointF.Empty);
         }
 
         /**
@@ -299,8 +308,8 @@ namespace MED.Imaging
          * 
          * */
         private bool CollideMoverAndWall(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, Region intersectRegion
-            , IImageCollidable item, PointF offset, Region regionTranslated
-            , IImageCollidable item2, PointF offset2)
+            , IImageMover item, PointF offset, Region regionTranslated
+            , IImageCollider item2, PointF offset2)
         {
             var location = item.Location;
             if (location.IsEmpty)//TODO abuse
@@ -419,8 +428,8 @@ namespace MED.Imaging
 
 
         private PointF GetInterceptionPoint(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, Region intersectRegion
-            , IImageCollidable item, PointF offset, Region regionTranslated
-            , IImageCollidable item2, PointF offset2)
+            , IImageMover item, PointF offset, Region regionTranslated
+            , IImageCollider item2, PointF offset2)
         {
             PointF borderPoint = intersectBoundsCenter;
 
@@ -489,7 +498,7 @@ namespace MED.Imaging
             return [point1, point2];
         }
 
-        private Vector2 IntersectPath(IImageMover item, PointF offset, RectangleF intersectBounds, out PointF borderPoint)
+        private Vector2 IntersectPath(IImageCollider item, PointF offset, RectangleF intersectBounds, out PointF borderPoint)
         {
             Vector2 vector = Vector2.Zero;
             borderPoint = PointF.Empty;
@@ -538,9 +547,9 @@ namespace MED.Imaging
                     else if (!previousPoint.Equals(undefinedPoint))
                     {
                         var points = RectangleIntersectLine(intersectBounds, previousPoint, point);
-                        if(points!= null)
+                        if (points != null)
                         {
-                            borderPoint.X += (points[0].X + points[1].X)/ 2F;
+                            borderPoint.X += (points[0].X + points[1].X) / 2F;
                             borderPoint.Y += (points[0].Y + points[1].Y) / 2F;
 
                             lines.Add(points);
@@ -600,8 +609,8 @@ namespace MED.Imaging
 
 
         private Vector2 GetRegionBorderVector(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, Region intersectRegion
-            , IImageCollidable item, PointF offset
-            , Region regionTranslated, IImageCollidable item2, PointF offset2
+            , IImageMover item, PointF offset
+            , Region regionTranslated, IImageCollider item2, PointF offset2
             , out PointF borderPoint)
         {
             borderPoint = PointF.Empty;
@@ -908,8 +917,8 @@ namespace MED.Imaging
          * Collide 2 items
          * */
         private bool CollideMovingItems(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, Region intersectRegion
-            , IImageCollidable item1, PointF offset, Region region
-            , IImageCollidable item2, PointF offset2)
+            , IImageMover item1, PointF offset, Region region
+            , IImageMover item2, PointF offset2)
         {
             var location = item1.Location;
             if (location.IsEmpty)
@@ -1060,8 +1069,8 @@ namespace MED.Imaging
         }
 
         private bool CollideMovingItemsOLD(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, Region intersectRegion
-            , IImageCollidable item, PointF offset, Region region
-            , IImageCollidable item2, PointF offset2)
+            , IImageMover item, PointF offset, Region region
+            , IImageMover item2, PointF offset2)
         {
             var location = item.Location;
             if (location.IsEmpty)
@@ -1200,8 +1209,8 @@ namespace MED.Imaging
         }
 
         private Vector2 GetRegionBorderVectorQuarters(Graphics gr, RectangleF intersectBounds, PointF intersectBoundsCenter, Region intersectRegion
-            , IImageCollidable item, PointF offset
-            , Region regionTranslated, IImageCollidable item2, PointF offset2
+            , IImageMover item, PointF offset
+            , Region regionTranslated, IImageMover item2, PointF offset2
             , out PointF borderPoint)
         {
 

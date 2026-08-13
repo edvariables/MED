@@ -29,14 +29,15 @@ namespace MED.Imaging
         [Browsable(true)]
         public Size Grid { get; set; }
 
-        public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
+        public override void LoadSettings(ProcessSettings? settings = null, string fileName = "")
         {
             base.LoadSettings(settings, fileName);
-
-            Horizontal = (bool)ProcessSettings.GetValue("Horizontal", Horizontal);
-            Grid = (Size)ProcessSettings.GetValue("Grid", Grid);
+            if (settings == null && (settings = ProcessSettings) == null)
+                return;
+            Horizontal = (bool)(settings.GetValue("Horizontal", Horizontal)?? Horizontal);
+            Grid = (Size)(settings.GetValue("Grid", Grid)?? Grid);
         }
-        public override JsonObject SaveProcess(JsonObject node = null)
+        public override JsonObject SaveProcess(JsonObject? node = null)
         {
             node = base.SaveProcess(node);
             node.Add("Horizontal", Horizontal);

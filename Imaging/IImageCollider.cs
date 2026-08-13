@@ -11,14 +11,20 @@ namespace MED.Imaging
      * interface IImageCollidable : IImageMover
      * <summary>Image as a physic object</summary>
      * */
-    public interface IImageCollidable : IImageMover
+    public interface IImageCollider : IImageProvider
     {
         float Mass { get; }
 
         [Browsable(false)]
-        System.Drawing.Region? ClipEdgesRegion { get;} 
+        System.Drawing.Region? ClipEdgesRegion { get; }
+
+        System.Drawing.Region? ClipRegionTranslated { get; }
+
+        System.Drawing.Region? ClipEdgesRegionTranslated { get; }
 
         [Browsable(true)]
-        float SurfaceFriction { get;} 
+        float SurfaceFriction { get;}
+
+        PointF Collide(IImageCollider item, PointF offset);
     }
 }

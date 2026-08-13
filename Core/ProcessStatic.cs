@@ -36,8 +36,8 @@ namespace MED
                                          miHandler);
             //TODO  
             //eventInfo.RemoveEventHandler(this, handler);
-            var currentEventValue=eventInfo.GetValue(handler_obj);
-            handler = Delegate.Combine((Delegate)currentEventValue, handler);
+            var currentEventValue = eventInfo.GetValue(handler_obj);
+            handler = Delegate.Combine((Delegate?)currentEventValue, handler);
             eventInfo.SetValue(handler_obj, handler);
         }
         public static void RemoveHandler(IProvider handler_obj, string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
@@ -47,9 +47,8 @@ namespace MED
             if (memberInfoO == null)
                 throw new Exception($"Le type {handler_obj.GetType().FullName} n'a pas de delegate {handler_field}");
             var memberInfos = (System.Reflection.MemberInfo[])memberInfoO;
-
-            var eventInfo = (System.Reflection.FieldInfo)memberInfos.GetValue(0);
-            if (eventInfo == null)
+            var eventInfoO = memberInfos.GetValue(0);
+            if (eventInfoO is not FieldInfo eventInfo)
                 throw new Exception($"Le type {handler_obj.GetType().FullName} n'a pas de delegate {handler_field}");
 
 
@@ -60,7 +59,7 @@ namespace MED
                  Delegate.CreateDelegate(eventInfo.FieldType,
                                          consumer,
                                          miHandler);
-            
+
             //eventInfo.RemoveEventHandler(this, miHandler);
             //TODO eventInfo.SetValue(handler_obj, handler);
 
@@ -85,11 +84,11 @@ namespace MED
             string? processClass = node["ProcessClass"]?.GetValue<string>();
             string? processLib = node["ProcessLib"]?.GetValue<string>();
             string? name = node["Name"]?.GetValue<string>();
-            if(String.IsNullOrEmpty(name) && String.IsNullOrEmpty(processClass))
+            if (String.IsNullOrEmpty(name) && String.IsNullOrEmpty(processClass))
             {
                 throw new Exception($"Erreur dans la source JSON pour créer un process. Name et ProcessClass manquants. Chemin : {node.GetPath()}");
             }
-            bool isAsynchrone = (bool)(Parser.ObjectFromJsonNode(node["IsAsynchrone"], false)??false);
+            bool isAsynchrone = (bool)(Parser.ObjectFromJsonNode(node["IsAsynchrone"], false) ?? false);
 
             return CreateProcess(processClass, processLib, name, isAsynchrone, performance, invokeHandler);
         }

@@ -20,10 +20,10 @@ using System.Xml.Linq;
 namespace MED.Imaging
 {
     /**
-     * class Mover : ImageSourced, IImageProvider, IImageCollidable
-     * <summary>Image as a physic object that can move, rotate and collide</summary>
+     * class Mover : ImageCollidable, IImageMover
+     * <summary>Image as a physical object that can move, rotate and collide</summary>
      * */
-    public class Mover : ImageSourced, IImageProvider, IImageCollidable
+    public class Mover : ImageCollider, IImageMover
     {
         public Mover(string name = "Mover", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
         : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
@@ -34,8 +34,7 @@ namespace MED.Imaging
 
         [Category("Mover")]
         public virtual float SpeedMax { get; set; }
-        [Category("Mover")]
-        public virtual float Mass { get; set; } = 1F;
+
         float _RotationSpeed = 0F;
         [Category("Mover")]
         public virtual float RotationSpeed
@@ -85,34 +84,9 @@ namespace MED.Imaging
         }
 
         [Browsable(true)]
+        [ReadOnly(false)]
         [Category("Image")]
-        public override System.Drawing.PointF Location
-        {
-            get
-            {
-                return base.Location;
-            }
-            set
-            {
-                if (float.IsNaN(value.X) || float.IsInfinity(value.X))
-                    return;
-                _ClipRegionTranslated = null;
-                //if (base.Location != value)
-                //    Performance?.Debug($"Location _setter {value}");
-                base.Location = value;
-            }
-        }
-
-        public override Region? ClipRegion
-        {
-            get => base.ClipRegion;
-            set
-            {
-                _ClipRegionTranslated = null;
-                _ClipEdgesRegionTranslated = null;
-                base.ClipRegion = value;
-            }
-        }
+        public override System.Drawing.PointF Location => base.Location;
 
         public virtual void Move(long elapsedTime)
         {
@@ -135,26 +109,12 @@ namespace MED.Imaging
             //Performance?.Debug($"Move sets Location = {Location}");
         }
 
-        Vector2 _LocationVector;
-        [Browsable(false)]
-        public virtual Vector2 LocationVector
-        {
-            get
-            {
-                if (_LocationVector.Equals(Vector2.Zero))
-                    return _LocationVector = base.Location.ToVector2();
-                return _LocationVector;
-            }
-            private set { _LocationVector = value; }
-        }
-
         [Browsable(false)]
         public override float RotationAngle
         {
             get => base.RotationAngle;
             set
             {
-                _ClipRegionTranslated = null;
                 _RotationVector = Vector2.Zero;
                 base.RotationAngle = value;
             }
@@ -176,13 +136,6 @@ namespace MED.Imaging
             }
             private set { _RotationVector = value; }
         }
-
-        /**
-         * Surface friction in collision
-         * 
-         * */
-        [Category("Mover")]
-        public virtual float SurfaceFriction { get; set; } = 1F;
 
         PointF _Direction;
         [Category("Mover")]
@@ -244,54 +197,6 @@ namespace MED.Imaging
                 return _VelocityVector;
             }
             private set { _VelocityVector = value; }
-        }
-
-        Region? _ClipRegionTranslated;
-        /**
-         * 
-         * Returns ClipRegion.Clone().Translate(Location.X, Location.Y);
-        */
-        [Browsable(false)]
-        public virtual Region? ClipRegionTranslated
-        {
-            get
-            {
-                if (_ClipRegionTranslated != null || Image == null || ClipRegion == null)
-                    return _ClipRegionTranslated;
-                return _ClipRegionTranslated = TranslateRegion(ClipRegion, Location, RotationAngle, Image.Size);
-            }
-        }
-
-        Region? _ClipEdgesRegionTranslated;
-        /**
-         * 
-         * Returns ClipEdgesRegion.Clone().Translate(Location.X, Location.Y);
-        */
-        [Browsable(false)]
-        public virtual Region? ClipEdgesRegionTranslated
-        {
-            get
-            {
-                if (_ClipEdgesRegionTranslated != null || Image == null || ClipEdgesRegion == null)
-                    return _ClipEdgesRegionTranslated;
-                return _ClipEdgesRegionTranslated = TranslateRegion(ClipEdgesRegion, Location, RotationAngle, Image.Size);
-            }
-        }
-
-        public static Region? TranslateRegion(Region region, PointF location, float Rotation, Size imageSize)
-        {
-            if (location.IsEmpty && Rotation == 0F)
-                return region;
-            region = region.Clone();
-            Matrix transformMatrix = new Matrix();
-            transformMatrix.Translate(location.X, location.Y);
-            if (Rotation != 0F)
-            {
-                transformMatrix.RotateAt(Rotation, new PointF(imageSize.Width / 2F, imageSize.Height / 2F));
-            }
-            region.Transform(transformMatrix);
-
-            return region;
         }
         #endregion
 

@@ -9,7 +9,7 @@ using System.Numerics;
 
 namespace MED.Imaging
 {
-    public class Gravity : Mover
+    public class Gravity : ImageCollider
     {
         //isAsynchrone = true
         public Gravity(string name = "Gravity", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
@@ -22,34 +22,35 @@ namespace MED.Imaging
         public float GravityConstant { get; set; } = 6.67430F;
         public bool Horizontal { get; set; } = false;
 
-        public override void Move(long elapsedTime)
+        public override PointF Collide(IImageCollider item, PointF offset)
         {
             if (ProcessState != ThreadState.Running || GravityConstant == 0F)
-                return;
+                return Location;
 
             if (this.Consumer is Images)
             {
-                foreach (var item in ((Images)this.Consumer).Items)
-                {
-                    if (item == this || item is not Mover mover)
-                        continue;
-                    if ((mover).SpeedMax == 0F || (mover).Location.IsEmpty)
-                        continue;
-                    
-                    var direction = (mover).DirectionVector;
-                    Vector2 gravityVector = new();
-                    if (Horizontal)
-                        gravityVector.X = 1F;
-                    else
-                        gravityVector.Y = 1F;
-                    gravityVector *= GravityConstant * mover.Mass;
-                    direction += gravityVector;
-                    mover.Speed *= direction.Length();
+                //foreach (var item in ((Images)this.Consumer).Items)
+                //{
+                if (item == this || item is not Mover mover)
+                    return Location;
+                if ((mover).SpeedMax == 0F || (mover).Location.IsEmpty)
+                    return Location;
 
-                    direction = Vector2.Normalize(direction);
-                    mover.Direction = new(direction.X, direction.Y);
-                }
+                var direction = (mover).DirectionVector;
+                Vector2 gravityVector = new();
+                if (Horizontal)
+                    gravityVector.X = 1F;
+                else
+                    gravityVector.Y = 1F;
+                gravityVector *= GravityConstant * mover.Mass;
+                direction += gravityVector;
+                mover.Speed *= direction.Length();
+
+                direction = Vector2.Normalize(direction);
+                mover.Direction = new(direction.X, direction.Y);
+                //}
             }
+            return base.Collide(item, offset);
         }
         public override void LoadSettings(ProcessSettings? settings = null, string fileName = "")
         {

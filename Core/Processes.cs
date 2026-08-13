@@ -199,7 +199,7 @@ namespace MED
             string? consumerPath = consumerNode["Name"]?.ToString();
             if (consumerPath == null)
                 return;
-            IProcess consumerProcess = ProcessStatic.FindItem(this, consumerPath);
+            IProcess? consumerProcess = ProcessStatic.FindItem(this, consumerPath);
             if (consumerProcess == null)
                 return;
 

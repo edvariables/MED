@@ -235,8 +235,8 @@ namespace MED.Imaging
             if (imageSrc != null)
             {
                 Region? clipRegion;
-                if (DrawEdges && item is IImageCollidable)
-                    clipRegion = ((IImageCollidable)item).ClipEdgesRegion;
+                if (DrawEdges && item is IImageCollider)
+                    clipRegion = ((IImageCollider)item).ClipEdgesRegion;
                 else
                     clipRegion = item.ClipRegion;
 
@@ -339,25 +339,25 @@ namespace MED.Imaging
 
             foreach (var item in Items)
             {
-                if (!item.Enabled || item is not IImageMover)
+                if (!item.Enabled || item is not IImageMover mover)
                     continue;
-                ((IImageMover)item).Move(elapsedTime);
+                mover.Move(elapsedTime);
 
                 //DEBUG
-                if (DebugImage != null && item is IImageMover && !((IImageMover)item).Location.IsEmpty)
+                if (DebugImage != null && item is IImageMover && !mover.Location.IsEmpty)
                 {
-                    PointF location = ((IImageMover)item).Location;
-                    Bitmap? imageSrc = ((IImageMover)item).Image;
+                    PointF location = mover.Location;
+                    Bitmap? imageSrc = mover.Image;
                     if (imageSrc != null)
                     {
                         var graphics = Graphics.FromImage(DebugImage);
                         var font = new Font(FontFamily.GenericMonospace, 8F);
                         var brush = new SolidBrush(SystemColors.WindowText);
-                        graphics.DrawString(((IImageMover)item).Speed.ToString("#0"), font, brush, location.X + 5, location.Y + imageSrc.Height);
+                        graphics.DrawString(mover.Speed.ToString("#0"), font, brush, location.X + 5, location.Y + imageSrc.Height);
 
                         var pen = new Pen(brush);
                         var center = new PointF(location.X + imageSrc.Width / 2, location.Y + imageSrc.Height / 2);
-                        var direction = new PointF(center.X + ((IImageMover)item).Velocity.X * imageSrc.Width * 2, center.Y + ((IImageMover)item).Velocity.Y * imageSrc.Height * 2);
+                        var direction = new PointF(center.X + mover.Velocity.X * imageSrc.Width * 2, center.Y + mover.Velocity.Y * imageSrc.Height * 2);
                         graphics.DrawLine(pen, center, direction);
                     }
                 }
@@ -392,7 +392,7 @@ namespace MED.Imaging
             }
         }
 
-        public PointF CollideItem(IImageCollidable item, PointF offset)
+        public PointF CollideItem(IImageCollider item, PointF offset)
         {
             Bitmap? modelImage = DebugImage;
             if (modelImage == null)
