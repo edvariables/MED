@@ -18,7 +18,7 @@ namespace MED
 
             Current = this;
         }
-        public static FProperties Current { get; private set; }
+        public static FProperties? Current { get; private set; }
 
         private void FProperties_Load(object sender, EventArgs e)
         {
@@ -31,20 +31,22 @@ namespace MED
             get => Current?.propertiesControl1.CurrentProperty;
             set => Current?.ShowProperty(value);
         }
-        public static object[] CurrentProperties
+        public static object[]? CurrentProperties
         {
             get => Current?.propertiesControl1.CurrentProperties;
             set => Current?.propertiesControl1.ShowProperties(value);
         }
 
-        public void ShowProperty(object o)
+        public void ShowProperty(object? o)
         {
-            propertiesControl1.ShowProperty(o);
+            if (o != null)
+                propertiesControl1.ShowProperty(o);
         }
 
-        public void ShowProperties(object[] items)
+        public void ShowProperties(object[]? items)
         {
-            propertiesControl1.ShowProperties(items);
+            if (items != null)
+                propertiesControl1.ShowProperties(items);
         }
 
     }

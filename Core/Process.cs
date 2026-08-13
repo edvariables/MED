@@ -247,7 +247,7 @@ namespace MED
 
         public bool IsInvokingPropertyChanged(Delegate delegateMethod) => ProcessStatic.IsInvokingPropertyChanged(this, delegateMethod);
 
-        public virtual void InvokePropertyChanged(IProvider? sender, Delegate? delegateMethod, EventArgs e) => ProcessStatic.InvokePropertyChanged(this, sender, delegateMethod, e);
+        public virtual void InvokePropertyChanged(IProvider? sender, Delegate? delegateMethod, EventArgs? e) => ProcessStatic.InvokePropertyChanged(this, sender, delegateMethod, e);
 
         public void AddHandler(string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
         {
@@ -533,7 +533,7 @@ namespace MED
 
             foreach (var (propertyName, propertyValue) in dic)
             {
-                var property = type.GetProperty(propertyName);
+                var property = type.GetProperty(propertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                 if (property == null || !property.CanWrite)
                     continue;
                 property.SetValue(this, propertyValue);

@@ -180,7 +180,7 @@ namespace MED
             }
         }
 
-        public static void InvokePropertyChanged(IProcess? process, IProvider? sender, Delegate? delegateMethod, EventArgs e)
+        public static void InvokePropertyChanged(IProcess? process, IProvider? sender, Delegate? delegateMethod, EventArgs? e)
         {
             if (process == null || ((IProvider)process).InvokeHandler == null || ((IProvider)process).InvokeHandler.Disposing || ((IProvider)process).InvokeHandler.IsDisposed)
                 return;
@@ -315,9 +315,9 @@ namespace MED
                 else if (processTo is Process)
                     if (((Process)processRef).Consumer == ((Process)processTo).Consumer)
                         return processTo.Name;
-                    else if (((Process)processTo).Consumer is Process)
-                        if (((Process)processRef).Consumer == ((Process)((Process)processTo).Consumer).Consumer)
-                            return ((Process)(processTo as Process).Consumer).Name + "/" + processTo.Name;
+                    else if (((Process)processTo).Consumer is Process processToConsumer)
+                        if (((Process)processRef).Consumer == processToConsumer.Consumer)
+                            return processToConsumer.Name + "/" + processTo.Name;
             return processTo.Name;
         }
     }

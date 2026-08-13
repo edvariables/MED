@@ -48,7 +48,9 @@ namespace MED.Imaging
         public override void LoadSettings(ProcessSettings? settings = null, string fileName = "")
         {
             base.LoadSettings(settings, fileName);
-
+            if (settings == null)
+                if ((settings = ProcessSettings) == null)
+                    return;
             BackgroundColor = (Color)(settings.GetValue("BackgroundColor", BackgroundColor) ?? BackgroundColor);
         }
         public override JsonObject SaveProcess(JsonObject? node = null)

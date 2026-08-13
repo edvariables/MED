@@ -272,7 +272,7 @@ namespace MED.Imaging
             {
                 if (value == this)
                     return;
-                if (!ImageProviders.Contains(value))
+                if (value!=null && !ImageProviders.Contains(value))
                     ImageProviders.Add(value);
             }
         }
@@ -394,10 +394,13 @@ namespace MED.Imaging
                         GraphicsPath grPathU = new();
                         grPathU.AddPolygon(contour);
                         grPath.AddPath(grPathU, false);
+
+                        grPathU.CloseFigure();
+
                         grPathsBounds.Add(grPathU, grPathU.GetBounds());
                     }
 
-                    //grPath.CloseFigure();
+                    grPath.CloseFigure();
                     var bounds = grPath.GetBounds();
                     //Region region;
                     if (bounds.Width >= grayCurrent.Width - 1 && bounds.Height >= grayCurrent.Height - 1)

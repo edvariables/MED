@@ -14,7 +14,7 @@ namespace MED.Imaging
 {
     public class Images : ImageProcess, IProcesses
     {
-        public Images(string name = "Images", Performance performance = null, Control invokeHandler = null, IImageConsumer imageConsumer = null, bool isAsynchrone = true)
+        public Images(string name = "Images", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
             : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
         {
             ProcessIcon = ProcessIconDefault = "icon-folder-open";
@@ -321,7 +321,12 @@ namespace MED.Imaging
             _MoveItemsTime = now;
 
             if (elapsedTime > 100000)
-                elapsedTime = _MoveItemsTimePauseDuration;
+            {
+                if (_MoveItemsElapsedTime != 0)
+                    elapsedTime = _MoveItemsElapsedTime;//After Pause
+                else
+                    elapsedTime = _MoveItemsTimePauseDuration;
+            }
             else if (elapsedTime > 1000 || elapsedTime == 0)
             {
                 Performance?.Debug($"(elapsedTime > 1000 || elapsedTime == 0) <= {elapsedTime}");
@@ -329,6 +334,8 @@ namespace MED.Imaging
             }
 
             Performance?.Step($"MoveItems {elapsedTime} msec");
+
+            _MoveItemsElapsedTime = elapsedTime;
 
             foreach (var item in Items)
             {
@@ -346,7 +353,7 @@ namespace MED.Imaging
                         var graphics = Graphics.FromImage(DebugImage);
                         var font = new Font(FontFamily.GenericMonospace, 8F);
                         var brush = new SolidBrush(SystemColors.WindowText);
-                        graphics.DrawString(((IImageMover)item).Speed.ToString("#.##"), font, brush, location.X, location.Y + imageSrc.Height);
+                        graphics.DrawString(((IImageMover)item).Speed.ToString("#0"), font, brush, location.X + 5, location.Y + imageSrc.Height);
 
                         var pen = new Pen(brush);
                         var center = new PointF(location.X + imageSrc.Width / 2, location.Y + imageSrc.Height / 2);
@@ -357,6 +364,8 @@ namespace MED.Imaging
             }
 
         }
+        long _MoveItemsElapsedTime { get; set; }
+
         long _MoveItemsTimePauseDuration = 40;//msec
 
         long _MoveItemsTimePaused = 0;
@@ -371,7 +380,7 @@ namespace MED.Imaging
             {
                 if (_MoveItemsTimePaused != 0L)
                 {
-                    Performance?.Step($"_MoveItemsTime Resume => MoveItems({_MoveItemsTimePauseDuration})");
+                    Performance?.Step($"_MoveItemsTime Resume => MoveItems({_MoveItemsElapsedTime})");
 
                     _MoveItemsTime = 0L;
                 }
@@ -410,7 +419,9 @@ namespace MED.Imaging
         {
             foreach (var item in Items)
                 item.UndoModeSaveProperties();
-            return base.UndoModeSaveProperties();
+            var dic = base.UndoModeSaveProperties();
+            dic.Add("_MoveItemsElapsedTime", _MoveItemsElapsedTime);
+            return dic;
         }
         public override Dictionary<string, object>? Undo(int length = 1)
         {

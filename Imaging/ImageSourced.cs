@@ -84,7 +84,7 @@ namespace MED.Imaging
          * GetImage
          * 
          * */
-        public override Bitmap? GetImage(IImageProvider provider = null)
+        public override Bitmap? GetImage(IImageProvider? provider = null)
         {
             if (_Image != null)
                 return _Image;
@@ -159,7 +159,7 @@ namespace MED.Imaging
         {
             get
             {
-                if (_ClipRegionEdges != null || ClipRegion == null)
+                if (_ClipRegionEdges != null || ClipRegion == null || ClipPath == null)
                     return _ClipRegionEdges;
 
                 //System.Drawing.Region clipRegionEdges= ClipRegion.Clone();

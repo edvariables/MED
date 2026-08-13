@@ -46,7 +46,7 @@ namespace MED.EDWebCam
 
 
         #region Settings
-        public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
+        public override void LoadSettings(ProcessSettings? settings = null, string fileName = "")
         {
             base.LoadSettings(settings,fileName);
             
@@ -54,12 +54,12 @@ namespace MED.EDWebCam
 
             if (Render == null)
                 return;
-            
+
             if (Render.Performance != null)
-            {
                 chkRenderLogger.Checked = Render.Performance.Enabled;
+            if (ImageSource.Performance != null)
                 chkVideoCaptureLogger.Checked = ImageSource.Performance.Enabled;
-            }
+
             var value = ImageSource.ImageSizeMin;
             if (ImageSource.ImageSizeMin.IsEmpty)
                 cboCaptureSize.Text = "";

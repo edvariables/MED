@@ -41,15 +41,16 @@ namespace MED.Imaging
         [Browsable(true)]
         public bool Centered { get; set; }
 
-        public override void LoadSettings(ProcessSettings settings = null, string fileName = "")
+        public override void LoadSettings(ProcessSettings? settings = null, string fileName = "")
         {
             base.LoadSettings(settings, fileName);
-
-            Centered = (bool)ProcessSettings.GetValue("Centered", Centered);
-            KeepRenderRatio = (bool)ProcessSettings.GetValue("KeepRenderRatio", KeepRenderRatio);
-            ResizeToRenderSize = (bool)ProcessSettings.GetValue("ResizeToRenderSize", ResizeToRenderSize);
+            if (settings == null || (settings = ProcessSettings) == null)
+                return;
+            Centered = (bool)(settings.GetValue("Centered", Centered)?? Centered);
+            KeepRenderRatio = (bool)(settings.GetValue("KeepRenderRatio", KeepRenderRatio)?? KeepRenderRatio);
+            ResizeToRenderSize = (bool)(settings.GetValue("ResizeToRenderSize", ResizeToRenderSize)?? ResizeToRenderSize);
         }
-        public override JsonObject SaveProcess(JsonObject node = null)
+        public override JsonObject SaveProcess(JsonObject? node = null)
         {
             node = base.SaveProcess(node);
 
@@ -110,32 +111,32 @@ namespace MED.Imaging
         /**
          * RefreshRender
          * */
-        public static void RefreshRender(IImageProvider sender, Control renderImageControl, Performance performance, EventArgs e)
+        public static void RefreshRender(IImageProvider sender, Control renderImageControl, Performance? performance, EventArgs e)
         {
-            if (sender is IProcess && !(sender as IProcess).IsRunning)
+            if (sender is IProcess && !((IProcess)sender).IsRunning)
                 return;
             //performance.Step("RefreshRender call stack :\n" + Environment.StackTrace);
             if (renderImageControl != null && sender.Image != null)
             {
-                performance.Resume("RefreshRender", true);
+                performance?.Resume("RefreshRender", true);
                 try
                 {
                     if (renderImageControl is PictureBox)
-                        (renderImageControl as PictureBox).Image = ResizeImage(sender);
+                        ((PictureBox)renderImageControl).Image = ResizeImage(sender);
                     else
                         renderImageControl.BackgroundImage = ResizeImage(sender);
                 }
                 catch (Exception ex)
                 {
-                    performance.Error("RefreshRender", ex);
+                    performance?.Error("RefreshRender", ex);
                 }
                 finally
                 {
-                    performance.Pause();
+                    performance?.Pause();
                 }
             }
         }
-        public static Bitmap ResizeImage(IImageProvider sender)
+        public static Bitmap? ResizeImage(IImageProvider sender)
         {
             if (!(sender is Render) || sender.Image == null)
                 return sender.Image;

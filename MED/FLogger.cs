@@ -33,7 +33,7 @@ namespace MED
         private void FLogger_Activated(object sender, EventArgs e)
         {
             if (FProperties.CurrentProperty is ImageProcess)
-                FProperties.CurrentProperty = (FProperties.CurrentProperty as ImageProcess).Performance;
+                FProperties.CurrentProperty = ((ImageProcess)FProperties.CurrentProperty).Performance;
             else
                 FProperties.CurrentProperty = Performance;
         }
@@ -52,7 +52,7 @@ namespace MED
         public void Logger_OnBufferChanged(object sender, EventArgs e) => RefreshProgress(sender is IProcess ? (IProcess)sender : null);
 
         #region Refresh
-        public void RefreshProgress(IProcess sender)
+        public void RefreshProgress(IProcess? sender)
         {
             if (Logger == null)
                 return;
@@ -76,8 +76,8 @@ namespace MED
             }
         }
 
-        Regex RTGBAppendRegex = null;
-        Performance Performance;
+        Regex? RTGBAppendRegex = null;
+        Performance? Performance;
         private void RTGBAppend(RichTextBox rtb)
         {
             var str = Logger.BufferString(true);
@@ -93,7 +93,7 @@ namespace MED
                     Performance.Start();
                 }
 
-                Performance.Resume("RTGBAppendRegex.Matches", true);
+                Performance?.Resume("RTGBAppendRegex.Matches", true);
                 var matches = RTGBAppendRegex.Matches(str);
                 foreach (var match in matches)
                 {
@@ -116,7 +116,7 @@ namespace MED
                     rtb.AppendText(((Match)match).Groups["crlf"].Value);
                     //rtb.Select(startSel, rtb.Text.Length);
                 }
-                Performance.Pause();
+                Performance?.Pause();
                 if (matches.Count > 0)
                     return;
             }
@@ -237,7 +237,7 @@ namespace MED
         private void cmdSave_Click(object sender, EventArgs e)
         {
             if (logFileName == ""
-            || e is System.Windows.Forms.KeyEventArgs && (e as System.Windows.Forms.KeyEventArgs).Control)
+            || e is System.Windows.Forms.KeyEventArgs && ((System.Windows.Forms.KeyEventArgs)e).Control)
             {
                 saveFileDialog1.DefaultExt = "log";
                 saveFileDialog1.Filter = "Log files (*.log)|*.log|(*.txt)|*.txt|All files (*.*)|*.*";
@@ -253,7 +253,9 @@ namespace MED
                 {
                     var start = new ProcessStartInfo(logFileName);
                     start.UseShellExecute = true;
+#pragma warning disable CS8602 // Déréférencement d'une éventuelle référence null.
                     start.WorkingDirectory = Directory.GetParent(logFileName).FullName;
+#pragma warning restore CS8602 // Déréférencement d'une éventuelle référence null.
                     start.Verb = "OPEN";
                     System.Diagnostics.Process.Start(start);
                 }

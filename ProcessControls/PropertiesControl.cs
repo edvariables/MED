@@ -70,8 +70,11 @@ namespace MED
             processesControl1.ShowProperty(o);
         }
 
-        public void ShowProperties(object[] items, TreeNode? rootNode = null, bool clear = false)
+        public void ShowProperties(object[]? items, TreeNode? rootNode = null, bool clear = false)
         {
+            if (items == null)
+                return;
+
             processesControl1.SuspendLayout();
 
             processesControl1.ShowProperties(items, rootNode, clear);
@@ -201,7 +204,7 @@ namespace MED
                         ShowProperties([process]);
                         return;
                     }
-                TreeNode selectedNode = processesControl1.SelectedNode;
+                TreeNode? selectedNode = processesControl1.SelectedNode;
                 IProcess selectedProcess = (IProcess)selectedNode.Tag;
                 TreeNode? selectedParentNode = selectedNode.Parent == null ? null : selectedNode.Parent;
                 IProcess? selectedParentProcess = selectedParentNode == null || selectedParentNode.Tag == null ? null

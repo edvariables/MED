@@ -57,7 +57,7 @@ namespace MED.Imaging
         public override Bitmap? GetImage(IImageProvider? provider = null)
         {
             Performance?.Resume($"GetImage Transformer #{Transformer}", true);
-            var image = FrameToImage((IMatFrameProvider)provider, Frame);
+            var image = FrameToImage((IMatFrameProvider?)provider, Frame);
             Performance?.Pause();
             return image;
         }
@@ -88,12 +88,13 @@ namespace MED.Imaging
 
             InvokeFrameChanged(sender, e);
 
-            ImageChanged((IImageProvider)sender, e);
+            if (sender != null)
+                ImageChanged((IImageProvider)sender, e);
         }
 
         public void InvokeFrameChanged(IMatFrameProvider? sender, EventArgs e) => InvokePropertyChanged(sender, OnFrameChanged, e);
 
-        public IMatFrameProvider.FrameChangedDelegate OnFrameChanged;
+        public IMatFrameProvider.FrameChangedDelegate? OnFrameChanged;
         #endregion
 
         #region Settings
@@ -152,11 +153,12 @@ namespace MED.Imaging
         public override void LoadSettings(ProcessSettings? settings = null, string fileName = "")
         {
             base.LoadSettings(settings, fileName);
-
-            FixedBackground = (bool)(ProcessSettings.GetValue("FixedBackground", FixedBackground)?? FixedBackground);
-            DetectionLimit = (int)(ProcessSettings.GetValue("DetectionLimit", DetectionLimit)?? DetectionLimit);
+            if (settings == null && (settings = ProcessSettings) == null)
+                return;
+            FixedBackground = (bool)(settings.GetValue("FixedBackground", FixedBackground) ?? FixedBackground);
+            DetectionLimit = (int)(settings.GetValue("DetectionLimit", DetectionLimit) ?? DetectionLimit);
             CvInvokeTransformers a;
-            if (Enum.TryParse<CvInvokeTransformers>((ProcessSettings.GetValue("Transformer", Transformer)?? Transformer).ToString(), out a))
+            if (Enum.TryParse<CvInvokeTransformers>((settings.GetValue("Transformer", Transformer) ?? Transformer).ToString(), out a))
                 Transformer = a;
         }
         public override JsonObject SaveProcess(JsonObject? node = null)
@@ -250,7 +252,7 @@ namespace MED.Imaging
 
 
 
-                        Performance.Step($"borderFinder, useBmp={useBmp}");
+                        Performance?.Step($"borderFinder, useBmp={useBmp}");
 
                         BorderFinder borderFinder = new(Color.FromArgb(DetectionLimit, DetectionLimit, DetectionLimit));
 
@@ -263,11 +265,11 @@ namespace MED.Imaging
 
                         if (points.Count > 0 && points[0].Count() > 0)
                         {
-                            Performance.Step($"points {points.Count}");
+                            Performance?.Step($"points {points.Count}");
 
                             GraphicsPath path = borderFinder.GetPath(points);
 
-                            Performance.Step($"path {path.PointCount}");
+                            Performance?.Step($"path {path.PointCount}");
 
                             bmp = new Bitmap(currentFrame.Width, currentFrame.Height);
 
@@ -279,7 +281,7 @@ namespace MED.Imaging
                             gr.Dispose();
 
 
-                            Performance.Step($"FillPath done");
+                            Performance?.Step($"FillPath done");
                         }
                         oldPrev = PreviousFrame;
                         PreviousFrame = currentFrame.Clone();
@@ -347,13 +349,13 @@ namespace MED.Imaging
                             transformMatrix.Scale((float)resized.Width / currentFrame.Width, (float)resized.Height / currentFrame.Height);
 
                             grPath.Transform(transformMatrix);
-                            
+
                             foreach (var (grPathU, grPathBounds) in grPathsBounds)
                             {
                                 grPathU.Transform(transformMatrix);
                                 grPathsBounds[grPathU] = grPathU.GetBounds();
                             }
-                            
+
                             region.Transform(transformMatrix);
                             currentFrame = resized;
                         }
@@ -417,12 +419,12 @@ namespace MED.Imaging
 
                     // Display the amount of motions found on the current image
                     var components = motionDetectionWithMotionHistory.MotionComponents;
-                    Performance.Log($"Total Motions found: {components.Length}");
+                    Performance?.Log($"Total Motions found: {components.Length}");
 
                     int idx = 0;
                     foreach (MotionDetectionWithMotionHistory.MotionComponent comp in components)
                     {
-                        Performance.Log($"Motion Component {idx}: {comp}");
+                        Performance?.Log($"Motion Component {idx}: {comp}");
                         idx++;
                     }
                     if (frameDiff != null)
@@ -455,7 +457,7 @@ namespace MED.Imaging
                     }
                     else
                     {
-                        Performance.Log($"{Transformer} : PreviousFrame.Size.IsEmpty");
+                        Performance?.Log($"{Transformer} : PreviousFrame.Size.IsEmpty");
                         frameDiff = displayImage;
                     }
 
@@ -464,7 +466,7 @@ namespace MED.Imaging
                     image.Dispose();
 
                     var vectors = motionDetectionWithSparseOpticalFlow.MotionVectors;
-                    Performance.Log($"Active Tracked Points: {vectors.Count}");
+                    Performance?.Log($"Active Tracked Points: {vectors.Count}");
                     break;
 
                 case CvInvokeTransformers.TemporalFrameDifferencing:
@@ -487,12 +489,12 @@ namespace MED.Imaging
                     image.Dispose();
 
                     var componentsR = motionDetectionWithFrameDifferencing.MotionComponents;
-                    Performance.Log($"Total Motions found: {componentsR.Length}");
+                    Performance?.Log($"Total Motions found: {componentsR.Length}");
 
                     idx = 0;
                     foreach (Rectangle comp in componentsR)
                     {
-                        Performance.Log($"Motion Box {idx}: {comp}");
+                        Performance?.Log($"Motion Box {idx}: {comp}");
                         idx++;
                     }
 
@@ -532,12 +534,12 @@ namespace MED.Imaging
                     image.Dispose();
 
                     componentsR = motionDetectionWithBackgroundSubtraction.MotionComponents;
-                    Performance.Log($"Total Motions found: {componentsR.Length}");
+                    Performance?.Log($"Total Motions found: {componentsR.Length}");
 
                     idx = 0;
                     foreach (Rectangle comp in componentsR)
                     {
-                        Performance.Log($"Motion Box {idx}: {comp}");
+                        Performance?.Log($"Motion Box {idx}: {comp}");
                         idx++;
                     }
                     break;
@@ -598,17 +600,17 @@ namespace MED.Imaging
                     image.Dispose();
 
                     componentsR = motionDetectionWithFixedBackgroundSubtraction.MotionComponents;
-                    Performance.Log($"Total Motions found: {componentsR.Length}");
+                    Performance?.Log($"Total Motions found: {componentsR.Length}");
 
                     idx = 0;
                     foreach (Rectangle comp in componentsR)
                     {
-                        Performance.Log($"Motion Box {idx}: {comp}");
+                        Performance?.Log($"Motion Box {idx}: {comp}");
                         idx++;
                     }
                     break;
                 default:
-                    Performance.Error($"Algorithme {Transformer} inconnu");
+                    Performance?.Error($"Algorithme {Transformer} inconnu");
                     break;
             }
 
@@ -641,13 +643,13 @@ namespace MED.Imaging
 
         [Browsable(true)]
         [Category("Video capture")]
-        public VideoCapture Capture
+        public VideoCapture? Capture
         {
             get
             {
                 if (ImageProvider == null || !(ImageProvider is IMatFrameProvider))
                     return null;
-                return (ImageProvider as IMatFrameProvider).Capture;
+                return ((IMatFrameProvider)ImageProvider).Capture;
             }
         }
 

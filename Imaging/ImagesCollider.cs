@@ -49,12 +49,12 @@ namespace MED.Imaging
                         )
                         continue;
 
-                    var clipRegion = (prov as IImageCollidable).ClipRegionTranslated;
+                    var clipRegion = ((IImageCollidable)prov).ClipRegionTranslated;
 
                     //if (clipRegion == null)
                     //    continue;
 
-                    if ((prov as IImageCollidable).Mass == 0F)
+                    if (((IImageCollidable)prov).Mass == 0F)
                         continue;
 
                     colliders.Add((IImageCollidable)prov);
@@ -352,11 +352,17 @@ namespace MED.Imaging
             collision_normal = Vector2.Normalize(collision_normal);
 
 
-            var overlapLocation = PointF.Empty;
+            var overlapLocation = Vector2.Zero;
             //Push the Ball Out of the Wall
             if (overlap > 0)
             {
                 item.Performance?.Step($"Penetration {overlap}");
+                var outter = collision_normal * radius_sum;
+                overlapLocation.X = closest.X + outter.X - location.X;
+                overlapLocation.Y = closest.Y + outter.Y - location.Y;
+                //overlap = overlapLocation.Length();
+                //location.X = closest.X + outter.X;
+                //location.Y = closest.Y + outter.Y;
                 location.X += (overlapLocation.X = collision_normal.X * overlap);
                 location.Y += (overlapLocation.Y = collision_normal.Y * overlap);
             }
@@ -390,6 +396,21 @@ namespace MED.Imaging
                     location.Y += remainLength * item.Direction.Y;
                 }
                 item.Location = location;
+
+                PointF nextBorderPoint;
+                itemBounds.X = location.X;
+                itemBounds.Y = location.Y;
+                itemBoundsCenter.X = itemBounds.X + itemBounds.Width / 2F;
+                itemBoundsCenter.Y = itemBounds.Y + itemBounds.Height / 2F;
+                var nextBorder = IntersectPath(item2, PointF.Empty, itemBounds, out nextBorderPoint);
+                if (!nextBorder.Equals(Vector2.Zero))
+                {
+                    Console.WriteLine("Still intersect");
+                    collision_normal = Vector2.Normalize(new Vector2(-nextBorder.Y, nextBorder.X));
+                    location.X += radius_sum * collision_normal.X;
+                    location.Y += radius_sum * collision_normal.Y;
+                    item.Location = location;
+                }
             }
 
             return true;
@@ -438,6 +459,40 @@ namespace MED.Imaging
             return new PointF(b.X, b.Y/*(b.Right + b.Left) / 2, (b.Bottom + b.Top) / 2*/); ;
         }
 
+        private bool RectangleIntersectLine(RectangleF intersectBounds, out PointF point1, out PointF point2)
+        {
+            Vector2 line = new(point1.X - point2.X, point1.Y - point2.Y);
+            var lineRect = new RectangleF(Math.Min(point1.X, point2.X) - 1F, Math.Min(point1.Y, point2.Y) - 1F, Math.Abs(point1.X - point2.X) + 2F, Math.Abs(point1.Y - point2.Y) + 2F);
+            if (intersectBounds.IntersectsWith(lineRect))
+            {
+                lineRect.Intersect(intersectBounds);
+                borderPoint.X += lineRect.X + lineRect.Width / 2;
+                borderPoint.Y += lineRect.Y + lineRect.Height / 2;
+
+                if (point1.X < lineRect.X)
+                    point1.X = lineRect.X;
+                else if (point1.X > lineRect.Right)
+                    point1.X = lineRect.Right;
+                if (point1.Y < lineRect.Y)
+                    point1.Y = lineRect.Y;
+                else if (point1.Y > lineRect.Bottom)
+                    point1.Y = lineRect.Bottom;
+
+                var toPoint = point2;
+                if (toPoint.X < lineRect.X)
+                    toPoint.X = lineRect.X;
+                else if (toPoint.X > lineRect.Right)
+                    toPoint.X = lineRect.Right;
+                if (toPoint.Y < lineRect.Y)
+                    toPoint.Y = lineRect.Y;
+                else if (point2.Y > lineRect.Bottom)
+                    toPoint.Y = lineRect.Bottom;
+                lines.Add([point1, toPoint]);
+                nAddedLines++;
+            }
+        }
+
+        }
         private Vector2 IntersectPath(IImageMover item, PointF offset, RectangleF intersectBounds, out PointF borderPoint)
         {
             Vector2 vector = Vector2.Zero;
@@ -480,12 +535,13 @@ namespace MED.Imaging
                 foreach (var point in grPath.PathPoints)
                 {
                     byte pointType = grPath.PathTypes[nPoint];
-                    //if (nPoint == 386)
+                    //if (nPoint == 189)
                     //    Console.WriteLine("CIIC DEBUG");
                     if (pointType == 0)
                         firstOfFigure = point;
                     else if (!previousPoint.Equals(undefinedPoint))
                     {
+                        Vector2 line = new(previousPoint.X - point.X, previousPoint.Y - point.Y);
                         var lineRect = new RectangleF(Math.Min(previousPoint.X, point.X) - 1F, Math.Min(previousPoint.Y, point.Y) - 1F, Math.Abs(previousPoint.X - point.X) + 2F, Math.Abs(previousPoint.Y - point.Y) + 2F);
                         if (intersectBounds.IntersectsWith(lineRect))
                         {
@@ -493,7 +549,25 @@ namespace MED.Imaging
                             borderPoint.X += lineRect.X + lineRect.Width / 2;
                             borderPoint.Y += lineRect.Y + lineRect.Height / 2;
 
-                            lines.Add([previousPoint, point]);
+                            if (previousPoint.X < lineRect.X)
+                                previousPoint.X = lineRect.X;
+                            else if (previousPoint.X > lineRect.Right)
+                                previousPoint.X = lineRect.Right;
+                            if (previousPoint.Y < lineRect.Y)
+                                previousPoint.Y = lineRect.Y;
+                            else if (previousPoint.Y > lineRect.Bottom)
+                                previousPoint.Y = lineRect.Bottom;
+
+                            var toPoint = point;
+                            if (toPoint.X < lineRect.X)
+                                toPoint.X = lineRect.X;
+                            else if (toPoint.X > lineRect.Right)
+                                toPoint.X = lineRect.Right;
+                            if (toPoint.Y < lineRect.Y)
+                                toPoint.Y = lineRect.Y;
+                            else if (point.Y > lineRect.Bottom)
+                                toPoint.Y = lineRect.Bottom;
+                            lines.Add([previousPoint, toPoint]);
                             nAddedLines++;
                         }
                     }
@@ -501,6 +575,7 @@ namespace MED.Imaging
                     {
                         if (!firstOfFigure.Equals(undefinedPoint))
                         {
+                            Vector2 line = new(point.X - firstOfFigure.X, point.Y - firstOfFigure.Y);
                             var lineRect = new RectangleF(Math.Min(point.X, firstOfFigure.X) - 1F, Math.Min(point.Y, firstOfFigure.Y) - 1F, Math.Abs(point.X - firstOfFigure.X) + 2F, Math.Abs(point.Y - firstOfFigure.Y) + 2F);
                             if (intersectBounds.IntersectsWith(lineRect))
                             {
@@ -508,7 +583,26 @@ namespace MED.Imaging
                                 borderPoint.X += lineRect.X + lineRect.Width / 2;
                                 borderPoint.Y += lineRect.Y + lineRect.Height / 2;
 
-                                lines.Add([point, firstOfFigure]);
+                                if (firstOfFigure.X < lineRect.X)
+                                    firstOfFigure.X = lineRect.X;
+                                else if (firstOfFigure.X > lineRect.Right)
+                                    firstOfFigure.X = lineRect.Right;
+                                if (firstOfFigure.Y < lineRect.Y)
+                                    firstOfFigure.Y = lineRect.Y;
+                                else if (firstOfFigure.Y > lineRect.Bottom)
+                                    firstOfFigure.Y = lineRect.Bottom;
+
+                                var toPoint = point;
+                                if (toPoint.X < lineRect.X)
+                                    toPoint.X = lineRect.X;
+                                else if (toPoint.X > lineRect.Right)
+                                    toPoint.X = lineRect.Right;
+                                if (toPoint.Y < lineRect.Y)
+                                    toPoint.Y = lineRect.Y;
+                                else if (point.Y > lineRect.Bottom)
+                                    toPoint.Y = lineRect.Bottom;
+
+                                lines.Add([toPoint, firstOfFigure]);
                                 nAddedLines++;
                             }
                             firstOfFigure = undefinedPoint;
@@ -521,7 +615,8 @@ namespace MED.Imaging
                 }
                 if (nAddedLines > 0)
                     foundRegions++;
-                //break;
+                //else //Totaly included
+
             }
             if (lines.Count == 0)
                 Console.WriteLine("LALALALACIIC DEBUG");
@@ -586,6 +681,12 @@ namespace MED.Imaging
             if (item2.ClipPath != null)
             {
                 borderVector = IntersectPath(item2, offset2, intersectBounds, out borderPoint);
+                if (!borderVector.Equals(Vector2.Zero))
+                {
+                    if (borderPoint.IsEmpty)
+                        borderPoint = intersectBoundsCenter;
+                    return borderVector;
+                }
             }
 
             // Inflate scan of the wall
@@ -1309,7 +1410,7 @@ namespace MED.Imaging
                     //    }
                     //    borderVector += dirVector;
                     //}
-                    Vector2 dirVector;
+                    //Vector2 dirVector;
                     //foreach (var (pos, bounds) in quarterIntersectBounds)
                     //{
                     //    //Vector2 dirVector;

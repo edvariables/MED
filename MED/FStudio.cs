@@ -85,7 +85,9 @@ namespace MED
 
             LoadFavorites(settingsSection);
 
-            this.WindowState = Enum.Parse<FormWindowState>(Core.Settings.GetValue("WindowState", settingsSection, this.WindowState).ToString());
+            v = Core.Settings.GetValue("WindowState", settingsSection, this.WindowState);
+            if (v != null)
+                this.WindowState = Enum.Parse<FormWindowState>(v.ToString() ?? "");
         }
 
         private void SaveSettings()
@@ -98,7 +100,8 @@ namespace MED
             }
             Core.Settings.SetValue("WindowState", settingsSection, this.WindowState);
 
-            Core.Settings.SetValue("FProperties.Width", settingsSection, FProperties.Current.Width);
+            if (FProperties.Current != null)
+                Core.Settings.SetValue("FProperties.Width", settingsSection, FProperties.Current.Width);
 
             if (ActiveProcess != null && !String.IsNullOrEmpty(ActiveProcess.ProcessSettings?.FileName))
                 Core.Settings.SetValue("ActiveProcess", settingsSection, ActiveProcess.ProcessSettings.FileName);
@@ -116,12 +119,13 @@ namespace MED
         {
             StringBuilder favorites = new();
             foreach (var item in toolStrip.Items)
-                if (item is ToolStripButton
-                    && ((ToolStripButton)item).Name.StartsWith("btnFavorite["))
+                if (item is ToolStripButton button
+                    && button.Name != null
+                    && button.Name.StartsWith("btnFavorite["))
                 {
                     if (favorites.Length > 0)
                         favorites.Append(';');
-                    favorites.Append(((ToolStripButton)item).Tag?.ToString());
+                    favorites.Append(button.Tag?.ToString());
                 }
             Core.Settings.SetValue("Favorites", settingsSection, favorites.ToString());
         }
@@ -174,16 +178,17 @@ namespace MED
             f.Width = (int)(Core.Settings.GetValue("FProperties.Width", SettingsSection, f.Width));
             f.Dock = DockStyle.Right;
 
-            FProperties.Current.Show();
+            FProperties.Current?.Show();
 
             if (FLogger.Current != null)
             {
                 FLogger.Current.Show();
                 FLogger.Current.SizeChanged += FormChild_SizeChanged;
             }
+            if(FProperties.Current!=null)
             FProperties.Current.SizeChanged += FormChild_SizeChanged;
 
-            FProperties.Current.ShowProperties((object[])[this.Project]);
+            FProperties.Current?.ShowProperties((object[])[this.Project]);
         }
 
         public void LoadLastProcess()
@@ -401,10 +406,10 @@ namespace MED
             var processForm = ActiveProcessForm;
             if (processForm == null)
                 return;
-            if (String.IsNullOrEmpty(ActiveProcessForm.ProcessSettings?.FileName))
+            if (String.IsNullOrEmpty(processForm.ProcessSettings?.FileName))
                 return;
 
-            CreateProcessFavorite(ActiveProcessForm.ProcessSettings.FileName, ActiveProcessForm.Name, processForm.ProcessIcon);
+            CreateProcessFavorite(processForm.ProcessSettings.FileName, processForm.Name, processForm.ProcessIcon);
         }
         private void CreateProcessFavorite(string fileName, string name, string processIcon)
         {
@@ -428,11 +433,11 @@ namespace MED
             ProcessForm? processForm = null;
             foreach (Form form in MdiChildren)
             {
-                if (form is ProcessForm
-                && ((ProcessForm)form).ProcessSettings != null
-                && ((ProcessForm)form).ProcessSettings.FileName == fileName)
+                if (form is ProcessForm form1
+                && form1.ProcessSettings != null
+                && form1.ProcessSettings.FileName == fileName)
                 {
-                    processForm = (ProcessForm)form;
+                    processForm = form1;
                     break;
                 }
             }
@@ -455,7 +460,7 @@ namespace MED
             //CreateInstance
             try
             {
-                IProcess proc = (IProcess)Activator.CreateInstance(type);
+                IProcess? proc = (IProcess?)Activator.CreateInstance(type);
                 if (proc is ProcessForm)
                 {
 
@@ -485,12 +490,11 @@ namespace MED
         }
 
 
-        public ProcessForm ActiveProcessForm
+        public ProcessForm? ActiveProcessForm
         {
             get
             {
-                var activeProcess = ActiveProcess;
-                if (activeProcess is ProcessForm)
+                if (ActiveProcess is ProcessForm activeProcess)
                     return (ProcessForm)activeProcess;
                 return null;
             }
@@ -502,14 +506,16 @@ namespace MED
             {
                 if (this.ActiveMdiChild is IProcess)
                 {
-                    if (this.ActiveMdiChild is ProcessForm && (this.ActiveMdiChild as ProcessForm).IsDisposed)
+                    if (this.ActiveMdiChild is ProcessForm activeMdiChild 
+                        && activeMdiChild.IsDisposed)
                         return _active_Process = null;
                     return _active_Process = (this.ActiveMdiChild as IProcess);
                 }
 
-                if (_active_Process is ProcessForm && (_active_Process as ProcessForm).IsDisposed)
+                if (_active_Process is ProcessForm activeProcess 
+                    && activeProcess.IsDisposed)
                 {
-                    var type = _active_Process.GetType();
+                    var type = activeProcess.GetType();
                     return _active_Process = GetProcessorForm(type);
                 }
                 return _active_Process;
@@ -664,11 +670,11 @@ namespace MED
             var p = ActiveProcess;
             if (p is not null and IUndo)
             {
-                FProperties.Current.ProcessesControl.SuspendLayout();
+                FProperties.Current?.ProcessesControl.SuspendLayout();
                 var dic = ((IUndo)p).Undo(2);
                 if (dic == null)
                 {
-                    FProperties.Current.ProcessesControl.ResumeLayout();
+                    FProperties.Current?.ProcessesControl.ResumeLayout();
                     MessageBox.Show("Rien à rejouer");
                     return;
                 }
@@ -677,7 +683,7 @@ namespace MED
 
             ProcessPause();
 
-            FProperties.Current.ProcessesControl.ResumeLayout();
+            FProperties.Current?.ProcessesControl.ResumeLayout();
 
             //btnProcessStepPrevious.Checked = currentChecked;
         }
