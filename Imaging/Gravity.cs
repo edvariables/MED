@@ -5,7 +5,7 @@ using System.Security.Cryptography.Xml;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
-using static MED.Imaging.EmguMoving;
+using System.Numerics;
 
 namespace MED.Imaging
 {
@@ -31,16 +31,23 @@ namespace MED.Imaging
             {
                 foreach (var item in ((Images)this.Consumer).Items)
                 {
-                    if (item == this || item is not IImageMover)
+                    if (item == this || item is not Mover mover)
                         continue;
-                    if (((IImageCollidable)item).SpeedMax == 0F || ((IImageCollidable)item).Location.IsEmpty)
+                    if ((mover).SpeedMax == 0F || (mover).Location.IsEmpty)
                         continue;
                     
-                    var location = ((IImageCollidable)item).Location;
+                    var direction = (mover).DirectionVector;
+                    Vector2 gravityVector = new();
                     if (Horizontal)
-                        location.X += GravityConstant * ((IImageCollidable)item).Mass;
+                        gravityVector.X = 1F;
                     else
-                        location.Y += GravityConstant * ((IImageCollidable)item).Mass;
+                        gravityVector.Y = 1F;
+                    gravityVector *= GravityConstant * mover.Mass;
+                    direction += gravityVector;
+                    mover.Speed *= direction.Length();
+
+                    direction = Vector2.Normalize(direction);
+                    mover.Direction = new(direction.X, direction.Y);
                 }
             }
         }
