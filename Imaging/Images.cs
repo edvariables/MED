@@ -420,7 +420,7 @@ namespace MED.Imaging
             foreach (var item in Items)
                 item.UndoModeSaveProperties();
             var dic = base.UndoModeSaveProperties();
-            dic.Add("_MoveItemsElapsedTime", _MoveItemsElapsedTime);
+            dic.Add("_MoveItemsElapsedTime", _MoveItemsElapsedTime);//TODO is previous
             return dic;
         }
         public override Dictionary<string, object>? Undo(int length = 1)

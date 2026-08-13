@@ -11,6 +11,7 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices.Marshalling;
 using System.Runtime.Intrinsics;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Transactions;
@@ -459,40 +460,35 @@ namespace MED.Imaging
             return new PointF(b.X, b.Y/*(b.Right + b.Left) / 2, (b.Bottom + b.Top) / 2*/); ;
         }
 
-        private bool RectangleIntersectLine(RectangleF intersectBounds, out PointF point1, out PointF point2)
+        private PointF[]? RectangleIntersectLine(RectangleF intersectBounds, PointF point1, PointF point2)
         {
             Vector2 line = new(point1.X - point2.X, point1.Y - point2.Y);
             var lineRect = new RectangleF(Math.Min(point1.X, point2.X) - 1F, Math.Min(point1.Y, point2.Y) - 1F, Math.Abs(point1.X - point2.X) + 2F, Math.Abs(point1.Y - point2.Y) + 2F);
-            if (intersectBounds.IntersectsWith(lineRect))
-            {
-                lineRect.Intersect(intersectBounds);
-                borderPoint.X += lineRect.X + lineRect.Width / 2;
-                borderPoint.Y += lineRect.Y + lineRect.Height / 2;
+            if (!intersectBounds.IntersectsWith(lineRect))
+                return null;
 
-                if (point1.X < lineRect.X)
-                    point1.X = lineRect.X;
-                else if (point1.X > lineRect.Right)
-                    point1.X = lineRect.Right;
-                if (point1.Y < lineRect.Y)
-                    point1.Y = lineRect.Y;
-                else if (point1.Y > lineRect.Bottom)
-                    point1.Y = lineRect.Bottom;
+            lineRect.Intersect(intersectBounds);
 
-                var toPoint = point2;
-                if (toPoint.X < lineRect.X)
-                    toPoint.X = lineRect.X;
-                else if (toPoint.X > lineRect.Right)
-                    toPoint.X = lineRect.Right;
-                if (toPoint.Y < lineRect.Y)
-                    toPoint.Y = lineRect.Y;
-                else if (point2.Y > lineRect.Bottom)
-                    toPoint.Y = lineRect.Bottom;
-                lines.Add([point1, toPoint]);
-                nAddedLines++;
-            }
+            if (point1.X < lineRect.X)
+                point1.X = lineRect.X;
+            else if (point1.X > lineRect.Right)
+                point1.X = lineRect.Right;
+            if (point1.Y < lineRect.Y)
+                point1.Y = lineRect.Y;
+            else if (point1.Y > lineRect.Bottom)
+                point1.Y = lineRect.Bottom;
+
+            if (point2.X < lineRect.X)
+                point2.X = lineRect.X;
+            else if (point2.X > lineRect.Right)
+                point2.X = lineRect.Right;
+            if (point2.Y < lineRect.Y)
+                point2.Y = lineRect.Y;
+            else if (point2.Y > lineRect.Bottom)
+                point2.Y = lineRect.Bottom;
+            return [point1, point2];
         }
 
-        }
         private Vector2 IntersectPath(IImageMover item, PointF offset, RectangleF intersectBounds, out PointF borderPoint)
         {
             Vector2 vector = Vector2.Zero;
@@ -541,33 +537,13 @@ namespace MED.Imaging
                         firstOfFigure = point;
                     else if (!previousPoint.Equals(undefinedPoint))
                     {
-                        Vector2 line = new(previousPoint.X - point.X, previousPoint.Y - point.Y);
-                        var lineRect = new RectangleF(Math.Min(previousPoint.X, point.X) - 1F, Math.Min(previousPoint.Y, point.Y) - 1F, Math.Abs(previousPoint.X - point.X) + 2F, Math.Abs(previousPoint.Y - point.Y) + 2F);
-                        if (intersectBounds.IntersectsWith(lineRect))
+                        var points = RectangleIntersectLine(intersectBounds, previousPoint, point);
+                        if(points!= null)
                         {
-                            lineRect.Intersect(intersectBounds);
-                            borderPoint.X += lineRect.X + lineRect.Width / 2;
-                            borderPoint.Y += lineRect.Y + lineRect.Height / 2;
+                            borderPoint.X += (points[0].X + points[1].X)/ 2F;
+                            borderPoint.Y += (points[0].Y + points[1].Y) / 2F;
 
-                            if (previousPoint.X < lineRect.X)
-                                previousPoint.X = lineRect.X;
-                            else if (previousPoint.X > lineRect.Right)
-                                previousPoint.X = lineRect.Right;
-                            if (previousPoint.Y < lineRect.Y)
-                                previousPoint.Y = lineRect.Y;
-                            else if (previousPoint.Y > lineRect.Bottom)
-                                previousPoint.Y = lineRect.Bottom;
-
-                            var toPoint = point;
-                            if (toPoint.X < lineRect.X)
-                                toPoint.X = lineRect.X;
-                            else if (toPoint.X > lineRect.Right)
-                                toPoint.X = lineRect.Right;
-                            if (toPoint.Y < lineRect.Y)
-                                toPoint.Y = lineRect.Y;
-                            else if (point.Y > lineRect.Bottom)
-                                toPoint.Y = lineRect.Bottom;
-                            lines.Add([previousPoint, toPoint]);
+                            lines.Add(points);
                             nAddedLines++;
                         }
                     }
@@ -575,34 +551,13 @@ namespace MED.Imaging
                     {
                         if (!firstOfFigure.Equals(undefinedPoint))
                         {
-                            Vector2 line = new(point.X - firstOfFigure.X, point.Y - firstOfFigure.Y);
-                            var lineRect = new RectangleF(Math.Min(point.X, firstOfFigure.X) - 1F, Math.Min(point.Y, firstOfFigure.Y) - 1F, Math.Abs(point.X - firstOfFigure.X) + 2F, Math.Abs(point.Y - firstOfFigure.Y) + 2F);
-                            if (intersectBounds.IntersectsWith(lineRect))
+                            var points = RectangleIntersectLine(intersectBounds, point, firstOfFigure);
+                            if (points != null)
                             {
-                                lineRect.Intersect(intersectBounds);
-                                borderPoint.X += lineRect.X + lineRect.Width / 2;
-                                borderPoint.Y += lineRect.Y + lineRect.Height / 2;
+                                borderPoint.X += (points[0].X + points[1].X) / 2F;
+                                borderPoint.Y += (points[0].Y + points[1].Y) / 2F;
 
-                                if (firstOfFigure.X < lineRect.X)
-                                    firstOfFigure.X = lineRect.X;
-                                else if (firstOfFigure.X > lineRect.Right)
-                                    firstOfFigure.X = lineRect.Right;
-                                if (firstOfFigure.Y < lineRect.Y)
-                                    firstOfFigure.Y = lineRect.Y;
-                                else if (firstOfFigure.Y > lineRect.Bottom)
-                                    firstOfFigure.Y = lineRect.Bottom;
-
-                                var toPoint = point;
-                                if (toPoint.X < lineRect.X)
-                                    toPoint.X = lineRect.X;
-                                else if (toPoint.X > lineRect.Right)
-                                    toPoint.X = lineRect.Right;
-                                if (toPoint.Y < lineRect.Y)
-                                    toPoint.Y = lineRect.Y;
-                                else if (point.Y > lineRect.Bottom)
-                                    toPoint.Y = lineRect.Bottom;
-
-                                lines.Add([toPoint, firstOfFigure]);
+                                lines.Add(points);
                                 nAddedLines++;
                             }
                             firstOfFigure = undefinedPoint;

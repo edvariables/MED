@@ -33,6 +33,7 @@ namespace MED
             ProcessClasses.Add("EmguMoving", typeof(MED.Imaging.EmguMoving).FullName ?? "");
             ProcessClasses.Add("VideoCapture", typeof(MED.Imaging.EDVideoCapture).FullName ?? "");
             ProcessClasses.Add("Background", typeof(MED.Imaging.Background).FullName ?? "");
+            ProcessClasses.Add("Gravity", typeof(MED.Imaging.Gravity).FullName ?? "");
             ProcessClasses.Add("ImageSourced", typeof(MED.Imaging.ImageSourced).FullName ?? "");
 
             contextMenuAddProcess.Items.Clear();
