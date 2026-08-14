@@ -9,7 +9,7 @@ using System.Text.Json.Nodes;
 
 namespace MED.Imaging
 {
-    public class Images : ImageProcess, IProcesses
+    public class Images : ImageCollider, IProcesses
     {
         public Images(string name = "Images", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
             : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
@@ -26,7 +26,7 @@ namespace MED.Imaging
 
             //ImageConsumer = imageConsumer;
 
-            Collider = new(this);
+            ImagesCollider = new(this);
         }
 
         [Category("Processes")]
@@ -102,7 +102,7 @@ namespace MED.Imaging
         {
             ImageProcesses.Start();
 
-            Collider.Colliders = null;
+            ImagesCollider.Colliders = null;
         }
 
         public override void Stop() => ImageProcesses.Stop();
@@ -124,7 +124,7 @@ namespace MED.Imaging
         [Category("Processes")]
         public virtual List<IProcess> Items => ImageProcesses.Items;
 
-        protected ImagesCollider Collider { get; set; }
+        protected ImagesCollider ImagesCollider { get; set; }
 
         public override Bitmap? Image
         {
@@ -142,8 +142,10 @@ namespace MED.Imaging
 
         [Browsable(false)]
         public virtual Bitmap? DebugImage { get; set; }
+
         [Category("Debug")]
         public virtual bool DebugImageEnabled { get; set; }
+
         [Category("Debug")]
         public virtual bool DrawEdges { get; set; }
 
@@ -389,22 +391,37 @@ namespace MED.Imaging
             }
         }
 
-        public PointF CollideItem(IImageCollider item, PointF offset)
+
+        #region Collider
+        [Browsable(false)]
+        public virtual Bitmap? ModelImage
         {
-            Bitmap? modelImage = DebugImage;
-            if (modelImage == null)
-                modelImage = PreviousImage;
+            get
+            {
+                Bitmap? modelImage = DebugImage;
+                if (modelImage == null)
+                    modelImage = PreviousImage;
+                return modelImage;
+            }
+        }
+        public virtual PointF CollideItemWithOthers(IImageCollider item, PointF offset)
+        {
+            Bitmap? modelImage = ModelImage;
             if (modelImage != null)
             {
                 Graphics gr = Graphics.FromImage(modelImage);
 
                 if (item is IImageMover mover
-                    && Collider.CollideItemWithImageBorders(modelImage, gr, mover, offset))
+                    && ImagesCollider.CollideItemWithImageBorders(modelImage, gr, mover, offset))
                     return item.Location;
 
-                if (Collider.Collide(modelImage, gr, item, offset).Count > 0)
+                if (ImagesCollider.Collide(modelImage, gr, item, offset).Count > 0)
                     return item.Location;
-}
+            }
+
+            if (offset.IsEmpty)
+                return item.Location;
+
             var location = item.Location;
 
             location.X += offset.X;
@@ -412,6 +429,24 @@ namespace MED.Imaging
 
             return location;
         }
+
+        public override bool CollideItem(IImageCollider item2, PointF offset2)
+        {
+            if (item2 is IImageMover mover
+                && mover.Speed != 0F)
+            {
+                Bitmap? modelImage = ModelImage;
+                if (modelImage != null)
+                {
+                    Graphics gr = Graphics.FromImage(modelImage);
+                    return ImagesCollider.CollideItemWithImageBorders(modelImage, gr, mover, offset2);
+                }
+            }
+            return false;
+        }
+
+        #endregion
+
         #region IUndo
         public override void UndoClear()
         {

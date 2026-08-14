@@ -17,11 +17,7 @@ namespace MED.Imaging
 
         [Browsable(false)]
         System.Drawing.Region? ClipEdgesRegion { get; }
-
-        System.Drawing.Region? ClipRegionTranslated { get; }
-        RectangleF GetClipRegionTranslatedBounds(Graphics gr, PointF offset);
-
-        System.Drawing.Region? ClipEdgesRegionTranslated { get; }
+        RectangleF GetClipRegionBounds(Graphics gr);
 
         [Browsable(true)]
         float SurfaceFriction { get; }

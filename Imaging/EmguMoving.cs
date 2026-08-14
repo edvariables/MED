@@ -14,7 +14,7 @@ using static libMotionDetection.MotionDetectionWithMotionHistory;
 
 namespace MED.Imaging
 {
-    public class EmguMoving : Mover, IMatFrameConsumer, IMatFrameProvider
+    public class EmguMoving : ImageMover, IMatFrameConsumer, IMatFrameProvider
     {
         //isAsynchrone = true
         public EmguMoving(string name = "EmguMoving", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)

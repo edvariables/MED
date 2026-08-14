@@ -35,47 +35,6 @@ namespace MED.Imaging
         [Category("Mover")]
         public virtual float Mass { get; set; } = 1F;
 
-        [Browsable(true)]
-        [Category("Image")]
-        public override System.Drawing.PointF Location
-        {
-            get
-            {
-                return base.Location;
-            }
-            set
-            {
-                if (float.IsNaN(value.X) || float.IsInfinity(value.X))
-                    return;
-                _ClipRegionTranslated = null;
-                //if (base.Location != value)
-                //    Performance?.Debug($"Location _setter {value}");
-                base.Location = value;
-            }
-        }
-
-        [Browsable(false)]
-        public override float RotationAngle
-        {
-            get => base.RotationAngle;
-            set
-            {
-                _ClipRegionTranslated = null;
-                base.RotationAngle = value;
-            }
-        }
-
-        public override Region? ClipRegion
-        {
-            get => base.ClipRegion;
-            set
-            {
-                _ClipRegionTranslated = null;
-                _ClipEdgesRegionTranslated = null;
-                base.ClipRegion = value;
-            }
-        }
-
         Vector2 _LocationVector;
         [Browsable(false)]
         public virtual Vector2 LocationVector
@@ -97,71 +56,28 @@ namespace MED.Imaging
         public virtual float SurfaceFriction { get; set; } = 1F;
 
 
-        Region? _ClipRegionTranslated;
-        /**
-         * ClipRegionTranslated
-         * Returns ClipRegion.Clone().Translate(Location.X, Location.Y);
-        */
-        [Browsable(false)]
-        public virtual Region? ClipRegionTranslated
-        {
-            get
-            {
-                if (_ClipRegionTranslated != null || Image == null || ClipRegion == null)
-                    return _ClipRegionTranslated;
-                _ClipRegionTranslatedBounds = RectangleF.Empty;
-                return _ClipRegionTranslated = TranslateRegion(ClipRegion, Location, RotationAngle, Image.Size);
-            }
-        }
-
-        private RectangleF _ClipRegionTranslatedBounds = RectangleF.Empty;
-        public virtual RectangleF GetClipRegionTranslatedBounds(Graphics gr, PointF offset)
-        {
-            if (ClipRegionTranslated == null)
-                return RectangleF.Empty;
-            if (_ClipRegionTranslatedBounds.IsEmpty)
-                _ClipRegionTranslatedBounds = ClipRegionTranslated.GetBounds(gr);
-            if(offset.IsEmpty)
-                return _ClipRegionTranslatedBounds;
-            var rect = _ClipRegionTranslatedBounds;
-            rect.Offset(offset);
-            return rect;
-        }
-
-        Region? _ClipEdgesRegionTranslated;
-        /**
-         * ClipEdgesRegionTranslated
-         * Returns ClipEdgesRegion.Clone().Translate(Location.X, Location.Y);
-        */
-        [Browsable(false)]
-        public virtual Region? ClipEdgesRegionTranslated
-        {
-            get
-            {
-                if (_ClipEdgesRegionTranslated != null || Image == null || ClipEdgesRegion == null)
-                    return _ClipEdgesRegionTranslated;
-                return _ClipEdgesRegionTranslated = TranslateRegion(ClipEdgesRegion, Location, RotationAngle, Image.Size);
-            }
-        }
-
-        public static Region? TranslateRegion(Region region, PointF location, float Rotation, Size imageSize)
-        {
-            if (location.IsEmpty && Rotation == 0F)
-                return region;
-            region = region.Clone();
-            Matrix transformMatrix = new Matrix();
-            transformMatrix.Translate(location.X, location.Y);
-            if (Rotation != 0F)
-            {
-                transformMatrix.RotateAt(Rotation, new PointF(imageSize.Width / 2F, imageSize.Height / 2F));
-            }
-            region.Transform(transformMatrix);
-
-            return region;
-        }
         #endregion
 
         #region Collide
+        public override Region? ClipRegion
+        {
+            get => base.ClipRegion;
+            set
+            {
+                _ClipRegionBounds = RectangleF.Empty;
+                base.ClipRegion = value;
+            }
+        }
+
+        private RectangleF _ClipRegionBounds = RectangleF.Empty;
+        public virtual RectangleF GetClipRegionBounds(Graphics gr)
+        {
+            if (ClipRegion == null)
+                return RectangleF.Empty;
+            if (_ClipRegionBounds.IsEmpty)
+                _ClipRegionBounds = ClipRegion.GetBounds(gr);
+            return _ClipRegionBounds;
+        }
         /**
          * Collide
          * 
@@ -170,7 +86,7 @@ namespace MED.Imaging
         public virtual PointF Collide(PointF offset)
         {
             if (this.Consumer is Images)
-                return ((Images)this.Consumer).CollideItem(this, offset);
+                return ((Images)this.Consumer).CollideItemWithOthers(this, offset);
 
             if (offset.IsEmpty)
                 return Location;

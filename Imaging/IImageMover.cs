@@ -14,6 +14,12 @@ namespace MED.Imaging
      * */
     public interface IImageMover: IImageCollider
     {
+
+        System.Drawing.Region? ClipRegionTranslated { get; }
+        RectangleF GetClipRegionTranslatedBounds(Graphics gr, PointF offset);
+
+        System.Drawing.Region? ClipEdgesRegionTranslated { get; }
+
         void Move(long elapsedTime);
 
         float SpeedMax { get; }

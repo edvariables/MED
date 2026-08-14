@@ -50,7 +50,12 @@ namespace MED.Imaging
                         )
                         continue;
 
-                    var clipRegion = collider.ClipRegionTranslated;
+                    Region? clipRegion;
+
+                    if (collider is IImageMover mover)
+                        clipRegion = mover.ClipRegionTranslated;
+                    else
+                        clipRegion = collider.ClipRegion;
 
                     //if (clipRegion == null)
                     //    continue;
@@ -135,9 +140,9 @@ namespace MED.Imaging
                     location.X += overlap.X;
                     location.Y += overlap.Y;
                 }
-                (item as IImageMover).Location = location;
+                item.Location = location;
 
-                (item as IImageMover).Direction = direction;
+                item.Direction = direction;
             }
 
             return changed;
@@ -147,39 +152,55 @@ namespace MED.Imaging
          * 
          * <param name="image">Not current drawing image. May be previous one.</param>
          * */
-        public Dictionary<IImageMover, Region> Collide(Bitmap image,Graphics gr, IImageCollider item1, PointF offset)
+        public Dictionary<IImageMover, Region> Collide(Bitmap image, Graphics gr, IImageCollider item1, PointF offset)
         {
             Dictionary<IImageMover, Region> someChanges = new();
 
             var colliders = Colliders;// ManageBorders(image, gr);
             if (colliders == null || colliders.Count < 2) return someChanges;
 
-            var region1 = item1.ClipRegionTranslated;
+            IImageMover? mover1 = null;
+            Region? region1;
+            if (item1 is IImageMover)
+                region1 = (mover1 = (IImageMover)item1).ClipRegionTranslated;
+            else
+                region1 = item1.ClipRegion;
+
             if (region1 == null)
                 return someChanges;
             if (!offset.IsEmpty)
                 (region1 = region1.Clone()).Translate(offset.X, offset.Y);
 
-            var bounds1 = item1.GetClipRegionTranslatedBounds(gr, offset);
-
-            IImageMover? mover1 = null;
-            if (item1 is IImageMover)
-                mover1 = (IImageMover)item1;
+            RectangleF bounds1;
+            if (mover1 != null)
+                bounds1 = mover1.GetClipRegionTranslatedBounds(gr, offset);
+            else
+                bounds1 = item1.GetClipRegionBounds(gr);
 
             foreach (var item2 in colliders)
             {
                 if (item2 == item1)
                     continue;
 
-                var region2 = item2.ClipRegionTranslated;
+                IImageMover? mover2 = null;
+                Region? region2;
+                if (item2 is IImageMover)
+                    region2 = (mover2 = (IImageMover)item2).ClipRegionTranslated;
+                else
+                    region2 = item2.ClipRegion;
                 if (region2 == null)
                 {
                     item2.CollideItem(item1, offset);
                     continue;
                 }
-                var bounds2 = item2.GetClipRegionTranslatedBounds(gr, offset);
+                RectangleF bounds2;
+                if (mover2 != null)
+                    bounds2 = mover2.GetClipRegionTranslatedBounds(gr, offset);
+                else
+                    bounds2 = item2.GetClipRegionBounds(gr);
                 if (bounds2.IsEmpty)
                     continue;
+
                 var intersect = region1.Clone();
                 intersect.Intersect(region2);
 
@@ -195,7 +216,7 @@ namespace MED.Imaging
                         if (someChanges.ContainsKey(mover1)) someChanges[mover1] = region1;
                         else someChanges.Add(mover1, region1);
 
-                    else if (item2 is IImageMover mover2
+                    else if (mover2 != null
                         && CollideItemPair(gr, intersectBounds, intersectBoundsCenter, intersect, mover2, PointF.Empty, region2, item1, offset))
                         if (someChanges.ContainsKey(mover2)) someChanges[mover2] = region2;
                         else someChanges.Add(mover2, region2);
@@ -424,15 +445,18 @@ namespace MED.Imaging
 
             //var item2partialRegion = item2.ClipRegionTranslated?.Clone();
             var intersectPartialRegion = intersectRegion.Clone();
-            if (item2.ClipEdgesRegionTranslated != null)
+
+            Region? region2 = null;
+            if (item2 is IImageMover mover2)
+                region2 = mover2.ClipEdgesRegionTranslated;
+            else
+                region2 = item2.ClipEdgesRegion;
+            if (region2 != null)
             {
-                var item2partialRegion = item2.ClipRegionTranslated?.Clone();
-                if (item2partialRegion != null)
-                {
-                    if (!offset2.IsEmpty)
-                        item2partialRegion.Translate(offset2.X, offset2.Y);
-                    intersectPartialRegion.Intersect(item2partialRegion);
-                }
+                var item2partialRegion = region2.Clone();
+                if (!offset2.IsEmpty)
+                    item2partialRegion.Translate(offset2.X, offset2.Y);
+                intersectPartialRegion.Intersect(item2partialRegion);
             }
 
             //int duration = 40;
@@ -636,11 +660,14 @@ namespace MED.Imaging
             }
 
             // Inflate scan of the wall
-            var item2partialRegion = item2.ClipRegionTranslated?.Clone();
+            Region? item2partialRegion = null;
+            if (item2 is IImageMover mover2)
+                item2partialRegion = mover2.ClipEdgesRegionTranslated;
+            else
+                item2partialRegion = item2.ClipEdgesRegion;
             if (item2partialRegion == null)
-            {
                 return Vector2.Zero;
-            }
+            item2partialRegion = item2partialRegion.Clone();
             if (!offset2.IsEmpty)
                 item2partialRegion.Translate(offset2.X, offset2.Y);
 

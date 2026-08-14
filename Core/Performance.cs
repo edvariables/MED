@@ -350,7 +350,7 @@ namespace MED
             return Step("[ERROR] " + step
                 + (ex == null ? ""
                     : (" " + (ex.InnerException == null ? ex.Message : ex.InnerException.Message)
-                        + "\r\t\t" + ex.StackTrace?.ReplaceLineEndings("\n\t\t"))
+                        + "\r\t\t" + (ex.InnerException == null ? ex.StackTrace : ex.InnerException.StackTrace)?.ReplaceLineEndings("\n\t\t"))
                 )
             );
         }

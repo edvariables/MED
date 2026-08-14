@@ -31,7 +31,7 @@ namespace MED.Imaging
         {
             if (ProcessState != ThreadState.Running || GravityConstant == 0F)
                 return false;
-            if (item2 == this || item2 is not Mover mover)
+            if (item2 == this || item2 is not ImageMover mover)
                 return false;
             if (mover.SpeedMax == 0F || mover.Location.IsEmpty)
                 return false;
