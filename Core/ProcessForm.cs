@@ -198,8 +198,8 @@ namespace MED
         public bool IsRunning => Project.IsRunning;
         public bool IsPaused => Project.IsPaused;
 
-
-        public IProcess.ProcessStateChangedDelegate? OnProcessStateChanged;
+        [Browsable(false)]
+        public IProcess.ProcessStateChangedDelegate? OnProcessStateChanged { get; set; }
 
         public System.Threading.ThreadState ProcessState { get => Project.ProcessState; set => Project.ProcessState = value; }
 

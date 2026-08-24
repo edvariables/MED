@@ -15,6 +15,8 @@ namespace MED
      * */
     public interface IImageProvider : IProvider
     {
+        [DefaultValue(true)]
+        bool Visible { get; }
 
         [Browsable(false)]
         Size ImageSizeMax { get; }
@@ -33,7 +35,8 @@ namespace MED
         Dictionary<GraphicsPath, RectangleF>? ClipPathsBounds { get; }
 
         System.Drawing.PointF Location { get; set; }
-        
+
+        [DefaultValue(0F)]
         float RotationAngle { get; set; }
 
 

@@ -17,6 +17,7 @@ namespace MED
     public interface IProcess : IDisposable, IUndo
     {
         string Name { get; set; }
+
         bool Enabled { get; set; }
 
         string ProcessIcon { get; }
@@ -50,6 +51,8 @@ namespace MED
         bool IsPaused { get; }
 
         delegate void ProcessStateChangedDelegate(IProcess sender, System.Threading.ThreadState state);
+        
+        IProcess.ProcessStateChangedDelegate? OnProcessStateChanged { get; set; }
 
         System.Threading.ThreadState ProcessState { get; } // Constructor must initiate :> ProcessState = ThreadState.Unstarted;
 

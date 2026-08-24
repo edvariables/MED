@@ -134,6 +134,10 @@ namespace MED.Imaging
          */
         #region Image
 
+        [Category("Image")]
+        [DefaultValue(true)]
+        public virtual bool Visible { get; set; } = true;
+
         [Browsable(false)]
         [Category("Image")]
         public virtual Size ImageSizeMax { get; set; }
@@ -175,18 +179,20 @@ namespace MED.Imaging
         [Browsable(true)]
         [ReadOnly(true)]
         [Category("Process")]
+        [DefaultValue(true)]
         /**
          * ResetOnImageChanged
-         * <summary>in ImageChanged(){ ... if (ResetOnImageChanged)  Image = null;</summary>
+         * <summary>in ImageChanged(){ ... if (ResetOnImageChanged) Image = null;</summary>
          * */
         public bool ResetOnImageChanged { get; protected set; }
 
         [Browsable(true)]
         [ReadOnly(true)]
         [Category("Process")]
+        [DefaultValue(true)]
         /**
          * ImageIsProvided
-         * <summary>ImageIsProvided means the image is provided by a IImageProvider process.
+         * <summary>ImageIsProvided means the image is provided by an IImageProvider process.
          * If false, image is sourced, from a file for example.</summary>
          * */
         public bool ImageIsProvided { get; protected set; }
@@ -272,7 +278,7 @@ namespace MED.Imaging
             {
                 if (value == this)
                     return;
-                if (value!=null && !ImageProviders.Contains(value))
+                if (value != null && !ImageProviders.Contains(value))
                     ImageProviders.Add(value);
             }
         }

@@ -29,7 +29,6 @@ namespace MED
 
             Performance = performance == null ? MED.Performance.Empty() : performance;
 
-            Enabled = true;
         }
 
 
@@ -279,8 +278,11 @@ namespace MED
 
         #region Properties & Settings
         [Category("Process")]
-        public virtual bool Enabled { get; set; }
+        [DefaultValue(true)]
+        public virtual bool Enabled { get; set; } = true;
+
         [Category("Process")]
+        [DefaultValue(false)]
         public virtual bool IsAsynchrone { get; set; }
 
         [Category("Process")]
@@ -291,7 +293,9 @@ namespace MED
 
         [Category("Process")]
         public virtual string ProcessIcon { get; set; }
+
         [Category("Process")]
+        [DefaultValue("Process")]
         public virtual string ProcessIconDefault { get; protected set; } = "Process";
 
         [Browsable(false)]
@@ -379,19 +383,20 @@ namespace MED
         #endregion
 
 
-        private bool _IsRunning;
         [Category("Process")]
+        [DefaultValue(false)]
         public virtual bool IsRunning
         {
             get
             {
                 if (this.IsDisposed || this.Disposing)
-                    return _IsRunning = false;
+                    return false;
 
-                return _IsRunning = (ProcessState == ThreadState.Running || ProcessState == ThreadState.Suspended);
+                return ProcessState == ThreadState.Running || ProcessState == ThreadState.Suspended;
             }
         }
         [Category("Process")]
+        [DefaultValue(false)]
         public virtual bool IsPaused
         {
             get
@@ -405,7 +410,7 @@ namespace MED
 
         #region Process
 
-        public IProcess.ProcessStateChangedDelegate? OnProcessStateChanged;
+        public IProcess.ProcessStateChangedDelegate? OnProcessStateChanged { get; set; }
 
         public virtual void Stop()
         {

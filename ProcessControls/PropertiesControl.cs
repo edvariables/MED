@@ -35,6 +35,7 @@ namespace MED
             ProcessClasses.Add("Background", typeof(MED.Imaging.Background).FullName ?? "");
             ProcessClasses.Add("Gravity", typeof(MED.Imaging.Gravity).FullName ?? "");
             ProcessClasses.Add("ImageSourced", typeof(MED.Imaging.ImageSourced).FullName ?? "");
+            //ProcessClasses.Add("Ball", (typeof(MED.Imaging.ImageMover).FullName ?? "") + "(ImageFile=../Movers/Ball.*.png;)");
 
             contextMenuAddProcess.Items.Clear();
             foreach (var proc in ProcessClasses)

@@ -154,7 +154,7 @@ namespace MED
 
         public TreeNode? AddItem(object? item, TreeNodeCollection nodes, bool addChildren = true)
         {
-            if(item==null)
+            if (item == null)
                 return null;
             try
             {
@@ -194,7 +194,7 @@ namespace MED
             if (ObjectsNodes.ContainsKey(item.GetHashCode()))
             {
                 TreeNode n = (TreeNode)ObjectsNodes[item.GetHashCode()];
-                if (n==null || n.Handle == 0)
+                if (n == null || n.Handle == 0)
                     NodesClean();
                 else if (isRootNodes)
                 {
@@ -215,15 +215,18 @@ namespace MED
 
             string? name;
             string image = "";
-            if (item is IProcess)
+            if (item is IProcess iprocess)
             {
-                name = ((IProcess)item).Name;
-                image = ((IProcess)item).ProcessIcon;
+                name = iprocess.Name;
+                image = iprocess.ProcessIcon;
+
+                iprocess.OnProcessStateChanged -= ItemProcess_StateChanged;
+                iprocess.OnProcessStateChanged += ItemProcess_StateChanged;
             }
-            else if (item is Performance)
+            else if (item is Performance performance)
             {
                 name = "Performance";
-                image = ((Performance)item).Icon;
+                image = performance.Icon;
             }
             else
                 name = item.ToString();
@@ -238,13 +241,15 @@ namespace MED
             node.Tag = item;
             node.ImageKey = image;
             node.SelectedImageKey = node.ImageKey;
-            node.StateImageKey = "False";
-
+            if (item is IProcess)
+                ItemProcess_StateChanged((IProcess)item, ((IProcess)item).ProcessState);
+            else
+                node.SelectedImageKey = "False";
             if (addChildren)
             {
-                if (item is IProcesses)
+                if (item is IProcesses processes)
                 {
-                    object[] items = ((IProcesses)item).Items.ToArray();
+                    object[] items = processes.Items.ToArray();
                     //Reverse
                     if (node.Parent == null)
                         items = items.Reverse().ToArray<object>();
@@ -255,9 +260,9 @@ namespace MED
                     //AddItems((item as IProcess).ObjectsProperties.Values.ToArray(), node.Nodes);
                     foreach (var kvp in ((IProcess)item).ObjectsProperties)
                     {
-                        if (kvp.Value != null 
-                            && kvp.Value is List<IProcess> 
-                            && ((List<IProcess>)kvp.Value).Count > 0 
+                        if (kvp.Value != null
+                            && kvp.Value is List<IProcess>
+                            && ((List<IProcess>)kvp.Value).Count > 0
                             && ((List<IProcess>)kvp.Value).First() != item)
                         {
                             var subNode = node.Nodes.Add(kvp.Key);
@@ -278,6 +283,18 @@ namespace MED
             }
 
             return node;
+        }
+
+        void ItemProcess_StateChanged(IProcess sender, System.Threading.ThreadState state)
+        {
+
+            if (ObjectsNodes.ContainsKey(sender.GetHashCode()))
+            {
+                TreeNode? node = ObjectsNodes[sender.GetHashCode()];
+                if (node == null)
+                    return;
+                node.StateImageKey = state==ThreadState.Suspended ? "AutoReset" : (state==ThreadState.Running ? "True" : "False");
+            }
         }
     }
 }

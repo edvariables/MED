@@ -147,7 +147,8 @@ namespace MED.Imaging
         public virtual bool DebugImageEnabled { get; set; }
 
         [Category("Debug")]
-        public virtual bool DrawEdges { get; set; }
+        [DefaultValue(false)]
+        public virtual bool DrawEdges { get; set; } = false;
 
         /**
          * GetImage
@@ -201,12 +202,13 @@ namespace MED.Imaging
                 if (!item.Enabled)
                     continue;
 
-                if (item is not IImageProvider)
+                if (item is not IImageProvider itemImage
+                    || !itemImage.Visible)
                     continue;
 
                 try
                 {
-                    AppendImage(graphics, size, (IImageProvider)item);
+                    AppendImage(graphics, size, itemImage);
                 }
                 catch (Exception ex)
                 {

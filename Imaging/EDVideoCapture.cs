@@ -232,7 +232,7 @@ namespace MED.Imaging
 
             base.Start();
 
-            Capture?.Start();
+            Capture?.Start();   
 
             Performance?.Step($"Connected fps={Capture?.Get(Emgu.CV.CvEnum.CapProp.Fps)}");
 
