@@ -27,7 +27,7 @@ namespace MED
 
             Name = name;
 
-            Performance = performance == null ? MED.Performance.Empty() : performance;
+            Performance = performance?? MED.Performance.Empty();
 
         }
 
@@ -58,31 +58,20 @@ namespace MED
             return $"{Name} as {typeName} ({ProcessState})";
         }
 
+        #region Delegates ans consumers
         /**
          * Delegates ans consumers
          * 
          * */
-        public virtual bool AddConsumer(IConsumer consumer, string property = "ProcessState")
-        {
-            var b = ProcessStatic.AddConsumer(this, consumer, property);
+        public virtual bool AddConsumer(IConsumer consumer, string property = "ProcessState") => ProcessStatic.AddConsumer(this, consumer, property);
 
-            PropertiesConsumers_CacheReset(property);
-
-            return b;
-        }
+        public virtual bool RemoveConsumer(IConsumer consumer, string property) => ProcessStatic.RemoveConsumer(this, consumer, property);
 
         /**
          * 
          * */
-        protected List<IProcess> GetConsumers(string propertyName = "")
-        {
-            return GetPropertyDelegateConsumers(propertyName).Value ?? new();
+        protected List<IProcess> GetConsumers(string propertyName = "") => GetPropertyDelegateConsumers(propertyName).Value ?? [];
 
-            //var consumers = new List<IProcess>();
-            //foreach (var onChangedDelegate in GetOnChangedDelegates(propertyName))
-            //    consumers.AddRange(GetOnChangedConsumers(onChangedDelegate));
-            //return consumers;
-        }
         /**
          * 
          * */
@@ -109,7 +98,7 @@ namespace MED
         /**
          * 
          * */
-        protected List<string> GetProperties(string propertyName = "") => GetPropertiesDelegatesConsumers(propertyName).Keys.ToList();
+        protected List<string> GetProperties(string propertyName = "") => [.. GetPropertiesDelegatesConsumers(propertyName).Keys];
 
         /**
          * 
@@ -118,126 +107,26 @@ namespace MED
 
         /**
          * _PropertiesDelegatesConsumers
+         * See ProcessStatic.PropertiesConsumersCacheReset()
          * */
-        private Dictionary<string, KeyValuePair<MulticastDelegate, List<IProcess>>>? _PropertiesDelegatesConsumers;
-        protected void PropertiesConsumers_CacheReset(string propertyName = "")
-        {
-            if (_PropertiesDelegatesConsumers != null)
-            {
-                if (propertyName != "")
-                {
-                    if (_PropertiesDelegatesConsumers.ContainsKey(propertyName))
-                        _PropertiesDelegatesConsumers.Remove(propertyName);
-                }
-                else
-                    _PropertiesDelegatesConsumers = null;
-            }
-        }
+        internal Dictionary<string, KeyValuePair<MulticastDelegate, List<IProcess>>>? _PropertiesDelegatesConsumers;
         /**
          * 
          * */
-        public KeyValuePair<MulticastDelegate, List<IProcess>> GetPropertyDelegateConsumers(string propertyName = "", bool evenEmpty = true)
-        {
-            var dic = GetPropertiesDelegatesConsumers(propertyName, evenEmpty);
-            if (dic.Count == 0)
-                return new();
-            return dic.First().Value;
-        }
+        public void RemovePropertyDelegateConsumers(string propertyName = "") => ProcessStatic.RemovePropertyDelegateConsumers(this, propertyName);
         /**
          * 
          * */
-        public void RemovePropertyDelegateConsumers(string propertyName = "")
-        {
-            if (_PropertiesDelegatesConsumers != null)
-                if (propertyName != "")
-                {
-                    if (_PropertiesDelegatesConsumers.ContainsKey(propertyName))
-                        _PropertiesDelegatesConsumers.Remove(propertyName);
-                }
-                else
-                    _PropertiesDelegatesConsumers = new();
-        }
-        /**
-         * 
-         * */
-        public void CleanPropertiesDelegatesConsumers(string propertyName = "")
-        {
-            if (_PropertiesDelegatesConsumers == null)
-                return;
-            foreach (var kvp in GetPropertiesDelegatesConsumers(propertyName).ToArray())
-            {
-                List<IProcess> processes = kvp.Value.Value;
-                foreach (var process in processes.ToArray())
-                {
-                    if (process == null)
-                        continue;
-#pragma warning disable CS8602 // Déréférencement d'une éventuelle référence null.
-                    if ((process is Process) && (process as Process).IsDisposed
-                        || (process is Control) && (process as Control).IsDisposed)
-                    {
-                        processes.Remove(process);
-                        if (processes.Count == 0)
-                            _PropertiesDelegatesConsumers.Remove(propertyName);
-                    }
-#pragma warning restore CS8602 // Déréférencement d'une éventuelle référence null.
-                }
-            }
-        }
+        public void CleanPropertiesDelegatesConsumers(string propertyName = "") => ProcessStatic.CleanPropertiesDelegatesConsumers(this, propertyName);
 
         /**
          * 
          * */
-        public Dictionary<string, KeyValuePair<MulticastDelegate, List<IProcess>>> GetPropertiesDelegatesConsumers(string propertyName = "", bool evenEmpty = true)
-        {
-            if (_PropertiesDelegatesConsumers != null)
-            {
-                if (propertyName != "")
-                {
-                    if (_PropertiesDelegatesConsumers.ContainsKey(propertyName))
-                    {
-                        Dictionary<string, KeyValuePair<MulticastDelegate, List<IProcess>>> dic = new();
-                        dic.Add(propertyName, _PropertiesDelegatesConsumers[propertyName]);
-                        return dic;
-                    }
-                }
-                else
-                    return _PropertiesDelegatesConsumers;
-            }
-            Dictionary<string, KeyValuePair<MulticastDelegate, List<IProcess>>> propertiesDelegatesConsumers = new();
-            foreach (var onChangedDelegate in GetOnChangedDelegates(propertyName))
-            {
-                string prop = onChangedDelegate.GetMethodInfo().Name;
-                if (prop.StartsWith("On"))
-                    prop = prop.Substring(2);
-                if (prop.EndsWith("Changed"))
-                    prop = prop.Substring(0, prop.Length - "Changed".Length);
-
-                List<IProcess>? consumers;
-                if ((consumers = GetOnChangedConsumers(onChangedDelegate)) != null || evenEmpty)
-                {
-                    if (consumers == null)
-                        consumers = new();
-                    KeyValuePair<MulticastDelegate, List<IProcess>> delegatesConsumers = new(onChangedDelegate, consumers);
-                    propertiesDelegatesConsumers.Add(prop, delegatesConsumers);
-                }
-            }
-            if (propertyName != "")
-            {
-
-                Dictionary<string, KeyValuePair<MulticastDelegate, List<IProcess>>> dic = new();
-
-                if (!propertiesDelegatesConsumers.ContainsKey(propertyName))
-                    return dic;
-                dic.Add(propertyName, propertiesDelegatesConsumers[propertyName]);
-
-                if (_PropertiesDelegatesConsumers == null)
-                    _PropertiesDelegatesConsumers = new();
-                _PropertiesDelegatesConsumers[propertyName] = dic.First().Value;
-                return dic;
-            }
-
-            return _PropertiesDelegatesConsumers = propertiesDelegatesConsumers;
-        }
+        public KeyValuePair<MulticastDelegate, List<IProcess>> GetPropertyDelegateConsumers(string propertyName = "", bool evenEmpty = true) => ProcessStatic.GetPropertyDelegateConsumers(this, propertyName, evenEmpty);
+        /**
+         * 
+         * */
+        public Dictionary<string, KeyValuePair<MulticastDelegate, List<IProcess>>> GetPropertiesDelegatesConsumers(string propertyName = "", bool evenEmpty = true) => ProcessStatic.GetPropertiesDelegatesConsumers(this, propertyName, evenEmpty);
 
         /***
          * Invoke
@@ -248,35 +137,12 @@ namespace MED
 
         public virtual void InvokePropertyChanged(IProvider? sender, Delegate? delegateMethod, EventArgs? e) => ProcessStatic.InvokePropertyChanged(this, sender, delegateMethod, e);
 
-        public void AddHandler(string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
-        {
-            ProcessStatic.AddHandler(this, handler_field, consumer, consumer_type, consumer_method);
-            PropertiesConsumers_CacheReset();
-        }
+        public void AddHandler(string handler_field, IConsumer consumer, Type consumer_type, string consumer_method) => ProcessStatic.AddHandler(this, handler_field, consumer, consumer_type, consumer_method);
 
-        public void RemoveHandler(string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
-        {
-            ProcessStatic.RemoveHandler(this, handler_field, consumer, consumer_type, consumer_method);
-            PropertiesConsumers_CacheReset();
-        }
+        public void RemoveHandler(string handler_field, IConsumer consumer, Type consumer_type, string consumer_method) => ProcessStatic.RemoveHandler(this, handler_field, consumer, consumer_type, consumer_method);
+        #endregion
 
-        /**
-         * ObjectsProperties
-         * */
-        public virtual Dictionary<string, object> ObjectsProperties
-        {
-            get
-            {
-                var dict = new Dictionary<string, object>();
-                dict.Add(this.Name, this);
-                if (Performance != null)
-                    dict.Add(this.Name + ".Performance", Performance);
-
-                return dict;
-            }
-        }
-
-        #region Properties & Settings
+        #region Properties
         [Category("Process")]
         [DefaultValue(true)]
         public virtual bool Enabled { get; set; } = true;
@@ -290,7 +156,6 @@ namespace MED
 
         [Editor(typeof(MEDIconSelectorEditor), typeof(UITypeEditor))]
         [TypeConverter(typeof(MEDIconNameConverter))]
-
         [Category("Process")]
         public virtual string ProcessIcon { get; set; }
 
@@ -308,10 +173,30 @@ namespace MED
         [Category("Process")]
         public virtual Performance? Performance { get; set; }
 
+        /**
+         * ObjectsProperties
+         * */
+        public virtual Dictionary<string, object> ObjectsProperties
+        {
+            get
+            {
+                var dict = new Dictionary<string, object>
+                {
+                    { this.Name, this }
+                };
+                if (Performance != null)
+                    dict.Add(this.Name + ".Performance", Performance);
+
+                return dict;
+            }
+        }
+        #endregion
+
+        #region Settings
+
         [Browsable(true)]
         [Category("Process")]
         public virtual ProcessSettings? ProcessSettings { get; set; }
-
         public virtual void LoadSettings(ProcessSettings? settings = null, string fileName = "")
         {
             if (settings == null)
@@ -341,8 +226,7 @@ namespace MED
 
         public virtual void SaveSettings(ProcessSettings? settings = null, string fileName = "")
         {
-            if (settings == null)
-                settings = ProcessSettings;
+            settings ??= ProcessSettings;
 
             if (settings != null && settings.Root != null)
             {
@@ -358,8 +242,7 @@ namespace MED
 
         public virtual JsonObject SaveProcess(JsonObject? node = null)
         {
-            if (node == null)
-                node = new JsonObject();
+            node ??= [];
             var type = this.GetType();
             var assembly = type.Assembly.Location;
 #pragma warning disable CS8602 // Déréférencement d'une éventuelle référence null.
@@ -370,11 +253,11 @@ namespace MED
             node["ProcessClass"] = type.FullName;
             if (assembly != "")
                 node["ProcessLib"] = assembly;
-            node["Name"] = Name;
-            node["IsAsynchrone"] = IsAsynchrone;
-            node["Enabled"] = Enabled;
+            node[nameof(Name)] = Name;
+            node[nameof(IsAsynchrone)] = IsAsynchrone;
+            node[nameof(Enabled)] = Enabled;
             if (ProcessIcon != ProcessIconDefault)
-                node["ProcessIcon"] = ProcessIcon;
+                node[nameof(ProcessIcon)] = ProcessIcon;
 
             node["Perf"] = Performance?.SaveNode();
 
@@ -382,7 +265,7 @@ namespace MED
         }
         #endregion
 
-
+        #region Process
         [Category("Process")]
         [DefaultValue(false)]
         public virtual bool IsRunning
@@ -408,8 +291,8 @@ namespace MED
             }
         }
 
-        #region Process
 
+        [Browsable(false)]
         public IProcess.ProcessStateChangedDelegate? OnProcessStateChanged { get; set; }
 
         public virtual void Stop()
@@ -451,7 +334,7 @@ namespace MED
 
             ProcessState = ThreadState.Unstarted;
 
-            Performance?.Start($"Start {this.ToString()}", true);
+            Performance?.Start($"Start {this}", true);
 
             UndoClear();
 
@@ -506,13 +389,12 @@ namespace MED
         #endregion
 
         #region IUndo
-        private int _UndoStackCountMax = 64;
+        private readonly int _UndoStackCountMax = 64;
         private Stack<Dictionary<string, object>> _UndoStack = new();
         public virtual void UndoClear() => _UndoStack.Clear();
         public virtual Dictionary<string, object> UndoModeSaveProperties()
         {
-            if (_UndoStack == null)
-                _UndoStack = new();
+            _UndoStack ??= new();
             if (_UndoStack.Count > _UndoStackCountMax + 8)
                 _UndoStack = new(_UndoStack.SkipLast(_UndoStack.Count - _UndoStackCountMax).Reverse());
 
@@ -526,7 +408,7 @@ namespace MED
             if (_UndoStack == null || _UndoStack.Count == 0)
                 return null;
 
-            Dictionary<string, object>? dic = new();
+            Dictionary<string, object>? dic = [];
             for (int i = 0; i < length; i++)
                 if (!_UndoStack.TryPop(out dic))
                     break;

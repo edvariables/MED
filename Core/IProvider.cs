@@ -18,6 +18,7 @@ namespace MED
         Control? InvokeHandler { get; set; }
 
         bool AddConsumer(IConsumer consumer, string property);
+        bool RemoveConsumer(IConsumer consumer, string property);
         void InvokePropertyChanged(IProvider sender, Delegate delegateMethod, EventArgs e);
         bool IsInvokingPropertyChanged(Delegate delegateMethod);
     }

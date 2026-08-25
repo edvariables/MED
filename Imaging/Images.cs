@@ -340,8 +340,15 @@ namespace MED.Imaging
 
             foreach (var item in Items)
             {
-                if (!item.Enabled || item is not IImageMover mover)
+                if (!item.Enabled)
                     continue;
+
+                if (item is IImageInteractor interactor)
+                    interactor.InteractWithItems(Items);
+
+                if (item is not IImageMover mover)
+                    continue;
+
                 mover.Move(elapsedTime);
 
                 //DEBUG

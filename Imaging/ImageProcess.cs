@@ -156,9 +156,35 @@ namespace MED.Imaging
         public virtual Dictionary<GraphicsPath, RectangleF>? ClipPathsBounds { get; set; } = null;
 
         [Browsable(false)]
+        [Category("Image")]
+        [TypeConverter(typeof(MED.Core.PointFTypeConverter))]
         public virtual System.Drawing.PointF Location { get; set; } = System.Drawing.PointF.Empty;
 
         [Browsable(false)]
+        public virtual System.Drawing.PointF LocationCenter
+        {
+            get
+            {
+                var location = Location;
+                if (_Image != null)
+                {
+                    location.X += _Image.Width / 2;
+                    location.Y += _Image.Height / 2;
+                }
+                else if (!ImageSizeMin.IsEmpty)
+                {
+                    location.X += ImageSizeMin.Width / 2;
+                    location.Y += ImageSizeMin.Height / 2;
+                }
+                return location;
+            }
+        }
+
+        /**
+         * Rotation angle (angular direction) in degrees
+         * */
+        [Browsable(false)]
+        [Description("Rotation angle (angular direction) in degrees")]
         public virtual float RotationAngle { get; set; }
 
         [Browsable(true)]

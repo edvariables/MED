@@ -71,8 +71,8 @@ namespace MED.Imaging
         {
             Size size = ImageSizeMin;
             if (size.IsEmpty)
-                if (Consumer is ImageProcess)
-                    size = ((ImageProcess)Consumer).ImageSizeMin;
+                if (Consumer is ImageProcess imageProcess)
+                    size = imageProcess.ImageSizeMin;
             if (size.IsEmpty)
                 size = EmptyImage.Size;
 
@@ -84,7 +84,7 @@ namespace MED.Imaging
 
             Color color = BackgroundColor;
             //Color color = Color.FromArgb((int)Performance.Average_msec, (int)Performance.Counter % 255, (int)Performance.Counter % 255);
-            SolidBrush brush = new SolidBrush(color);
+            SolidBrush brush = new(color);
 
             GraphicsUnit units = GraphicsUnit.Point;
             graphics.FillRectangle(brush, image.GetBounds(ref units));

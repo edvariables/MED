@@ -11,9 +11,8 @@ namespace MED.Imaging
      * interface IImageCollidable : IImageMover
      * <summary>Image as a physic object</summary>
      * */
-    public interface IImageCollider : IImageProvider
+    public interface IImageCollider : IImageInteractor
     {
-        float Mass { get; }
 
         [Browsable(false)]
         System.Drawing.Region? ClipEdgesRegion { get; }

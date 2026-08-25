@@ -10,6 +10,7 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Design;
 using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -63,18 +64,26 @@ namespace MED.Imaging
             }
         }
 
+        [Browsable(true)]
+        [ReadOnly(false)]
+        [Category("Image")]
+        public virtual Color TransparentColor { get; set; } = Color.Transparent;
+
         public override void LoadSettings(ProcessSettings? settings = null, string fileName = "")
         {
             base.LoadSettings(settings, fileName);
             if (settings == null && (settings = ProcessSettings) == null)
                 return;
 
-            ImageFile = (String)(settings.GetValue("ImageFile", ImageFile)?? ImageFile);
+            ImageFile = (String)(settings.GetValue("ImageFile", ImageFile) ?? ImageFile);
+            TransparentColor = (Color)(settings.GetValue("TransparentColor", TransparentColor) ?? TransparentColor);
         }
         public override JsonObject SaveProcess(JsonObject? node = null)
         {
             node = base.SaveProcess(node);
             node.Add("ImageFile", ImageFile);
+            if (!TransparentColor.Equals(Color.Transparent))
+                node.Add("TransparentColor", TransparentColor.ToString());
             return node;
         }
         #endregion
@@ -117,6 +126,7 @@ namespace MED.Imaging
                     {
                         image = (Bitmap)Bitmap.FromStream(stream);
                     }
+                    var formatSrc = image.PixelFormat;
                     if (!size.IsEmpty
                         /*&& image.Size != size*/)//Needed to normalize file format
                     {
@@ -128,6 +138,15 @@ namespace MED.Imaging
                         graphics.Dispose();
                         imageSrc.Dispose();
                     }
+                    if (!TransparentColor.Equals(Color.Transparent))
+                    {
+                        image.MakeTransparent(TransparentColor);
+                    }
+                    else if ((formatSrc & PixelFormat.Alpha) != PixelFormat.Alpha)
+                    {
+                        var transparentColor = image.GetPixel(0, 0);
+                        image.MakeTransparent(transparentColor);
+                    }
                     GraphicsPath grPath;
                     Dictionary<GraphicsPath, RectangleF> grPathsBounds;
                     ClipRegion = GetContourRegion(image, out grPath, out grPathsBounds);
@@ -135,7 +154,7 @@ namespace MED.Imaging
                     ClipPathsBounds = grPathsBounds;
                 }
                 else
-                    throw new FileNotFoundException($"Fichier introuvable dans {this} : {ImageFile}", ImageFile);
+                    throw new FileNotFoundException($"File not found from {this} : {ImageFile}", ImageFile);
             }
             return image;
 
@@ -179,7 +198,7 @@ namespace MED.Imaging
                 grPath.Widen(pen);
                 System.Drawing.Region clipRegionEdges = new(grPath);
                 clipRegionEdges.Exclude(ClipPath);
-                clipRegionEdges.Translate(-penWidth/2, -penWidth/2);
+                clipRegionEdges.Translate(-penWidth / 2, -penWidth / 2);
                 return _ClipRegionEdges = clipRegionEdges;
 
             }

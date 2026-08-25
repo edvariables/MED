@@ -40,6 +40,9 @@
             toolStripMenuProcAdd = new ToolStripMenuItem();
             toolStripMenuProcRemove = new ToolStripMenuItem();
             contextMenuAddProcess = new ContextMenuStrip(components);
+            toolStripMenuItem1 = new ToolStripSeparator();
+            toolStripMenuItemMoveBefore = new ToolStripMenuItem();
+            toolStripMenuItemMoveAfter = new ToolStripMenuItem();
             panCboObjects.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
@@ -125,9 +128,9 @@
             // 
             // contextMenuProcesses
             // 
-            contextMenuProcesses.Items.AddRange(new ToolStripItem[] { toolStripMenuProcAdd, toolStripMenuProcRemove });
+            contextMenuProcesses.Items.AddRange(new ToolStripItem[] { toolStripMenuProcAdd, toolStripMenuProcRemove, toolStripMenuItem1, toolStripMenuItemMoveBefore, toolStripMenuItemMoveAfter });
             contextMenuProcesses.Name = "contextMenuProcesses";
-            contextMenuProcesses.Size = new Size(183, 48);
+            contextMenuProcesses.Size = new Size(183, 120);
             contextMenuProcesses.Text = "Processes";
             // 
             // toolStripMenuProcAdd
@@ -150,6 +153,27 @@
             // 
             contextMenuAddProcess.Name = "contextMenuAddProcess";
             contextMenuAddProcess.Size = new Size(61, 4);
+            // 
+            // toolStripMenuItem1
+            // 
+            toolStripMenuItem1.Name = "toolStripMenuItem1";
+            toolStripMenuItem1.Size = new Size(179, 6);
+            // 
+            // toolStripMenuItemMoveBefore
+            // 
+            toolStripMenuItemMoveBefore.Image = (Image)resources.GetObject("toolStripMenuItemMoveBefore.Image");
+            toolStripMenuItemMoveBefore.Name = "toolStripMenuItemMoveBefore";
+            toolStripMenuItemMoveBefore.Size = new Size(182, 22);
+            toolStripMenuItemMoveBefore.Text = "Avant";
+            toolStripMenuItemMoveBefore.Click += toolStripMenuItemMoveBefore_Click;
+            // 
+            // toolStripMenuItemMoveAfter
+            // 
+            toolStripMenuItemMoveAfter.Image = (Image)resources.GetObject("toolStripMenuItemMoveAfter.Image");
+            toolStripMenuItemMoveAfter.Name = "toolStripMenuItemMoveAfter";
+            toolStripMenuItemMoveAfter.Size = new Size(182, 22);
+            toolStripMenuItemMoveAfter.Text = "Après";
+            toolStripMenuItemMoveAfter.Click += toolStripMenuItemMoveAfter_Click;
             // 
             // PropertiesControl
             // 
@@ -179,5 +203,8 @@
         private ToolStripMenuItem toolStripMenuProcAdd;
         private ToolStripMenuItem toolStripMenuProcRemove;
         private ContextMenuStrip contextMenuAddProcess;
+        private ToolStripSeparator toolStripMenuItem1;
+        private ToolStripMenuItem toolStripMenuItemMoveBefore;
+        private ToolStripMenuItem toolStripMenuItemMoveAfter;
     }
 }

@@ -15,7 +15,7 @@ namespace MED.Core
     public static class Parser
     {
 
-        public static string? ObjectToString(object value)
+        public static string? ObjectToString(object? value)
         {
             var str_value = value switch
             {
@@ -31,11 +31,11 @@ namespace MED.Core
             return str_value;
         }
 
-        public static object? ObjectFromString(string str_value, object type_as)
+        public static object? ObjectFromString(string? str_value, object? type_as)
         {
             if (type_as == null)
                 return str_value;
-            if (str_value == "<null>")
+            if (str_value == null || str_value == "<null>")
                 return null;
 
             Type out_type;
@@ -50,7 +50,7 @@ namespace MED.Core
                 if (str_value[0] == '{')
                     str_value = Regex.Replace(str_value, @"[\{\}a-zA-Z=]", "");
                 string[] coords = str_value.Split(',');
-                if(out_type.Equals(typeof(PointF)))
+                if (out_type.Equals(typeof(PointF)))
                     return new PointF(float.Parse(DecimalSeparator(coords[0])), float.Parse(DecimalSeparator(coords[1])));
                 return new Point(int.Parse(coords[0]), int.Parse(coords[1]));
             }
@@ -79,14 +79,14 @@ namespace MED.Core
                 long => long.Parse(str_value),
                 float => float.Parse(DecimalSeparator(str_value)),
                 double => double.Parse(DecimalSeparator(str_value)),
-                decimal=> decimal.Parse(DecimalSeparator(str_value)),
+                decimal => decimal.Parse(DecimalSeparator(str_value)),
                 _ => str_value
             };
             return value;
         }
 
         static string _DecimalSeparator = (5.5F).ToString().Replace("5", "");
-        static string _DecimalNonSeparator = _DecimalSeparator=="." ? "," : ".";
+        static string _DecimalNonSeparator = _DecimalSeparator == "." ? "," : ".";
         public static string DecimalSeparator(string number)
         {
             return number.Replace(_DecimalNonSeparator, _DecimalSeparator);
@@ -101,33 +101,22 @@ namespace MED.Core
             if (type_as == null)
                 return node.GetValue<object>();
 
-            switch (node.GetValueKind())
+            return node.GetValueKind() switch
             {
-                case System.Text.Json.JsonValueKind.True:
-                    return true;
-                case System.Text.Json.JsonValueKind.False:
-                    return false;
-                case System.Text.Json.JsonValueKind.String:
-                    return ObjectFromString(node.AsValue().ToString(), type_as);
-                case System.Text.Json.JsonValueKind.Number:
-                    return ObjectFromString(node.AsValue().ToString(), type_as);
-                case System.Text.Json.JsonValueKind.Object:
-                    return ObjectFromString(node.AsValue().ToString(), type_as);
-                case System.Text.Json.JsonValueKind.Array:
-                    return ObjectFromString(node.AsValue().ToString(), type_as);
-                case System.Text.Json.JsonValueKind.Undefined:
-                case System.Text.Json.JsonValueKind.Null:
-                default:
-                    return null;
-            }
+                System.Text.Json.JsonValueKind.True => true,
+                System.Text.Json.JsonValueKind.False => false,
+                System.Text.Json.JsonValueKind.String => ObjectFromString(node.AsValue().ToString(), type_as),
+                System.Text.Json.JsonValueKind.Number => ObjectFromString(node.AsValue().ToString(), type_as),
+                System.Text.Json.JsonValueKind.Object => ObjectFromString(node.AsValue().ToString(), type_as),
+                System.Text.Json.JsonValueKind.Array => ObjectFromString(node.AsValue().ToString(), type_as),
+                _ => null,
+            };
         }
 
         public static string? SizeToPretty(Size size) => ObjectToString(size)?.Replace(",", " x ");
         public static Size SizeFromPretty(string size)
         {
-#pragma warning disable CS8605 // Conversion unboxing d'une valeur peut-être null.
-            return (Size)ObjectFromString(size.Replace("x", ","), typeof(Size));
-#pragma warning restore CS8605 // Conversion unboxing d'une valeur peut-être null.
+            return (Size)(ObjectFromString(size.Replace("x", ","), typeof(Size))??Size.Empty);
         }
     }
 }

@@ -23,7 +23,7 @@ namespace MED.Imaging
      * class Mover : ImageSourced, IImageProvider, IImageCollidable
      * <summary>Image as a physical object that can collide</summary>
      * */
-    public class ImageCollider : ImageSourced, IImageProvider, IImageCollider
+    public class ImageCollider : ImageInteractor, IImageProvider, IImageCollider
     {
         public ImageCollider(string name = "ImageCollidable", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
         : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
@@ -33,20 +33,7 @@ namespace MED.Imaging
         #region Properties
 
         [Category("Mover")]
-        public virtual float Mass { get; set; } = 1F;
-
-        Vector2 _LocationVector;
-        [Browsable(false)]
-        public virtual Vector2 LocationVector
-        {
-            get
-            {
-                if (_LocationVector.Equals(Vector2.Zero))
-                    return _LocationVector = base.Location.ToVector2();
-                return _LocationVector;
-            }
-            private set { _LocationVector = value; }
-        }
+        public override float Mass { get; set; } = 1F;
 
         /**
          * Surface friction in collision
@@ -105,13 +92,11 @@ namespace MED.Imaging
             base.LoadSettings(settings, fileName);
             if (settings == null && (settings = ProcessSettings) == null)
                 return;
-            Mass = (float)(settings.GetValue("Mass", Mass) ?? Mass);
             SurfaceFriction = (float)(settings.GetValue("SurfaceFriction", SurfaceFriction) ?? SurfaceFriction);
         }
         public override JsonObject SaveProcess(JsonObject? node = null)
         {
             node = base.SaveProcess(node);
-            node.Add("Mass", Mass);
             node.Add("SurfaceFriction", SurfaceFriction);
             return node;
         }

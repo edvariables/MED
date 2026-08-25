@@ -20,6 +20,8 @@ namespace MED.Imaging
             [EditorAttribute(typeof(FileNameEditor), typeof(UITypeEditor))]
             [ReadOnly(false)]
             string ImageFile { get; set; }
+        
+            Color TransparentColor { get; set; }
 
             Bitmap? GetImageFromSource(IImageProvider? provider = null);
         }

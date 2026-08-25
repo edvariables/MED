@@ -1,4 +1,5 @@
 ﻿using MED.Core;
+using MED.Imaging;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -241,10 +242,24 @@ namespace MED
             node.Tag = item;
             node.ImageKey = image;
             node.SelectedImageKey = node.ImageKey;
-            if (item is IProcess)
-                ItemProcess_StateChanged((IProcess)item, ((IProcess)item).ProcessState);
+            if (item is IProcess process)
+            {
+                ItemProcess_StateChanged(process, process.ProcessState);
+                if (!process.Enabled)
+                {
+                    Font font = new(this.Font, FontStyle.Strikeout);
+                    node.NodeFont = font;
+                }
+                else if(process is ImageSourced provider
+                    && provider.FPSMax > 0)
+                {
+                    Font font = new(this.Font, FontStyle.Bold);
+                    node.NodeFont = font;
+                }
+            }
             else
                 node.SelectedImageKey = "False";
+
             if (addChildren)
             {
                 if (item is IProcesses processes)
@@ -293,7 +308,7 @@ namespace MED
                 TreeNode? node = ObjectsNodes[sender.GetHashCode()];
                 if (node == null)
                     return;
-                node.StateImageKey = state==ThreadState.Suspended ? "AutoReset" : (state==ThreadState.Running ? "True" : "False");
+                node.StateImageKey = state == ThreadState.Suspended ? "AutoReset" : (state == ThreadState.Running ? "True" : "False");
             }
         }
     }

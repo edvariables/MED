@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MED.Imaging;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Configuration;
@@ -30,6 +31,7 @@ namespace MED
             ProcessClasses.Add("Project", typeof(MED.Processes).FullName ?? "");
             ProcessClasses.Add("Images", typeof(MED.Imaging.Images).FullName ?? "");
             ProcessClasses.Add("Collider mover", typeof(MED.Imaging.ImageMover).FullName ?? "");
+            ProcessClasses.Add("Attractor", typeof(MED.Imaging.Attractor).FullName ?? "");
             ProcessClasses.Add("EmguMoving", typeof(MED.Imaging.EmguMoving).FullName ?? "");
             ProcessClasses.Add("VideoCapture", typeof(MED.Imaging.EDVideoCapture).FullName ?? "");
             ProcessClasses.Add("Background", typeof(MED.Imaging.Background).FullName ?? "");
@@ -174,13 +176,12 @@ namespace MED
         {
             if (e.Button == MouseButtons.Right)
             {
-
                 toolStripMenuProcAdd.Visible = e.Node.Tag != null;
                 toolStripMenuProcRemove.Visible = e.Node.Tag != null;
+                toolStripMenuItemMoveBefore.Visible = e.Node.Tag != null && e.Node.Index > 0;
+                toolStripMenuItemMoveAfter.Visible = e.Node.Tag != null && e.Node.Index < e.Node.Parent.Nodes.Count - 1;
                 processesControl1.SelectedNode = e.Node;
                 contextMenuProcesses.Show((Control)sender, e.Location);
-
-
             }
         }
 
@@ -198,7 +199,8 @@ namespace MED
             {
                 var processClass = ProcessClasses[processName];
                 var process = ProcessStatic.CreateProcess(processClass, "", processName, true, Performance.Empty(), null);
-
+                if (process == null)
+                    return;
                 if (process is IProcesses)
                     if (processesControl1.SelectedNode == null || processesControl1.SelectedNode.Tag is not IProcess)
                     {
@@ -238,8 +240,8 @@ namespace MED
                         items.Insert(items.Count - 1, process);
                         var render = items.First();
                         var provider = items.Last();
-                        if ((provider is IProvider) && (process is IConsumer))
-                            ((IProvider)provider).AddConsumer((IConsumer)process, "Image");//TODO default property
+                        if ((provider is IProvider) && (process is IConsumer consumer) && provider.Enabled)
+                            ((IProvider)provider).AddConsumer(consumer, "Image");//TODO default property
                     }
                     ShowProperties([selectedProcess], selectedNode?.Parent);
                     return;
@@ -263,19 +265,69 @@ namespace MED
                 return;
             }
             var process = (IProcess)processesControl1.SelectedNode.Tag;
-            if (MessageBox.Show($"Êtes vous sûr de vouloir supprimer ce process {process.ToString()} ?", "Supprimer un process", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
-                return;
 
             TreeNode? selectedParentNode = processesControl1.SelectedNode.Parent == null || processesControl1.SelectedNode.Parent.Tag == null ? null
                                             : processesControl1.SelectedNode.Parent;
             IProcess? selectedParentProcess = processesControl1.SelectedNode.Parent == null || processesControl1.SelectedNode.Parent.Tag == null ? null
                                             : (IProcess)processesControl1.SelectedNode.Parent.Tag;
             if (selectedParentProcess != null)
+            {
+                if (MessageBox.Show($"Êtes vous sûr de vouloir supprimer ce process {process.ToString()} ?", "Supprimer un process", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
+                    return;
                 if (selectedParentProcess is IProcesses)
                     ((IProcesses)selectedParentProcess).Items.Remove(process);
-            process.Dispose();
+                process.Dispose();
+            }
+            else
+            {
+                selectedParentNode = processesControl1.SelectedNode.Parent == null || processesControl1.SelectedNode.Parent.Parent == null || processesControl1.SelectedNode.Parent.Parent.Tag == null ? null
+                                            : processesControl1.SelectedNode.Parent.Parent;
+                selectedParentProcess = selectedParentNode == null ? null
+                                            : (IProcess)selectedParentNode.Tag;
+                if (selectedParentProcess != null && processesControl1.SelectedNode.Parent != null)
+                {
+                    switch (processesControl1.SelectedNode.Parent.Text)
+                    {
+                        case "Images vers":
+                            if (MessageBox.Show($"Êtes vous sûr de vouloir retirer ce consommateur d'images {process.ToString()} ?", "Supprimer un consommateur d'images", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
+                                return;
+                            if (selectedParentProcess is ImageProcess imageProcess && process is IImageConsumer consumer)
+                                imageProcess.RemoveConsumer(consumer, "Image");
+                            break;
+                        case "Frames vers":
+                            if (MessageBox.Show($"Êtes vous sûr de vouloir retirer ce consommateur de frames {process.ToString()} ?", "Supprimer un consommateur de frames", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
+                                return;
+                            if (selectedParentProcess is ImageProcess imageProcess2 && process is IMatFrameConsumer consumer2)
+                                imageProcess2.RemoveConsumer(consumer2, "Frame");
+                            break;
+                        default:
+                            MessageBox.Show($"Non implémenté : {processesControl1.SelectedNode.Parent.Text}");
+                            break;
+                    }
+                }
+            }
             if (selectedParentProcess != null)
                 ShowProperties([selectedParentProcess], selectedParentNode?.Parent);
         }
+
+        private void MoveItemInProcessesItems(TreeNode node, int offset)
+        {
+            if (node == null)
+                return;
+            if (node.Parent == null)
+                return;
+            if (node.Tag is IProcess process
+                && node.Parent.Tag is IProcesses processes)
+            {
+                var currentIndex = node.Index;
+                processes.Items.Remove(process);
+                processes.Items.Insert(currentIndex + offset, process);
+                processesControl1.ShowProperties(processes.Items.ToArray(), node.Parent, true);
+            }
+        }
+        private void toolStripMenuItemMoveBefore_Click(object sender, EventArgs e) => MoveItemInProcessesItems(processesControl1.SelectedNode, -1);
+
+        private void toolStripMenuItemMoveAfter_Click(object sender, EventArgs e) => MoveItemInProcessesItems(processesControl1.SelectedNode, +1);
+
     }
 }

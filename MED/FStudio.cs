@@ -75,17 +75,17 @@ namespace MED
             string settingsSection = this.SettingsSection;
             Core.Settings.ClearCache(true, true, settingsSection);
 
-            object v = Core.Settings.GetValue("Location", settingsSection, this.Location);
+            object v = Core.Settings.GetValue("Location", settingsSection, this.Location) ?? this.Location;
             this.Location = (Point)v;
 
-            v = Core.Settings.GetValue("Size", settingsSection, this.Size);
+            v = Core.Settings.GetValue("Size", settingsSection, this.Size) ?? this.Size;
             this.Size = (Size)v;
 
             SecureFormLocationAndSize();
 
             LoadFavorites(settingsSection);
 
-            v = Core.Settings.GetValue("WindowState", settingsSection, this.WindowState);
+            v = Core.Settings.GetValue("WindowState", settingsSection, this.WindowState) ?? this.WindowState;
             if (v != null)
                 this.WindowState = Enum.Parse<FormWindowState>(v.ToString() ?? "");
         }
@@ -175,7 +175,7 @@ namespace MED
 
             f = new FProperties();
             f.MdiParent = this;
-            f.Width = (int)(Core.Settings.GetValue("FProperties.Width", SettingsSection, f.Width));
+            f.Width = (int)(Core.Settings.GetValue("FProperties.Width", SettingsSection, f.Width) ?? f.Width);
             f.Dock = DockStyle.Right;
 
             FProperties.Current?.Show();
@@ -185,17 +185,18 @@ namespace MED
                 FLogger.Current.Show();
                 FLogger.Current.SizeChanged += FormChild_SizeChanged;
             }
-            if(FProperties.Current!=null)
-            FProperties.Current.SizeChanged += FormChild_SizeChanged;
-
-            FProperties.Current?.ShowProperties((object[])[this.Project]);
+            if (FProperties.Current != null)
+            {
+                FProperties.Current.SizeChanged += FormChild_SizeChanged;
+                FProperties.Current.ShowProperties((object[])[this.Project]);
+            }
         }
 
         public void LoadLastProcess()
         {
             string settingsSection = this.SettingsSection;
 
-            string processFile = (string)Core.Settings.GetValue("ActiveProcess", settingsSection, "");
+            string? processFile = (string?)Core.Settings.GetValue("ActiveProcess", settingsSection, "");
             if (!String.IsNullOrEmpty(processFile) && File.Exists(processFile))
                 GetNewProcessForm(processFile);
         }
@@ -506,13 +507,13 @@ namespace MED
             {
                 if (this.ActiveMdiChild is IProcess)
                 {
-                    if (this.ActiveMdiChild is ProcessForm activeMdiChild 
+                    if (this.ActiveMdiChild is ProcessForm activeMdiChild
                         && activeMdiChild.IsDisposed)
                         return _active_Process = null;
                     return _active_Process = (this.ActiveMdiChild as IProcess);
                 }
 
-                if (_active_Process is ProcessForm activeProcess 
+                if (_active_Process is ProcessForm activeProcess
                     && activeProcess.IsDisposed)
                 {
                     var type = activeProcess.GetType();

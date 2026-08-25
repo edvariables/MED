@@ -475,6 +475,10 @@ namespace MED.Imaging
             return new PointF(b.X, b.Y/*(b.Right + b.Left) / 2, (b.Bottom + b.Top) / 2*/); ;
         }
 
+        /**
+         * see  IsLineIntersectingLine https://github.com/dotnet/maui/blob/43db9d77f2ff59999dea36ab8befb8541e919013/src/Graphics/src/Graphics/GeometryUtil.cs#L214
+         * */
+
         private PointF[]? RectangleIntersectLine(RectangleF intersectBounds, PointF point1, PointF point2)
         {
             Vector2 line = new(point1.X - point2.X, point1.Y - point2.Y);

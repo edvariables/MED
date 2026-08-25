@@ -65,9 +65,9 @@ namespace MED.Imaging
             {
                 if (_Frame == null)
                 {
-                    if (ImageProvider != null && ImageProvider is IMatFrameProvider && ImageProvider != this)
+                    if (ImageProvider != null && ImageProvider is IMatFrameProvider matFrameProvider && ImageProvider != this)
                     {
-                        _Frame = ((IMatFrameProvider)ImageProvider).Frame;
+                        _Frame = matFrameProvider.Frame;
 
                     }
                 }

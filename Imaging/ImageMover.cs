@@ -156,6 +156,8 @@ namespace MED.Imaging
         [Browsable(true)]
         [ReadOnly(false)]
         [Category("Image")]
+        [TypeConverter(typeof(MED.Core.PointFTypeConverter))]
+
         public override System.Drawing.PointF Location
         {
             get

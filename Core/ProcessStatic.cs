@@ -15,53 +15,68 @@ namespace MED
      * */
     public static class ProcessStatic
     {
-        public static string test = "ciic";
-
-        public static void AddHandler(IProvider handler_obj, string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
+        public static Delegate? GetHandlerDelegate(IProvider handler_obj, string handler_field, Type consumer_type, string consumer_method, out FieldInfo? eventInfo, out MethodInfo? miHandler)
         {
+            eventInfo = null;
+            miHandler = null;
             var memberInfo = handler_obj.GetType().GetMember(handler_field);
             if (memberInfo == null)
                 throw new Exception($"Le type {handler_obj.GetType().FullName} n'a pas de delegate {handler_field}");
             object? eventInfoO = memberInfo.GetValue(0);
             if (eventInfoO == null)
-                return;
-            var eventInfo = (System.Reflection.FieldInfo)eventInfoO;
+                return null;
+            eventInfo = (System.Reflection.FieldInfo)eventInfoO;
 
-            var miHandler = consumer_type.GetMethod(consumer_method);
+            miHandler = consumer_type.GetMethod(consumer_method);
             if (miHandler == null)
                 throw new Exception($"Le type '{consumer_type.FullName}' n'a pas de méthode {consumer_method}");
+
+            var currentEventValue = eventInfo.GetValue(handler_obj);
+            if (currentEventValue != null && currentEventValue is Delegate handlerDelegates)
+                return handlerDelegates;
+
+            return null;
+        }
+
+        public static void AddHandler(IProvider handler_obj, string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
+        {
+            var handlerDelegates = GetHandlerDelegate(handler_obj, handler_field, consumer_type, consumer_method, out FieldInfo? eventInfo, out MethodInfo? miHandler);
+            if (eventInfo == null || miHandler == null)
+                return;
+            if (handlerDelegates != null)
+            {
+                foreach (var targetHandler in handlerDelegates.GetInvocationList())
+                    if (targetHandler.Target == consumer && targetHandler.Method.Name == consumer_method)
+                        return;//Exists
+            }
+
             Delegate handler =
                  Delegate.CreateDelegate(eventInfo.FieldType,
                                          consumer,
                                          miHandler);
-            //TODO  
-            //eventInfo.RemoveEventHandler(this, handler);
-            var currentEventValue = eventInfo.GetValue(handler_obj);
-            handler = Delegate.Combine((Delegate?)currentEventValue, handler);
+            handler = Delegate.Combine(handlerDelegates, handler);
             eventInfo.SetValue(handler_obj, handler);
+
+            if (handler_obj is Process process)
+                PropertiesConsumersCacheReset(process, consumer_method);
         }
         public static void RemoveHandler(IProvider handler_obj, string handler_field, IConsumer consumer, Type consumer_type, string consumer_method)
         {
-            //TODO
-            object? memberInfoO = handler_obj.GetType().GetMember(handler_field);
-            if (memberInfoO == null)
-                throw new Exception($"Le type {handler_obj.GetType().FullName} n'a pas de delegate {handler_field}");
-            var memberInfos = (System.Reflection.MemberInfo[])memberInfoO;
-            var eventInfoO = memberInfos.GetValue(0);
-            if (eventInfoO is not FieldInfo eventInfo)
-                throw new Exception($"Le type {handler_obj.GetType().FullName} n'a pas de delegate {handler_field}");
+            var handlerDelegates = GetHandlerDelegate(handler_obj, handler_field, consumer_type, consumer_method, out FieldInfo? eventInfo, out MethodInfo? miHandler);
+            if (eventInfo == null || miHandler == null)
+                return;
+            if (handlerDelegates != null)
+            {
+                Delegate? handler = null;
 
+                foreach (var targetHandler in handlerDelegates.GetInvocationList())
+                    if (!(targetHandler.Target == consumer && targetHandler.Method.Name == consumer_method))
+                        handler = Delegate.Combine(handler, targetHandler);
 
-            var miHandler = consumer_type.GetMethod(consumer_method);
-            if (miHandler == null)
-                throw new Exception($"Le type '{consumer_type.FullName}' n'a pas de méthode {consumer_method}");
-            Delegate handler =
-                 Delegate.CreateDelegate(eventInfo.FieldType,
-                                         consumer,
-                                         miHandler);
-
-            //eventInfo.RemoveEventHandler(this, miHandler);
-            //TODO eventInfo.SetValue(handler_obj, handler);
+                eventInfo.SetValue(handler_obj, handler);
+            }
+            if (handler_obj is Process process)
+                PropertiesConsumersCacheReset(process, consumer_method);
 
         }
         /**
@@ -69,17 +84,143 @@ namespace MED
          */
         public static bool AddConsumer(IProvider provider, IConsumer consumer, string property = "ProcessState")
         {
-            RemoveHandler(provider, $"On{property}Changed", consumer, consumer.GetType(), $"{property}Changed");
+            RemoveConsumer(provider, consumer, property);
             AddHandler(provider, $"On{property}Changed", consumer, consumer.GetType(), $"{property}Changed");
 
             return true;
         }
+        /**
+         * 
+         */
+        public static bool RemoveConsumer(IProvider provider, IConsumer consumer, string property = "ProcessState")
+        {
+            RemoveHandler(provider, $"On{property}Changed", consumer, consumer.GetType(), $"{property}Changed");
 
+            return true;
+        }
+
+        #region _PropertiesDelegatesConsumers
+        public static void PropertiesConsumersCacheReset(Process provider, string propertyName = "")
+        {
+            if (provider._PropertiesDelegatesConsumers != null)
+            {
+                if (propertyName != "")
+                {
+                    if (propertyName.StartsWith("On"))
+                        propertyName = propertyName[2..];
+                    if (propertyName.EndsWith("Changed"))
+                        propertyName = propertyName[..^"Changed".Length];
+
+                    provider._PropertiesDelegatesConsumers.Remove(propertyName);
+                }
+                else
+                    provider._PropertiesDelegatesConsumers = null;
+            }
+        }
+        /**
+         * 
+         * */
+        public static void RemovePropertyDelegateConsumers(Process provider, string propertyName = "")
+        {
+            if (provider._PropertiesDelegatesConsumers != null)
+                if (propertyName != "")
+                    provider._PropertiesDelegatesConsumers.Remove(propertyName);
+                else
+                    provider._PropertiesDelegatesConsumers = [];
+        }
+        /**
+         * 
+         * */
+        public static void CleanPropertiesDelegatesConsumers(Process provider, string propertyName = "")
+        {
+            if (provider._PropertiesDelegatesConsumers == null)
+                return;
+            foreach (var kvp in GetPropertiesDelegatesConsumers(provider, propertyName).ToArray())
+            {
+                List<IProcess> processes = kvp.Value.Value;
+                foreach (var iProcess in processes.ToArray())
+                {
+                    if (iProcess == null)
+                        continue;
+                    if ((iProcess is Process process) && process.IsDisposed
+                        || (iProcess is Control control) && control.IsDisposed)
+                    {
+                        processes.Remove(iProcess);
+                        if (processes.Count == 0)
+                            provider._PropertiesDelegatesConsumers.Remove(propertyName);
+                    }
+                }
+            }
+        }
+
+        /**
+         * 
+         * */
+        public static KeyValuePair<MulticastDelegate, List<IProcess>> GetPropertyDelegateConsumers(Process provider, string propertyName = "", bool evenEmpty = true)
+        {
+            var dic = GetPropertiesDelegatesConsumers(provider, propertyName, evenEmpty);
+            if (dic.Count == 0)
+                return new();
+            return dic.First().Value;
+        }
+
+        /**
+         * 
+         * */
+        public static Dictionary<string, KeyValuePair<MulticastDelegate, List<IProcess>>> GetPropertiesDelegatesConsumers(Process provider, string propertyName = "", bool evenEmpty = true)
+        {
+            if (provider._PropertiesDelegatesConsumers != null)
+            {
+                if (propertyName != "")
+                {
+                    if (provider._PropertiesDelegatesConsumers.TryGetValue(propertyName, out KeyValuePair<MulticastDelegate, List<IProcess>> pair))
+                    {
+                        Dictionary<string, KeyValuePair<MulticastDelegate, List<IProcess>>> dic = [];
+                        dic.Add(propertyName, pair);
+                        return dic;
+                    }
+                }
+                else
+                    return provider._PropertiesDelegatesConsumers;
+            }
+            Dictionary<string, KeyValuePair<MulticastDelegate, List<IProcess>>> propertiesDelegatesConsumers = [];
+            foreach (var onChangedDelegate in GetOnChangedDelegates(provider, propertyName))
+            {
+                string prop = onChangedDelegate.GetMethodInfo().Name;
+                if (prop.StartsWith("On"))
+                    prop = prop[2..];
+                if (prop.EndsWith("Changed"))
+                    prop = prop[..^"Changed".Length];
+
+                List<IProcess>? consumers;
+                if ((consumers = GetOnChangedConsumers(onChangedDelegate)) != null || evenEmpty)
+                {
+                    consumers ??= [];
+                    KeyValuePair<MulticastDelegate, List<IProcess>> delegatesConsumers = new(onChangedDelegate, consumers);
+                    propertiesDelegatesConsumers.Add(prop, delegatesConsumers);
+                }
+            }
+            if (propertyName != "")
+            {
+                Dictionary<string, KeyValuePair<MulticastDelegate, List<IProcess>>> dic = [];
+
+                if (!propertiesDelegatesConsumers.TryGetValue(propertyName, out KeyValuePair<MulticastDelegate, List<IProcess>> pair))
+                    return dic;
+                dic.Add(propertyName, pair);
+
+                provider._PropertiesDelegatesConsumers ??= [];
+                provider._PropertiesDelegatesConsumers[propertyName] = dic.First().Value;
+                return dic;
+            }
+
+            return provider._PropertiesDelegatesConsumers = propertiesDelegatesConsumers;
+        }
+        #endregion
         /***
          * 
          * 
          * */
-        public static IProcess CreateProcess(JsonNode node, Performance? performance, Control? invokeHandler)
+        public static IProcess? CreateProcess(JsonNode node, Performance? performance, Control? invokeHandler)
         {
             string? processClass = node["ProcessClass"]?.GetValue<string>();
             string? processLib = node["ProcessLib"]?.GetValue<string>();
@@ -88,8 +229,9 @@ namespace MED
             {
                 throw new Exception($"Erreur dans la source JSON pour créer un process. Name et ProcessClass manquants. Chemin : {node.GetPath()}");
             }
-            bool isAsynchrone = (bool)(Parser.ObjectFromJsonNode(node["IsAsynchrone"], false) ?? false);
-
+            bool isAsynchrone = (bool)(Parser.ObjectFromJsonNode(node["IsAsynchrone"] ?? false, false) ?? false);
+            if (processClass == null || name == null)
+                return null;
             return CreateProcess(processClass, processLib, name, isAsynchrone, performance, invokeHandler);
         }
 
@@ -97,14 +239,14 @@ namespace MED
          * 
          * 
          * */
-        public static IProcess CreateProcess(string processClass, string? processLib, string name, bool isAsynchrone, Performance? performance, Control? invokeHandler)
+        public static IProcess? CreateProcess(string processClass, string? processLib, string name, bool isAsynchrone, Performance? performance, Control? invokeHandler)
         {
-
             if (processClass == "")
                 processClass = "MED.Process";
             if (processLib == null)
                 processLib = "";
-            return (IProcess)AssemblyLoader.CreateObjectInstance(processLib, processClass, [name, performance?.Sub(name), invokeHandler, null, isAsynchrone]);
+            object[] paramsObjects = [name, performance?.Sub(name), invokeHandler, null, isAsynchrone];
+            return (IProcess?)AssemblyLoader.CreateObjectInstance(processLib, processClass, paramsObjects);
         }
 
 
@@ -116,12 +258,13 @@ namespace MED
             List<MulticastDelegate> onChangedDelegates = new();
             foreach (var member in process.GetType().GetFields())
             {
-                if (!member.FieldType.BaseType.Equals(typeof(MulticastDelegate))) continue;
+                if (member.FieldType.BaseType == null
+                    || !member.FieldType.BaseType.Equals(typeof(MulticastDelegate))) continue;
                 if (propertyName == ""
                     || member.Name == $"On{propertyName}Changed"
                     || member.Name == $"{propertyName}Changed")
                 {
-                    MulticastDelegate del = (MulticastDelegate)(member.GetValue(process));
+                    MulticastDelegate? del = (MulticastDelegate?)(member.GetValue(process));
                     if (del == null)
                         if (propertyName != "")
                             return onChangedDelegates;
@@ -164,7 +307,7 @@ namespace MED
 
                 if (process == null)
                     _IsInvokingPropertyChanged.Clear();
-                else if (_IsInvokingPropertyChanged.ContainsKey(process))
+                else 
                     _IsInvokingPropertyChanged.Remove(process);
 
                 //Clean disposed
@@ -181,7 +324,7 @@ namespace MED
 
         public static void InvokePropertyChanged(IProcess? process, IProvider? sender, Delegate? delegateMethod, EventArgs? e)
         {
-            if (process == null || ((IProvider)process).InvokeHandler == null || ((IProvider)process).InvokeHandler.Disposing || ((IProvider)process).InvokeHandler.IsDisposed)
+            if (process is not IProvider provider || provider.InvokeHandler == null || provider.InvokeHandler.Disposing || provider.InvokeHandler.IsDisposed)
                 return;
             if (delegateMethod != null && process.IsRunning)
             {
@@ -206,28 +349,30 @@ namespace MED
                     foreach (var consumerDelegate in delegateMethod.GetInvocationList())
                     {
                         var consumer = consumerDelegate.Target as IConsumer;
+                        if (consumer == null)
+                            continue;
                         //IsAsynchrone but if next Consumer is also asynchrone
                         bool invoke = ((IConsumer)process).IsAsynchrone && !consumer.IsAsynchrone;
                         string invoke_str = invoke ? "Invoke" : "Call";
-
-                        if (((IProvider)(process)).InvokeHandler.Disposing || ((IProvider)process).InvokeHandler.IsDisposed
+                        var invokeHandler = ((IProvider)(process)).InvokeHandler;
+                        if (invokeHandler == null || invokeHandler.Disposing || invokeHandler.IsDisposed
                             || (consumerDelegate.Target is Control && ((Control)consumerDelegate.Target).IsDisposed)
                             || (consumerDelegate.Target is IProcess && ((IProcess)consumerDelegate.Target).IsDisposed)
                             )
                         {
-                            process.Performance.Alert($"IsDisposed ({consumer.GetType().Name}.{consumerDelegate.Method.Name})"
-                                + $"[InvokeHandler : {(process as IProvider).InvokeHandler.Disposing || (process as IProvider).InvokeHandler.IsDisposed}"
-                                + $", Target is Control : {(consumerDelegate.Target is Control && (consumerDelegate.Target as Control).IsDisposed)}"
-                                + $", Target is IProcess : {(consumerDelegate.Target is IProcess && (consumerDelegate.Target as IProcess).IsDisposed)}]");
+                            process.Performance?.Alert($"IsDisposed ({consumer.GetType().Name}.{consumerDelegate.Method.Name})"
+                                + $"[InvokeHandler : {invokeHandler == null || invokeHandler.Disposing || invokeHandler.IsDisposed}"
+                                + $", Target is Control : {(consumerDelegate.Target is Control targetControl && targetControl.IsDisposed)}"
+                                + $", Target is IProcess : {(consumerDelegate.Target is IProcess targetProcess && targetProcess.IsDisposed)}]");
                             continue;
                         }
                         if (invoke)
                         {
-                            process.Performance.Debug($"-> PInvoke({consumer.GetType().Name}.{consumerDelegate.Method.Name}, {process})");
+                            process.Performance?.Debug($"-> PInvoke({consumer.GetType().Name}.{consumerDelegate.Method.Name}, {process})");
 
-                            (process as IProvider).InvokeHandler.Invoke(consumerDelegate, process /*sender*/, e);
+                            invokeHandler.Invoke(consumerDelegate, process /*sender*/, e);
 
-                            process.Performance.Debug($"{invoke_str} done");
+                            process.Performance?.Debug($"{invoke_str} done");
                         }
                         else
                         {
@@ -263,11 +408,10 @@ namespace MED
                 {
                     lock (_IsInvokingPropertyChanged)
                     {
-                        if (_IsInvokingPropertyChanged.ContainsKey(process))
+                        if (_IsInvokingPropertyChanged.TryGetValue(process, out List<Delegate>? list))
                         {
-                            if (_IsInvokingPropertyChanged[process].Contains(delegateMethod))
-                                _IsInvokingPropertyChanged[process].Remove(delegateMethod);
-                            if (_IsInvokingPropertyChanged[process].Count == 0)
+                            list.Remove(delegateMethod);
+                            if (list.Count == 0)
                                 _IsInvokingPropertyChanged.Remove(process);
                         }
                     }
@@ -278,20 +422,20 @@ namespace MED
 
         public static IProcess? FindItem(IProcess processRef, string relativePath)
         {
-            IProcess processItem = processRef;
+            IProcess? processItem = processRef;
             foreach (var itemName in relativePath.Split('/'))
             {
                 if (itemName == "..")
                 {
-                    if (processItem is Process)
-                        processItem = (IProcess)((Process)processItem).Consumer;
+                    if (processItem is Process proc)
+                        processItem = proc.Consumer;
                     else
                         throw new Exception("Impossible de trouver le process parent");
                     continue;
                 }
                 bool found = false;
-                if (processItem is IProcesses)
-                    foreach (var item in ((IProcesses)processItem).Items)
+                if (processItem is IProcesses processesItem)
+                    foreach (var item in processesItem.Items)
                         if (item.Name == itemName)
                         {
                             found = true;

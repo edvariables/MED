@@ -30,15 +30,15 @@ namespace MED.Core
             MyProjectsDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), Namespace) + "\\Projects";
         }
 
-        private static ConcurrentDictionary<string, object> _values = new();
-        private static ConcurrentDictionary<string, object> _saveValues = new();
+        private static ConcurrentDictionary<string, object?> _values = new();
+        private static ConcurrentDictionary<string, object?> _saveValues = new();
         private static readonly bool _useCache = true;
 
         public static string Namespace
         {
             get
             {
-                return Assembly.GetExecutingAssembly().GetTypes().First().Namespace;
+                return Assembly.GetExecutingAssembly().GetTypes().First().Namespace ?? "";
             }
         }
         public const string ProcessFileExtension = ".medjson";
@@ -47,21 +47,21 @@ namespace MED.Core
         /**
          * Get section|setting
          * */
-        private static string GetCacheKey(string section, string setting)
+        private static string GetCacheKey(string? section, string setting)
         {
-            return (section == null ? "" : section) + "|" + setting;
+            return (section ?? "") + "|" + setting;
         }
 
         /**
          * Get section|setting
          * */
-        private static string[] ParseCacheKey(string cacheKey)
+        private static string?[] ParseCacheKey(string cacheKey)
         {
 
-            string[] path = cacheKey.Split('|');
+            string?[] path = cacheKey.Split('|');
             if (path.Length == 1)
             {
-                path.Append(cacheKey);
+                _ = path.Append(cacheKey);
                 path[0] = null;
             }
             else if (path[0] == "")
@@ -79,13 +79,12 @@ namespace MED.Core
 
             foreach (string cacheKey in _saveValues.Keys)
             {
-                object value = _saveValues[cacheKey];
-                string[] path = ParseCacheKey(cacheKey);
+                object? value = _saveValues[cacheKey];
+                string?[] path = ParseCacheKey(cacheKey);
 
-                string settingsPath, settingsFile;
-                string sectionPath = ParseSettingsPathSection(path[0], out settingsPath, out settingsFile);
+                string? sectionPath = ParseSettingsPathSection(path[0], out string settingsPath, out string settingsFile);
 
-                SaveValue(value == null ? "" : Parser.ObjectToString(value), path[1], sectionPath, settingsPath, settingsFile);
+                SaveValue(value == null ? "" : Parser.ObjectToString(value) ?? "", path[1] ?? "", sectionPath, settingsPath, settingsFile);
             }
             ClearCache();
         }
@@ -93,14 +92,14 @@ namespace MED.Core
         /**
          * TODO
          */
-        public static void SaveValue(object value, string item, string section, string settingsPath = "", string settingsFile = "")
+        public static void SaveValue(object? value, string item, string? section, string? settingsPath = "", string settingsFile = "")
         {
             switch (settingsFile)
             {
                 case "file":
                 default:
 
-                    IniFile.WriteValue(item, value == null ? "" : Parser.ObjectToString(value), section);
+                    IniFile.WriteValue(item, value == null ? "" : Parser.ObjectToString(value) ?? "", section);
 
                     break;
 
@@ -116,22 +115,23 @@ namespace MED.Core
             settingsPath = "";
             settingsFile = "";
             section = "";
-            string sectionItem = ParseSettingsPathSection(settingsPath, out settingsPath, out settingsFile);
-
+            string? sectionItem = ParseSettingsPathSection(settingsPath, out settingsPath, out settingsFile);
+            if (sectionItem == null)
+                return "";
             int sep;
             if ((sep = sectionItem.IndexOf('|')) == -1)
                 return sectionItem;
 
-            section = sectionItem.Substring(0, sep).Trim();
+            section = sectionItem[..sep].Trim();
 
-            return sectionItem.Substring(sep + 1).Trim();
+            return sectionItem[(sep + 1)..].Trim();
         }
 
         /**
          * ParseSettingsPathSection
          * Parse [file:]path:section
          * */
-        public static string ParseSettingsPathSection(in string section, out string settingsPath, out string settingsFile)
+        public static string? ParseSettingsPathSection(in string? section, out string settingsPath, out string settingsFile)
         {
 
             settingsPath = "";
@@ -157,10 +157,10 @@ namespace MED.Core
             return section.Substring(sep + 1).Trim();
         }
 
-        public static void ClearCache(bool saveValues = true, bool values = true, string section = null)
+        public static void ClearCache(bool saveValues = true, bool values = true, string? section = null)
         {
             string settingsPath, settingsFile;
-            string sectionPath = ParseSettingsPathSection(section, out settingsPath, out settingsFile);
+            string? sectionPath = ParseSettingsPathSection(section, out settingsPath, out settingsFile);
 
 
             if (saveValues)
@@ -171,8 +171,7 @@ namespace MED.Core
                     foreach (var kvp in _saveValues)
                         if (kvp.Key.StartsWith(pattern))
                         {
-                            object value = kvp.Value;
-                            _saveValues.Remove(kvp.Key, out value);
+                            _saveValues.Remove(kvp.Key, out _);
                         }
                 }
                 else
@@ -187,8 +186,7 @@ namespace MED.Core
                     foreach (var kvp in _values)
                         if (kvp.Key.StartsWith(pattern))
                         {
-                            object value = kvp.Value;
-                            _values.Remove(kvp.Key, out value);
+                            _values.Remove(kvp.Key, out _);
                         }
                 }
                 else
@@ -199,15 +197,16 @@ namespace MED.Core
         /**
          * Get value from INI, Settings or Cache
          * */
-        public static object GetValue(string setting, string section = null, object default_value = null)
+        public static object? GetValue(string setting, string? section = null, object? default_value = null)
         {
             string key = GetCacheKey(section, setting);
             if (_useCache
-                && _values.ContainsKey(key))
-                return _values[key];
-            object value = IniFile.ReadValue(setting, section, default_value == null ? "" : default_value?.ToString());
-            value = Parser.ObjectFromString((string)value, default_value);
+                && _values.TryGetValue(key, out object? obj))
+                return obj;
+            object? value = IniFile.ReadValue(setting, section, default_value == null ? "" : default_value?.ToString());
+            value = Parser.ObjectFromString((string?)value, default_value);
             if (_useCache
+                && value != null
                 && !_values.ContainsKey(key))
                 _values.TryAdd(key, value);
             return value;
@@ -215,7 +214,7 @@ namespace MED.Core
         /**
          * Set value
          * */
-        public static void SetValue(string setting, string section = null, object set_value = null)
+        public static void SetValue(string setting, string? section = null, object? set_value = null)
         {
             if (_useCache)
             {
@@ -232,7 +231,7 @@ namespace MED.Core
             }
             else
             {
-                IniFile.WriteValue(setting, Parser.ObjectToString(set_value), section);
+                IniFile.WriteValue(setting, Parser.ObjectToString(set_value) ?? "", section);
             }
         }
 

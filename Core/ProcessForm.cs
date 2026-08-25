@@ -129,8 +129,7 @@ namespace MED
 
         public virtual JsonObject SaveProcess(JsonObject? node = null)
         {
-            if (node == null)
-                node = new JsonObject();
+            node ??= [];
             node["ProcessClass"] = this.GetType().FullName;
             node["Name"] = Name;
             node["IsAsynchrone"] = IsAsynchrone;
@@ -170,20 +169,20 @@ namespace MED
 
         public static ProcessForm? FindProcessForm(IProcess proc)
         {
-            if (proc is ProcessForm)
-                return (ProcessForm)proc;
+            if (proc is ProcessForm processForm)
+                return processForm;
             if (proc is IProcesses)
-                if (((Process)proc).InvokeHandler is ProcessForm)
-                    return (ProcessForm?)((Process)proc).InvokeHandler;
+                if (((Process)proc).InvokeHandler is ProcessForm invokeHandlerForm)
+                    return invokeHandlerForm;
 
-            if (proc is IProvider)
-                if (((IProvider)proc).InvokeHandler is ProcessForm)
-                    return (ProcessForm?)(((IProvider)proc).InvokeHandler);
-                else if (((IProvider)proc).InvokeHandler is Control)
+            if (proc is IProvider provider)
+                if (provider.InvokeHandler is ProcessForm invokeHandlerForm)
+                    return invokeHandlerForm;
+                else if (((IProvider)proc).InvokeHandler is Control invokeHandlerControl)
                 {
-                    var f = ((IProvider)proc).InvokeHandler?.FindForm();
-                    if (f is ProcessForm)
-                        return (ProcessForm)f;
+                    var f = invokeHandlerControl.FindForm();
+                    if (f is ProcessForm processForm1)
+                        return processForm1;
                 }
 
             return null;

@@ -14,7 +14,7 @@ namespace MED.Imaging
 {
     public class ScreenSplitter : ImageProcess
     {
-        public ScreenSplitter(string name = "ScreenSplitter", Performance performance = null, Control invokeHandler = null, IImageConsumer imageConsumer = null, bool isAsynchrone = false)
+        public ScreenSplitter(string name = "ScreenSplitter", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = false)
             : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
         {
             ImageIsProvided = false;
@@ -63,10 +63,10 @@ namespace MED.Imaging
          * GetImage
          * 
          * */
-        public override Bitmap? GetImage(IImageProvider provider = null)
+        public override Bitmap? GetImage(IImageProvider? provider = null)
         {
             Performance?.Resume($"Make Image from {ImageProviders.Count}", true);
-            Bitmap image;
+            Bitmap? image;
             Size size = ImageSizeMin;
             if (size.IsEmpty)
             {

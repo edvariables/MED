@@ -20,14 +20,15 @@ namespace MED
         [Browsable(true)]
         public virtual Size ImageSizeMin { get; protected set; }
 
-        public virtual void LoadSettings(ProcessSettings? processSettings = null, string fileName = "")
+        public override void LoadSettings(ProcessSettings? settings = null, string fileName = "")
         {
-            base.LoadSettings(processSettings, fileName);
-
-            ImageSizeMin = (Size)ProcessSettings.GetValue("ImageSizeMin", ImageSizeMin);
+            base.LoadSettings(settings, fileName);
+            if (settings == null && (settings = ProcessSettings) == null)
+                return;
+            ImageSizeMin = (Size)(settings.GetValue("ImageSizeMin", ImageSizeMin)?? ImageSizeMin);
         }
 
-        public virtual JsonObject SaveProcess(JsonObject? node = null)
+        public override JsonObject SaveProcess(JsonObject? node = null)
         {
             if (node == null)
                 node = new JsonObject();
@@ -49,7 +50,7 @@ namespace MED
             if (this.Disposing || this.IsDisposed || !IsRunning)
                 return;
 
-            Performance.Debug($"ImageChanged from {sender.ToString()}");
+            Performance?.Debug($"ImageChanged from {sender.ToString()}");
 
             if (RenderPictureBox != null)
                 Imaging.Render.RefreshRender(sender, RenderPictureBox, Performance, e);

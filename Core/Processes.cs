@@ -20,7 +20,7 @@ namespace MED
             : base(name == null || name == "" ? "MED.Project" : name, performance, invokeHandler, consumer, isAsynchrone)
         {
             ProcessIcon = ProcessIconDefault = "tree";
-            Items = new();
+            Items = [];
         }
         public override void Dispose()
         {
@@ -46,12 +46,10 @@ namespace MED
                     foreach (var proc in Items)
                         if (proc == null)
                             continue;
-                        else if (proc is Process && ((Process)proc).Performance != null)
-#pragma warning disable CS8602 // Déréférencement d'une éventuelle référence null.
-                            ((Process)proc).Performance.Logger = _Logger;
-#pragma warning restore CS8602 // Déréférencement d'une éventuelle référence null.
-                        else if (proc is ProcessForm)
-                            ((ProcessForm)proc).Logger = _Logger;
+                        else if (proc is Process process && process.Performance != null)
+                            process.Performance.Logger = _Logger;
+                        else if (proc is ProcessForm processForm)
+                            processForm.Logger = _Logger;
             }
         }
 
@@ -73,11 +71,8 @@ namespace MED
 
         public override void SaveSettings(ProcessSettings? settings = null, string fileName = "")
         {
-            if (settings == null)
-                settings = ProcessSettings;
-
-            if (settings == null)
-                settings = ProcessSettings = new ProcessSettings(fileName);
+            settings ??= ProcessSettings;
+            settings ??= ProcessSettings = new ProcessSettings(fileName);
 
             SaveProcesses(settings);
 
@@ -136,7 +131,7 @@ namespace MED
             JsonObject nodes;
             if (processesSettings.Root is JsonArray)
             {//Compatibility
-                nodes = new();
+                nodes = [];
                 foreach (var procNode in processesSettings.Root.AsArray())
                     nodes.Add(nodes.Count.ToString(), procNode?.DeepClone());
             }
@@ -147,19 +142,21 @@ namespace MED
                 return;
 
             DisposeProcesses();
-            Items = new();
+            Items = [];
 
             Items.Clear();
             var itemsNodes = new Dictionary<IProcess, JsonNode>();
-            foreach (var (nodeName, procNode) in nodes.ToArray())
+            foreach (var (_, procNode) in nodes.ToArray())
             {
                 if (procNode == null)
                     continue;
                 try
                 {
-                    IProcess item = ProcessStatic.CreateProcess(procNode, Performance, InvokeHandler);
-                    if (item is Process)
-                        ((Process)item).Consumer = this.Consumer ?? this;
+                    IProcess? item = ProcessStatic.CreateProcess(procNode, Performance, InvokeHandler);
+                    if (item == null)
+                        continue;
+                    if (item is Process process)
+                        process.Consumer = this.Consumer ?? this;
                     item.LoadSettings(processesSettings.ChildSettings(item.Name));
 
                     Items.Add(item);
@@ -167,7 +164,7 @@ namespace MED
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(ex.ToString(), $"Création de {procNode.ToString()}", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(ex.ToString(), $"Création de {procNode}", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
             foreach (var kvp in itemsNodes)
@@ -233,7 +230,7 @@ namespace MED
             }
 
             if (Items == null)
-                Items = new();
+                Items = [];
             else
                 Items.Clear();
         }
@@ -294,7 +291,7 @@ namespace MED
         {
             base.Resume();
 
-            if (IsRunning && Items!=null)
+            if (IsRunning && Items != null)
                 foreach (var item in Items)
                     item.Resume();
 
@@ -361,10 +358,10 @@ namespace MED
         public override Dictionary<string, object>? Undo(int length = 1)
         {
             var dic = base.Undo(length);
-            if (dic != null && dic.ContainsKey("_UndoStackId"))
+            if (dic != null && dic.TryGetValue("_UndoStackId", out object? undoStackId))
             {
                 Performance?.Sub(".Stack").Step($"...........................................................");
-                Performance?.Sub(".Stack").Step($"........................  Undo #{dic["_UndoStackId"]} ..............................");
+                Performance?.Sub(".Stack").Step($"........................  Undo #{undoStackId} ..............................");
             }
 
             foreach (var item in Items)
