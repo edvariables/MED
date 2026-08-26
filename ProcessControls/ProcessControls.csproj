@@ -12,6 +12,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Core\Core.csproj" />
     <ProjectReference Include="..\EDJoystick\EDJoystick.csproj" />
+    <ProjectReference Include="..\GameController\GameController.csproj" />
     <ProjectReference Include="..\Imaging\Imaging.csproj" />
   </ItemGroup>
 

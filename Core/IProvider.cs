@@ -13,13 +13,18 @@ namespace MED
      * */
     public interface IProvider: IProcess
     {
-
         [Browsable(false)]
         Control? InvokeHandler { get; set; }
 
-        bool AddConsumer(IConsumer consumer, string property);
-        bool RemoveConsumer(IConsumer consumer, string property);
-        void InvokePropertyChanged(IProvider sender, Delegate delegateMethod, EventArgs e);
+        bool AddConsumer(IConsumer consumer, string property, MulticastDelegate? consumerDelegate = null);
+        bool RemoveConsumer(IConsumer consumer, string property, MulticastDelegate? consumerDelegate = null);
+        void InvokePropertyChanged(IProvider sender, Delegate delegateMethod, EventArgs e, string? propertyDomain = null);
         bool IsInvokingPropertyChanged(Delegate delegateMethod);
+    }
+
+    public class PropertyChangedEventArgs(string property, object? value) : EventArgs
+    {
+        public string Property = property;
+        public object? Value = value;
     }
 }

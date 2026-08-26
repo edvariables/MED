@@ -4,6 +4,7 @@ using Emgu.CV;
 using MED.Core;
 using MED.EDJoystick;
 using MED.EDWebCam;
+using MED.GameController;
 using MED.Imaging;
 using MED.Properties;
 using Microsoft.Win32;
@@ -29,12 +30,15 @@ namespace MED
         private int childFormNumber = 0;
         public static FStudio? Current { get; private set; }
 
+        public bool FormIsClosing = false;
+
         public FStudio()
         {
             InitializeComponent();
 
             Project.Name = Name = "Studio";
             Project.ProcessIcon = "MED";
+            Project.Performance = new(Name);
 
             ActiveProcessChanged(null);
 
@@ -53,6 +57,8 @@ namespace MED
 
         private void FStudio_FormClosing(object sender, FormClosingEventArgs e)
         {
+            FormIsClosing = true;
+
             SaveSettings();
         }
 
@@ -184,12 +190,15 @@ namespace MED
             {
                 FLogger.Current.Show();
                 FLogger.Current.SizeChanged += FormChild_SizeChanged;
+                Performance.Logger = FLogger.Current.Logger;
             }
             if (FProperties.Current != null)
             {
                 FProperties.Current.SizeChanged += FormChild_SizeChanged;
                 FProperties.Current.ShowProperties((object[])[this.Project]);
             }
+
+            LoadKeyboardHandler();
         }
 
         public void LoadLastProcess()
@@ -397,6 +406,69 @@ namespace MED
             }
         }
 
+        #region Keyboard
+
+        private void LoadKeyboardHandler()
+        {
+            KeyboardController = new("Keyboard keys", Performance?.Sub("Keyboard"), this);
+            KeyboardController.UsagePropertiesMap.Add("Start", "F5", typeof(bool));
+            KeyboardController.UsagePropertiesMap.Add("Pause", "F10", typeof(bool));
+            KeyboardController.UsagePropertiesMap.Add("StepPrevious", "Shift+F10", typeof(bool));
+            KeyboardController.AddConsumer(this, "Start", KeyboardController_OnPropertyChanged);
+            KeyboardController.AddConsumer(this, "Pause", KeyboardController_OnPropertyChanged);
+            KeyboardController.AddConsumer(this, "StepPrevious", KeyboardController_OnPropertyChanged);
+
+            KeyboardController.Start();
+
+            Project.Items.Add(KeyboardController);
+        }
+
+        private GameController.KeyboardController? KeyboardController;
+        private void KeyboardController_OnPropertyChanged(GameController.GameController sender, PropertyChangedEventArgs e)
+        {
+            //Performance?.Debug($"KeyboardController_OnPropertyChanged({e.Property} {e.Value})");
+            //FLogger.Current?.RefreshProgress(this);
+
+            var activeProcess = ActiveProcess;
+            if (activeProcess == null || (e.Value is not bool b) || b == false)
+                return;
+            if (e.Property == "Start")
+            {
+                if (!activeProcess.IsRunning)
+                    activeProcess.Start();
+                else if (activeProcess.IsPaused)
+                    activeProcess.Resume();
+                else
+                    activeProcess.Stop();
+
+            }
+            else if (e.Property == "Pause")
+            {
+                if (!activeProcess.IsRunning)
+                {
+                    btnProcessStartOneStep.Checked = true;
+                    activeProcess.Start();
+                }
+                else if (activeProcess.IsPaused)
+                    activeProcess.Resume();
+                else
+                    activeProcess.Pause();
+
+            }
+            else if (e.Property == "StepPrevious")
+            {
+                if (!activeProcess.IsPaused)
+                {
+                    btnProcessStepPrevious.Checked = !btnProcessStepPrevious.Checked;
+                }
+                else
+                {
+                    btnProcessStepPrevious_Click(sender, e);
+                }
+
+            }
+        }
+        #endregion
 
         #region Processes
 
@@ -513,7 +585,8 @@ namespace MED
                     return _active_Process = (this.ActiveMdiChild as IProcess);
                 }
 
-                if (_active_Process is ProcessForm activeProcess
+                if (!FormIsClosing
+                    && _active_Process is ProcessForm activeProcess
                     && activeProcess.IsDisposed)
                 {
                     var type = activeProcess.GetType();
@@ -523,6 +596,8 @@ namespace MED
             }
             set
             {
+                if (FormIsClosing)
+                    return;
                 _active_Process = value;
                 if (_active_Process != null)
                     if (_active_Process is Form)
@@ -537,7 +612,7 @@ namespace MED
          * */
         private void ActiveProcessChanged(IProcess? sender, System.Threading.ThreadState state = System.Threading.ThreadState.Unstarted)
         {
-            if (sender == null)
+            if (sender == null || this.IsDisposed)
             {
                 btnProcessStart.Enabled = false;
                 btnProcessPause.Enabled = false;

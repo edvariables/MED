@@ -1,10 +1,14 @@
-﻿using MED.Imaging;
+﻿using Emgu.CV.Aruco;
+using MED.Core;
+using MED.Imaging;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Configuration;
 using System.Data;
 using System.Drawing;
+using System.Dynamic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -37,6 +41,7 @@ namespace MED
             ProcessClasses.Add("Background", typeof(MED.Imaging.Background).FullName ?? "");
             ProcessClasses.Add("Gravity", typeof(MED.Imaging.Gravity).FullName ?? "");
             ProcessClasses.Add("ImageSourced", typeof(MED.Imaging.ImageSourced).FullName ?? "");
+            ProcessClasses.Add("Keyboard", typeof(MED.GameController.KeyboardController).FullName ?? "");
             //ProcessClasses.Add("Ball", (typeof(MED.Imaging.ImageMover).FullName ?? "") + "(ImageFile=../Movers/Ball.*.png;)");
 
             contextMenuAddProcess.Items.Clear();
@@ -95,23 +100,30 @@ namespace MED
         /**
          * 
          */
-        private void ShowNodeProperties(object? node)
+        private void ShowNodeProperties(object? nodeItem)
         {
-            if (node == null)
+            if (nodeItem == null)
                 return;
 
-            if (node is TreeNode)
-                node = ((TreeNode)node).Tag;
+            if (nodeItem is TreeNode node)
+                nodeItem = node.Tag;
 
             object currentObject = propertyGrid.SelectedObject;
             cboObjectsList.Items.Clear();
-            if (node == null)
+            if (nodeItem == null)
                 return;
-            if (node is IProcess)
-                cboObjectsList.Items.AddRange(((IProcess)node).ObjectsProperties.Values.ToArray());
 
-            if (!cboObjectsList.Items.Contains(node))
-                cboObjectsList.Items.Insert(0, node);
+            bool containsNode = false;
+            if (nodeItem is IProcess iProcess)
+                foreach (var props in iProcess.ObjectsProperties)
+                {
+                    cboObjectsList.Items.Add(new KeyValuePair<string, object>(props.Key, props.Value));
+                    if (props.Value.Equals(nodeItem))
+                        containsNode = true;
+                }
+
+            if (!containsNode)
+                cboObjectsList.Items.Insert(0, nodeItem);
 
             if (cboObjectsList.Items.Count > 0)
             {
@@ -148,7 +160,15 @@ namespace MED
             if (cboObjectsList.SelectedIndex == -1)
                 propertyGrid.SelectedObject = null;
             else
-                propertyGrid.SelectedObject = cboObjectsList.Items[cboObjectsList.SelectedIndex];
+            {
+                var obj = cboObjectsList.Items[cboObjectsList.SelectedIndex];
+                if (obj is KeyValuePair<string, object> pair)
+                    obj = pair.Value;
+                //if (obj is IEnumerable collection)
+                //    obj = Parser.ConvertToExpando(collection);
+
+                propertyGrid.SelectedObject = obj;
+            }
         }
 
         private void cmdRefresh_Click(object sender, EventArgs e)
@@ -178,8 +198,8 @@ namespace MED
             {
                 toolStripMenuProcAdd.Visible = e.Node.Tag != null;
                 toolStripMenuProcRemove.Visible = e.Node.Tag != null;
-                toolStripMenuItemMoveBefore.Visible = e.Node.Tag != null && e.Node.Index > 0;
-                toolStripMenuItemMoveAfter.Visible = e.Node.Tag != null && e.Node.Index < e.Node.Parent.Nodes.Count - 1;
+                toolStripMenuItemMoveBefore.Visible = e.Node.Tag != null && e.Node.Parent != null && e.Node.Index > 0;
+                toolStripMenuItemMoveAfter.Visible = e.Node.Tag != null && e.Node.Parent != null && e.Node.Index < e.Node.Parent.Nodes.Count - 1;
                 processesControl1.SelectedNode = e.Node;
                 contextMenuProcesses.Show((Control)sender, e.Location);
             }

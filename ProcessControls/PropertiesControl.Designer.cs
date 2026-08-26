@@ -70,6 +70,8 @@
             cboObjectsList.Size = new Size(235, 23);
             cboObjectsList.TabIndex = 1;
             cboObjectsList.SelectedIndexChanged += cboObjectsList_SelectedIndexChanged;
+            cboObjectsList.DisplayMember = "Key";
+            cboObjectsList.ValueMember = "Value";
             // 
             // panCboObjects
             // 

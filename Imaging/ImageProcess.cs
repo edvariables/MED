@@ -84,13 +84,13 @@ namespace MED.Imaging
 
         [Browsable(true)]
         [Category("Process")]
-        public List<IProcess> ImageConsumers { get => GetConsumers("Image"); }
+        public List<IProcess> ImageConsumers { get => GetConsumers("Image").Keys.ToList(); }
 
         [Browsable(true)]
         [Category("Process")]
-        public List<IProcess> FrameConsumers { get => GetConsumers("Frame"); }
+        public List<IProcess> FrameConsumers { get => GetConsumers("Frame").Keys.ToList(); }
 
-        public override bool AddConsumer(IConsumer consumer, string property = "ProcessState") => base.AddConsumer(consumer, property);
+        public override bool AddConsumer(IConsumer consumer, string property = "ProcessState", MulticastDelegate? consumerDelegate = null) => base.AddConsumer(consumer, property, consumerDelegate);
 
         [Category("Process")]
         public override Dictionary<string, object> ObjectsProperties
@@ -360,7 +360,7 @@ namespace MED.Imaging
             foreach (var propertyName in properties)
             {
                 JsonArray jsonCons = new JsonArray();
-                foreach (var consumer in GetConsumers(propertyName))
+                foreach (var (consumer, consumerDelegate) in GetConsumers(propertyName))
                 {
                     JsonObject item = new();
 

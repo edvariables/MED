@@ -50,6 +50,8 @@ namespace MED.EDJoystick
         {
             using var curProcess = System.Diagnostics.Process.GetCurrentProcess();
             using var curModule = curProcess.MainModule;
+            if (curModule == null)
+                return IntPtr.Zero;
             var handle = GetModuleHandle(curModule.ModuleName);
             return SetWindowsHookEx(WH_KEYBOARD_LL, proc, handle, 0);
         }

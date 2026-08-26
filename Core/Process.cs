@@ -27,7 +27,7 @@ namespace MED
 
             Name = name;
 
-            Performance = performance?? MED.Performance.Empty();
+            Performance = performance ?? MED.Performance.Empty();
 
         }
 
@@ -63,14 +63,14 @@ namespace MED
          * Delegates ans consumers
          * 
          * */
-        public virtual bool AddConsumer(IConsumer consumer, string property = "ProcessState") => ProcessStatic.AddConsumer(this, consumer, property);
+        public virtual bool AddConsumer(IConsumer consumer, string property = "ProcessState", MulticastDelegate? consumerDelegate = null) => ProcessStatic.AddConsumer(this, consumer, property, consumerDelegate);
 
-        public virtual bool RemoveConsumer(IConsumer consumer, string property) => ProcessStatic.RemoveConsumer(this, consumer, property);
+        public virtual bool RemoveConsumer(IConsumer consumer, string property, MulticastDelegate? consumerDelegate = null) => ProcessStatic.RemoveConsumer(this, consumer, property, consumerDelegate);
 
         /**
          * 
          * */
-        protected List<IProcess> GetConsumers(string propertyName = "") => GetPropertyDelegateConsumers(propertyName).Value ?? [];
+        protected Dictionary<IProcess, Delegate> GetConsumers(string propertyName = "") => GetPropertyDelegateConsumers(propertyName).Value ?? [];
 
         /**
          * 
@@ -91,9 +91,9 @@ namespace MED
         /**
          * 
          * */
-        protected List<IProcess>? GetOnChangedConsumers(string propertyName = "") => ProcessStatic.GetOnChangedConsumers(GetOnChangedDelegate(propertyName));
+        protected Dictionary<IProcess, Delegate>? GetOnChangedConsumers(string propertyName = "") => ProcessStatic.GetOnChangedConsumers(GetOnChangedDelegate(propertyName));
 
-        protected List<IProcess>? GetOnChangedConsumers(MulticastDelegate onChangedDelegate) => ProcessStatic.GetOnChangedConsumers(onChangedDelegate);
+        protected Dictionary<IProcess, Delegate>? GetOnChangedConsumers(MulticastDelegate onChangedDelegate) => ProcessStatic.GetOnChangedConsumers(onChangedDelegate);
 
         /**
          * 
@@ -109,7 +109,8 @@ namespace MED
          * _PropertiesDelegatesConsumers
          * See ProcessStatic.PropertiesConsumersCacheReset()
          * */
-        internal Dictionary<string, KeyValuePair<MulticastDelegate, List<IProcess>>>? _PropertiesDelegatesConsumers;
+        internal Dictionary<string, KeyValuePair<MulticastDelegate, Dictionary<IProcess, Delegate>>>? _PropertiesDelegatesConsumers;
+
         /**
          * 
          * */
@@ -122,11 +123,11 @@ namespace MED
         /**
          * 
          * */
-        public KeyValuePair<MulticastDelegate, List<IProcess>> GetPropertyDelegateConsumers(string propertyName = "", bool evenEmpty = true) => ProcessStatic.GetPropertyDelegateConsumers(this, propertyName, evenEmpty);
+        public KeyValuePair<MulticastDelegate, Dictionary<IProcess, Delegate>> GetPropertyDelegateConsumers(string propertyName = "", bool evenEmpty = true) => ProcessStatic.GetPropertyDelegateConsumers(this, propertyName, evenEmpty);
         /**
          * 
          * */
-        public Dictionary<string, KeyValuePair<MulticastDelegate, List<IProcess>>> GetPropertiesDelegatesConsumers(string propertyName = "", bool evenEmpty = true) => ProcessStatic.GetPropertiesDelegatesConsumers(this, propertyName, evenEmpty);
+        public Dictionary<string, KeyValuePair<MulticastDelegate, Dictionary<IProcess, Delegate>>> GetPropertiesDelegatesConsumers(string propertyName = "", bool evenEmpty = true) => ProcessStatic.GetPropertiesDelegatesConsumers(this, propertyName, evenEmpty);
 
         /***
          * Invoke
@@ -135,7 +136,7 @@ namespace MED
 
         public bool IsInvokingPropertyChanged(Delegate delegateMethod) => ProcessStatic.IsInvokingPropertyChanged(this, delegateMethod);
 
-        public virtual void InvokePropertyChanged(IProvider? sender, Delegate? delegateMethod, EventArgs? e) => ProcessStatic.InvokePropertyChanged(this, sender, delegateMethod, e);
+        public virtual void InvokePropertyChanged(IProvider? sender, Delegate? delegateMethod, EventArgs? e, string? propertyDomain = null) => ProcessStatic.InvokePropertyChanged(this, sender, delegateMethod, e, propertyDomain);
 
         public void AddHandler(string handler_field, IConsumer consumer, Type consumer_type, string consumer_method) => ProcessStatic.AddHandler(this, handler_field, consumer, consumer_type, consumer_method);
 
@@ -338,7 +339,7 @@ namespace MED
 
             UndoClear();
 
-            ProcessStatic.InvokePropertyChangedReset(this);
+            ProcessStatic.InvokingPropertyChangedReset(this);
 
             //Override next :
             /*

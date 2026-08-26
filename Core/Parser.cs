@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -116,7 +119,46 @@ namespace MED.Core
         public static string? SizeToPretty(Size size) => ObjectToString(size)?.Replace(",", " x ");
         public static Size SizeFromPretty(string size)
         {
-            return (Size)(ObjectFromString(size.Replace("x", ","), typeof(Size))??Size.Empty);
+            return (Size)(ObjectFromString(size.Replace("x", ","), typeof(Size)) ?? Size.Empty);
         }
+
+
+        //public static dynamic ConvertToExpando(IEnumerable collection)
+        //{
+        //    dynamic expando = new ExpandoObject();
+        //    var expandoDict = (IDictionary<string?, object?>)expando; // Cast to dictionary for easy access
+
+        //    int index = 0;
+        //    foreach (var item in collection)
+        //    {
+        //        var itemType = item.GetType();
+        //        string? key;
+        //        object? value;
+        //        if (itemType.Name.StartsWith("KeyValuePair"))
+        //        {
+        //            PropertyInfo? propertyInfo;
+        //            propertyInfo = itemType.GetProperty("Key");
+        //            if (propertyInfo == null)
+        //                continue;
+        //            value = propertyInfo.GetValue(item);
+        //            if (value == null)
+        //                continue;
+        //            key = value.ToString();
+        //            propertyInfo = itemType.GetProperty("Value");
+        //            if (propertyInfo == null)
+        //                continue;
+        //            value = propertyInfo.GetValue(item);
+        //        }
+        //        else
+        //        {
+        //            key = index.ToString();
+        //            value = item;
+        //        }
+        //        expandoDict[key] = value;
+
+        //        index++;
+        //    }
+        //    return expando;
+        //}
     }
 }

@@ -21,10 +21,8 @@ namespace MED
         {
             Text = Name = name;
 
-#pragma warning disable CS8622 // La nullabilité des types référence dans le type du paramètre ne correspond pas au délégué cible (probablement en raison des attributs de nullabilité).
             this.FormClosed += Form_FormClosed;
             this.DockChanged += ProcessForm_DockChanged;
-#pragma warning restore CS8622 // La nullabilité des types référence dans le type du paramètre ne correspond pas au délégué cible (probablement en raison des attributs de nullabilité).
 
             Project = new(name, null, this, this);
 
@@ -41,7 +39,7 @@ namespace MED
                 this.ProcessForm_WindowStateChanged(this, EventArgs.Empty);
         }
 
-        protected virtual void Form_FormClosed(object sender, FormClosedEventArgs e)
+        protected virtual void Form_FormClosed(object? sender, FormClosedEventArgs e)
         {
             Stop();
             Project.Dispose();
@@ -85,7 +83,7 @@ namespace MED
         }
 
         private Size DockedSize;
-        private void ProcessForm_DockChanged(object sender, EventArgs e)
+        private void ProcessForm_DockChanged(object? sender, EventArgs e)
         {
             if (MdiParent == null)
                 return;

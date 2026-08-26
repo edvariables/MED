@@ -158,11 +158,11 @@ namespace MED
         {
             Core.Settings.ClearCache(true, true, this.Name);
 
-            chkClearLogOnRun.Checked = (bool)Core.Settings.GetValue("ClearLogOnRun", this.Name, chkClearLogOnRun.Checked);
+            chkClearLogOnRun.Checked = (bool)(Core.Settings.GetValue("ClearLogOnRun", this.Name, chkClearLogOnRun.Checked)?? chkClearLogOnRun.Checked);
 
-            logFileName = (string)Core.Settings.GetValue("FLogger.FileName", this.Name, logFileName);
+            logFileName = (string)(Core.Settings.GetValue("FLogger.FileName", this.Name, logFileName)?? logFileName);
 
-            Height = (int)Core.Settings.GetValue("FLogger.Height", this.Name, Height);
+            Height = (int)(Core.Settings.GetValue("FLogger.Height", this.Name, Height)?? Height);
             if (Height < 20)
                 Height = 20;
         }

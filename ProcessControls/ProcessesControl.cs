@@ -270,19 +270,19 @@ namespace MED
                         items = items.Reverse().ToArray<object>();
                     AddItems(items, node.Nodes);
                 }
-                if (item is IProcess)
+                if (item is IProcess iProcess)
                 {
                     //AddItems((item as IProcess).ObjectsProperties.Values.ToArray(), node.Nodes);
-                    foreach (var kvp in ((IProcess)item).ObjectsProperties)
+                    foreach (var kvp in iProcess.ObjectsProperties)
                     {
                         if (kvp.Value != null
-                            && kvp.Value is List<IProcess>
-                            && ((List<IProcess>)kvp.Value).Count > 0
-                            && ((List<IProcess>)kvp.Value).First() != item)
+                            && kvp.Value is List<IProcess> list
+                            && list.Count > 0
+                            && list.First() != item)
                         {
                             var subNode = node.Nodes.Add(kvp.Key);
                             subNode.SelectedImageKey = subNode.ImageKey = "next_blue";
-                            AddItems(((List<IProcess>)kvp.Value).ToArray(), subNode.Nodes, false);
+                            AddItems(list.ToArray(), subNode.Nodes, false);
                         }
                         //else if (kvp.Value is IConsumer)
                         //{
