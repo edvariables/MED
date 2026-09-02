@@ -54,7 +54,7 @@ namespace MED.Imaging
         [EditorAttribute(typeof(FileNameEditor), typeof(UITypeEditor))]
         [ReadOnly(false)]
         [Category("Image")]
-        public string ImageFile
+        public virtual string ImageFile
         {
             get => _ImageFile;
             set

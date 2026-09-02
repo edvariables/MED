@@ -139,6 +139,9 @@ namespace MED.GameController
         #region Process
         public override void Start()
         {
+            if (!Enabled)
+                return;
+
             if (InvokeHandler == null)
             {
                 Performance?.Debug("InvokeHandler is null");

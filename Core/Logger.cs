@@ -65,7 +65,7 @@ namespace MED
             }
         }
 
-        public bool IsNull => throw new NotImplementedException();
+        public bool IsNull => false;
 
         /**
          * 
@@ -84,7 +84,7 @@ namespace MED
         public void InvokeBufferChanged(object sender, EventArgs e)
         {
             if (BufferLength > 0 && OnBufferChanged != null)
-                OnBufferChanged(this, EventArgs.Empty);
+                OnBufferChanged(this, e);
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Emgu.CV.Aruco;
+﻿using DynamicData;
+using Emgu.CV.Aruco;
 using MED.Core;
 using MED.Imaging;
 using System;
@@ -14,6 +15,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml.Linq;
+using static System.ComponentModel.Design.ObjectSelectorEditor;
 
 namespace MED
 {
@@ -36,8 +38,9 @@ namespace MED
             ProcessClasses.Add("Images", typeof(MED.Imaging.Images).FullName ?? "");
             ProcessClasses.Add("Collider mover", typeof(MED.Imaging.ImageMover).FullName ?? "");
             ProcessClasses.Add("Attractor", typeof(MED.Imaging.Attractor).FullName ?? "");
-            ProcessClasses.Add("EmguMoving", typeof(MED.Imaging.EmguMoving).FullName ?? "");
-            ProcessClasses.Add("VideoCapture", typeof(MED.Imaging.EDVideoCapture).FullName ?? "");
+            ProcessClasses.Add("VideoMover", typeof(MED.Imaging.VideoMover).FullName ?? "");
+            ProcessClasses.Add("VideoCapture", typeof(MED.Imaging.VideoCapture).FullName ?? "");
+            ProcessClasses.Add("VideoPlayer", typeof(MED.Imaging.VideoCapture).FullName ?? "");
             ProcessClasses.Add("Background", typeof(MED.Imaging.Background).FullName ?? "");
             ProcessClasses.Add("Gravity", typeof(MED.Imaging.Gravity).FullName ?? "");
             ProcessClasses.Add("ImageSourced", typeof(MED.Imaging.ImageSourced).FullName ?? "");
@@ -196,10 +199,20 @@ namespace MED
         {
             if (e.Button == MouseButtons.Right)
             {
-                toolStripMenuProcAdd.Visible = e.Node.Tag != null;
-                toolStripMenuProcRemove.Visible = e.Node.Tag != null;
-                toolStripMenuItemMoveBefore.Visible = e.Node.Tag != null && e.Node.Parent != null && e.Node.Index > 0;
-                toolStripMenuItemMoveAfter.Visible = e.Node.Tag != null && e.Node.Parent != null && e.Node.Index < e.Node.Parent.Nodes.Count - 1;
+                IProcess? process = e.Node.Tag != null && e.Node.Tag is IProcess ? (IProcess)e.Node.Tag : null;
+                IProcesses? processes = e.Node.Parent != null && process != null && e.Node.Parent.Tag is IProcesses ? (IProcesses)e.Node.Parent.Tag : null;
+                toolStripMenuProcAdd.Visible = process != null;
+                toolStripMenuProcRemove.Visible = process != null;
+                toolStripMenuItemProcessEnabled.Visible = process != null;
+                if (process != null)
+                {
+                    toolStripMenuItemProcessEnabled.Image = MEDIcon.GetImage(process.Enabled ? "ok" : "close");
+                    //toolStripMenuItemProcessEnabled.Text= process.Enabled ? "Process actif" : "Process désactivé";
+                    toolStripMenuItemProcessEnabled.Font = process.Enabled ? this.Font : new(this.Font, FontStyle.Strikeout);
+                }
+                toolStripMenuItemMoveBefore.Visible = processes != null && e.Node.Index > 0;
+                toolStripMenuItemMoveAfter.Visible = processes != null && e.Node.Parent != null && e.Node.Index < e.Node.Parent.Nodes.Count - 1;
+
                 processesControl1.SelectedNode = e.Node;
                 contextMenuProcesses.Show((Control)sender, e.Location);
             }
@@ -349,5 +362,19 @@ namespace MED
 
         private void toolStripMenuItemMoveAfter_Click(object sender, EventArgs e) => MoveItemInProcessesItems(processesControl1.SelectedNode, +1);
 
+        private void toolStripMenuItemProcessEnabled_Click(object sender, EventArgs e)
+        {
+            var node = processesControl1.SelectedNode;
+            if (node == null)
+                return;
+            if (node.Parent == null)
+                return;
+            if (node.Tag is IProcess process)
+            {
+                process.Enabled = !process.Enabled;
+
+                ShowProperties([process], node.Parent);
+            }
+        }
     }
 }

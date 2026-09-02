@@ -273,7 +273,7 @@ namespace MED
                 );
                 processForm.Processes.Add(render);
 
-                var videoCapture = new EDVideoCapture(
+                var videoCapture = new Imaging.VideoCapture(
                     "VideoCapture"
                     , new Performance("VideoCapture", FLogger.Current?.Logger)
                     , processForm
@@ -410,7 +410,8 @@ namespace MED
 
         private void LoadKeyboardHandler()
         {
-            KeyboardController = new("Keyboard keys", Performance?.Sub("Keyboard"), this);
+
+        GameController.KeyboardController KeyboardController= new("Keyboard keys", Performance?.Sub("Keyboard"), this);
             KeyboardController.UsagePropertiesMap.Add("Start", "F5", typeof(bool));
             KeyboardController.UsagePropertiesMap.Add("Pause", "F10", typeof(bool));
             KeyboardController.UsagePropertiesMap.Add("StepPrevious", "Shift+F10", typeof(bool));
@@ -421,9 +422,21 @@ namespace MED
             KeyboardController.Start();
 
             Project.Items.Add(KeyboardController);
+
+            LoadJoystickHandler();
         }
 
-        private GameController.KeyboardController? KeyboardController;
+        private void LoadJoystickHandler()
+        {
+            GameController.JoystickHIDController JoystickController = new("Joystick", Performance?.Sub("Joystick"), this);
+            JoystickController.UsagePropertiesMap.Add("Pause", "Stop", typeof(bool));
+            JoystickController.AddConsumer(this, "Start", KeyboardController_OnPropertyChanged);
+            JoystickController.AddConsumer(this, "Pause", KeyboardController_OnPropertyChanged);
+
+            JoystickController.Start();
+
+            Project.Items.Add(JoystickController);
+        }
         private void KeyboardController_OnPropertyChanged(GameController.GameController sender, PropertyChangedEventArgs e)
         {
             //Performance?.Debug($"KeyboardController_OnPropertyChanged({e.Property} {e.Value})");

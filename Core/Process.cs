@@ -177,6 +177,7 @@ namespace MED
         /**
          * ObjectsProperties
          * */
+        [Category("Process")]
         public virtual Dictionary<string, object> ObjectsProperties
         {
             get

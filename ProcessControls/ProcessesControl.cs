@@ -302,7 +302,11 @@ namespace MED
 
         void ItemProcess_StateChanged(IProcess sender, System.Threading.ThreadState state)
         {
+            Invoke(UpdateNodeState, sender, state);
+        }
 
+        void UpdateNodeState(IProcess sender, System.Threading.ThreadState state)
+        {
             if (ObjectsNodes.ContainsKey(sender.GetHashCode()))
             {
                 TreeNode? node = ObjectsNodes[sender.GetHashCode()];

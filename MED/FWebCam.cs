@@ -71,7 +71,7 @@ namespace MED.EDWebCam
         private void Init_AvailableCameras()
         {
             cboCameras.Items.Clear();
-            foreach (var cam in EDVideoCapture.AvailableCameras())
+            foreach (var cam in Imaging.VideoCapture.AvailableCameras())
                 cboCameras.Items.Add(cam);
             if (cboCameras.Items.Count > 0)
                 cboCameras.SelectedIndex = 0;
@@ -83,7 +83,7 @@ namespace MED.EDWebCam
          */
         #region Processes
 
-        EDVideoCapture ImageSource;
+        Imaging.VideoCapture ImageSource;
         Render Render;
         /**
          * InitializeProcesses
@@ -100,7 +100,7 @@ namespace MED.EDWebCam
             if (Render == null && Processes != null && Processes.Count > 0)
             {
                 Render = (Render)Processes.First();
-                ImageSource = (EDVideoCapture)Processes.Last();
+                ImageSource = (Imaging.VideoCapture)base.Processes.Last();
             }
 
             if (Processes != null && Processes.Count > 0 && !resetAll)
@@ -128,21 +128,21 @@ namespace MED.EDWebCam
 
             ImageProcess imgProc;
 
-            //MovingRegions
-            var EmguMoving = new EmguMoving(
-                "EmguMoving"
-                , Performance.Sub("EmguMoving", chkRenderLogger.Checked, KnownColor.AliceBlue)
+            //VideoMover
+            var VideoMover = new VideoMover(
+                "VideoMover"
+                , Performance?.Sub("VideoMover", chkRenderLogger.Checked, KnownColor.AliceBlue)
                 , picRender
                 , (ImageProcess)Processes.Last()
             );
 
             //Add process
-            Processes.Add(EmguMoving);
+            Processes.Add(VideoMover);
 
             //ScreenSplitter
             var ScreenSplitter = new ScreenSplitter(
                 "ScreenSplitter"
-                , Performance.Sub("ScreenSplitter", chkRenderLogger.Checked, KnownColor.GreenYellow)
+                , Performance?.Sub("ScreenSplitter", chkRenderLogger.Checked, KnownColor.GreenYellow)
                 , picRender
                 , (ImageProcess)Processes.Last()
             );
@@ -153,11 +153,11 @@ namespace MED.EDWebCam
             //WebCam
             if (ImageSource == null || resetAll)
             {
-                ImageSource = new EDVideoCapture(
+                ImageSource = new Imaging.VideoCapture(
                     "WebCam"
                     , Performance.Sub("WebCam", chkVideoCaptureLogger.Checked, FLogger.Current.DefaultLoggerColor.ToKnownColor())
                     , picRender
-                    , (IImageConsumer)Processes.Last()
+                    , (IImageConsumer)base.Processes.Last()
                 );
                 ImageSource.Performance.IsColored = chkLogColored.Checked;
                 ImageSource.OnProcessStateChanged += ImageSource_ProcessStateChanged;
@@ -170,13 +170,13 @@ namespace MED.EDWebCam
 
 
             ImageSource.OnFrameChanged = null;
-            ImageSource.OnFrameChanged += EmguMoving.FrameChanged;
+            ImageSource.OnFrameChanged += VideoMover.FrameChanged;
 
             ImageSource.OnImageChanged = null;
             ImageSource.OnImageChanged += ScreenSplitter.ImageChanged;
 
-            EmguMoving.OnImageChanged = null;
-            EmguMoving.OnImageChanged += ScreenSplitter.ImageChanged;
+            VideoMover.OnImageChanged = null;
+            VideoMover.OnImageChanged += ScreenSplitter.ImageChanged;
 
             ScreenSplitter.OnImageChanged = null;
             ScreenSplitter.OnImageChanged += Render.ImageChanged;

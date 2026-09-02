@@ -39,10 +39,11 @@
             contextMenuProcesses = new ContextMenuStrip(components);
             toolStripMenuProcAdd = new ToolStripMenuItem();
             toolStripMenuProcRemove = new ToolStripMenuItem();
-            contextMenuAddProcess = new ContextMenuStrip(components);
             toolStripMenuItem1 = new ToolStripSeparator();
             toolStripMenuItemMoveBefore = new ToolStripMenuItem();
             toolStripMenuItemMoveAfter = new ToolStripMenuItem();
+            toolStripMenuItemProcessEnabled = new ToolStripMenuItem();
+            contextMenuAddProcess = new ContextMenuStrip(components);
             panCboObjects.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
@@ -63,15 +64,15 @@
             // cboObjectsList
             // 
             cboObjectsList.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            cboObjectsList.DisplayMember = "Key";
             cboObjectsList.DropDownStyle = ComboBoxStyle.DropDownList;
             cboObjectsList.FormattingEnabled = true;
             cboObjectsList.Location = new Point(0, 0);
             cboObjectsList.Name = "cboObjectsList";
             cboObjectsList.Size = new Size(235, 23);
             cboObjectsList.TabIndex = 1;
-            cboObjectsList.SelectedIndexChanged += cboObjectsList_SelectedIndexChanged;
-            cboObjectsList.DisplayMember = "Key";
             cboObjectsList.ValueMember = "Value";
+            cboObjectsList.SelectedIndexChanged += cboObjectsList_SelectedIndexChanged;
             // 
             // panCboObjects
             // 
@@ -130,9 +131,9 @@
             // 
             // contextMenuProcesses
             // 
-            contextMenuProcesses.Items.AddRange(new ToolStripItem[] { toolStripMenuProcAdd, toolStripMenuProcRemove, toolStripMenuItem1, toolStripMenuItemMoveBefore, toolStripMenuItemMoveAfter });
+            contextMenuProcesses.Items.AddRange(new ToolStripItem[] { toolStripMenuProcAdd, toolStripMenuItemProcessEnabled, toolStripMenuProcRemove, toolStripMenuItem1, toolStripMenuItemMoveBefore, toolStripMenuItemMoveAfter });
             contextMenuProcesses.Name = "contextMenuProcesses";
-            contextMenuProcesses.Size = new Size(183, 120);
+            contextMenuProcesses.Size = new Size(183, 142);
             contextMenuProcesses.Text = "Processes";
             // 
             // toolStripMenuProcAdd
@@ -150,11 +151,6 @@
             toolStripMenuProcRemove.Size = new Size(182, 22);
             toolStripMenuProcRemove.Text = "Supprimer...";
             toolStripMenuProcRemove.Click += toolStripMenuProcRemove_Click;
-            // 
-            // contextMenuAddProcess
-            // 
-            contextMenuAddProcess.Name = "contextMenuAddProcess";
-            contextMenuAddProcess.Size = new Size(61, 4);
             // 
             // toolStripMenuItem1
             // 
@@ -176,6 +172,19 @@
             toolStripMenuItemMoveAfter.Size = new Size(182, 22);
             toolStripMenuItemMoveAfter.Text = "Après";
             toolStripMenuItemMoveAfter.Click += toolStripMenuItemMoveAfter_Click;
+            // 
+            // toolStripMenuItemProcessEnabled
+            // 
+            toolStripMenuItemProcessEnabled.Image = (Image)resources.GetObject("toolStripMenuItemProcessEnabled.Image");
+            toolStripMenuItemProcessEnabled.Name = "toolStripMenuItemProcessEnabled";
+            toolStripMenuItemProcessEnabled.Size = new Size(182, 22);
+            toolStripMenuItemProcessEnabled.Text = "Process actif";
+            toolStripMenuItemProcessEnabled.Click += toolStripMenuItemProcessEnabled_Click;
+            // 
+            // contextMenuAddProcess
+            // 
+            contextMenuAddProcess.Name = "contextMenuAddProcess";
+            contextMenuAddProcess.Size = new Size(61, 4);
             // 
             // PropertiesControl
             // 
@@ -208,5 +217,6 @@
         private ToolStripSeparator toolStripMenuItem1;
         private ToolStripMenuItem toolStripMenuItemMoveBefore;
         private ToolStripMenuItem toolStripMenuItemMoveAfter;
+        private ToolStripMenuItem toolStripMenuItemProcessEnabled;
     }
 }
