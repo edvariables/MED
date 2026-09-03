@@ -1,6 +1,7 @@
 ﻿using DirectShowLib;
 using Emgu.CV;
 using Emgu.CV.CvEnum;
+using Emgu.CV.Flann;
 using Emgu.CV.Reg;
 using Emgu.CV.Structure;
 using Emgu.CV.Util;
@@ -13,6 +14,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -20,6 +22,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Forms.Design;
+using static Emgu.CV.Structure.MCvMatND;
 
 namespace MED.Imaging
 {
@@ -89,6 +92,30 @@ namespace MED.Imaging
         #endregion
 
         #region Image
+
+        public override Bitmap? Image
+        {
+            get
+            {
+                var image = base.Image;
+
+                if (image != null
+                    && _FrameCount > 1)
+                {
+                    long delay = DateTime.Now.Ticks - _FrameTime;
+                    if (delay > _FrameDuration)
+                    {
+                        image.SelectActiveFrame(FrameDimension.Time, _FrameIndex++);//TODO GDI+ exception
+                        if (_FrameIndex >= _FrameCount)
+                            _FrameIndex = 0;
+                    }
+                    _FrameTime = DateTime.Now.Ticks;
+                }
+                return image;
+            }
+
+            set => base.Image = value;
+        }
         /**
          * GetImage
          * 
@@ -100,6 +127,11 @@ namespace MED.Imaging
 
             return GetImageFromSource(provider);
         }
+
+        int _FrameCount = 0;
+        int _FrameIndex = 0;
+        long _FrameTime = 0;
+        long _FrameDuration = 0;
 
         /**
          * GetImageFromSource
@@ -126,16 +158,40 @@ namespace MED.Imaging
                     {
                         image = (Bitmap)Bitmap.FromStream(stream);
                     }
+
+                    //GIF Number of frames
+                    _FrameCount = image.GetFrameCount(FrameDimension.Time);
+                    if (_FrameCount > 1)
+                    {
+                        _FrameIndex = 0;
+                        _FrameTime = 0L;
+                        PropertyItem? item = image.GetPropertyItem(0x5100); // FrameDelay in libgdiplus
+                                                                            // Time is in milliseconds
+                        if (item == null || item.Value == null)
+                            _FrameDuration = 40 * TimeSpan.TicksPerMillisecond;
+                        else
+                            _FrameDuration = (item.Value[0] + item.Value[1] * 256) * 10 * TimeSpan.TicksPerMillisecond;
+                    }
+
                     var formatSrc = image.PixelFormat;
                     if (!size.IsEmpty
                         /*&& image.Size != size*/)//Needed to normalize file format
                     {
                         var imageSrc = image;
-                        image = new Bitmap(size.Width, size.Height);
-                        Graphics graphics = Graphics.FromImage(image);
 
-                        graphics.DrawImage(imageSrc, 0, 0, image.Width, image.Height);
-                        graphics.Dispose();
+                        if (_FrameCount > 1)//GIF
+                        {   //TODO GDI+ exception
+                            image = GifWriter.ResizeGif((Bitmap)image.Clone(), size);
+                            //image = (Bitmap)image.Clone();
+                        }
+                        else
+                        {
+                            image = new Bitmap(size.Width, size.Height);
+                            Graphics graphics = Graphics.FromImage(image);
+
+                            graphics.DrawImage(imageSrc, 0, 0, image.Width, image.Height);
+                            graphics.Dispose();
+                        }
                         imageSrc.Dispose();
                     }
                     if (!TransparentColor.Equals(Color.Transparent))
@@ -169,7 +225,6 @@ namespace MED.Imaging
                 base.ClipRegion = value;
             }
         }
-
 
         private System.Drawing.Region? _ClipRegionEdges = null;
 

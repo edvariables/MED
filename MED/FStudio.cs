@@ -863,5 +863,4 @@ namespace MED
             statusStrip.Visible = statusBarToolStripMenuItem.Checked;
         }
     }
-
 }
