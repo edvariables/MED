@@ -215,10 +215,10 @@ namespace MED
             if (e.Control)
             {
                 if (e.KeyCode == Keys.C)
-                    Clipboard.SetText(rtbLog.SelectedText);
+                    Clipboard.SetText(rtbLog.SelectedText??"");
                 else if (e.KeyCode == Keys.X)
                 {
-                    Clipboard.SetText(rtbLog.SelectedText);
+                    Clipboard.SetText(rtbLog.SelectedText ?? "");
                     rtbLog.SelectedText = "";
                 }
                 else if (e.KeyCode == Keys.V)

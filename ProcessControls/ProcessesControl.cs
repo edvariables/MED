@@ -1,4 +1,5 @@
 ﻿using MED.Core;
+using MED.GameController;
 using MED.Imaging;
 using System;
 using System.Collections.Generic;
@@ -9,6 +10,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Documents;
 using System.Windows.Forms;
 using System.Xml.Linq;
 
@@ -250,7 +252,7 @@ namespace MED
                     Font font = new(this.Font, FontStyle.Strikeout);
                     node.NodeFont = font;
                 }
-                else if(process is ImageSourced provider
+                else if (process is ImageProcess provider
                     && provider.FPSMax > 0)
                 {
                     Font font = new(this.Font, FontStyle.Bold);
@@ -291,6 +293,39 @@ namespace MED
                         //    AddItems([kvp.Value], subNode.Nodes, false);
                         //}
                     }
+                }
+                if (item is GameController.GameController controller)
+                {
+                    var properties = controller.GetPropertiesDelegatesConsumers();
+                    var usagePropertiesMap = controller.UsagePropertiesMap;
+                    if (properties.Count > 0)
+                        foreach (var (property, consumers) in properties)
+                        {
+                            string propertyLabel;
+                            if (property.StartsWith("Controller"))
+                                propertyLabel = property.Substring("Controller".Length);
+                            else
+                                propertyLabel = property;
+                            if(usagePropertiesMap.TryGetValue(propertyLabel, out UsagePropertiesMapItem? usagePropertiesMapItem))
+                                propertyLabel+=" = " + usagePropertiesMapItem.Properties;
+                            var subNode = node.Nodes.Add(propertyLabel);
+                            subNode.SelectedImageKey = subNode.ImageKey = "next_blue";
+                            AddItems(consumers.Value.Keys.ToArray(), subNode.Nodes, false);
+                        }
+
+                    //if (controller.UsagePropertiesMap.Count > 0)
+                    //{
+                    //    var mapNode = node.Nodes.Add("Map");
+                    //    mapNode.SelectedImageKey = mapNode.ImageKey = "array";
+                    //    foreach (var (usage, usagePropertiesMapItem) in controller.UsagePropertiesMap)
+                    //    {
+                    //        if (usage.StartsWith("__p__"))
+                    //            continue;
+                    //        var subNode = mapNode.Nodes.Add($"{usage} = {usagePropertiesMapItem.Properties}");
+                    //        subNode.SelectedImageKey = subNode.ImageKey = "next_blue";
+
+                    //    }
+                    //}
                 }
 
                 if (node.Parent == null || node.Parent.Parent == null)

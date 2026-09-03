@@ -55,11 +55,7 @@
             optionsToolStripMenuItem = new ToolStripMenuItem();
             windowsMenu = new ToolStripMenuItem();
             newWindowToolStripMenuItem = new ToolStripMenuItem();
-            cascadeToolStripMenuItem = new ToolStripMenuItem();
-            tileVerticalToolStripMenuItem = new ToolStripMenuItem();
-            tileHorizontalToolStripMenuItem = new ToolStripMenuItem();
             closeAllToolStripMenuItem = new ToolStripMenuItem();
-            arrangeIconsToolStripMenuItem = new ToolStripMenuItem();
             helpMenu = new ToolStripMenuItem();
             contentsToolStripMenuItem = new ToolStripMenuItem();
             indexToolStripMenuItem = new ToolStripMenuItem();
@@ -274,7 +270,7 @@
             // 
             // windowsMenu
             // 
-            windowsMenu.DropDownItems.AddRange(new ToolStripItem[] { newWindowToolStripMenuItem, cascadeToolStripMenuItem, tileVerticalToolStripMenuItem, tileHorizontalToolStripMenuItem, closeAllToolStripMenuItem, arrangeIconsToolStripMenuItem });
+            windowsMenu.DropDownItems.AddRange(new ToolStripItem[] { newWindowToolStripMenuItem, closeAllToolStripMenuItem });
             windowsMenu.Name = "windowsMenu";
             windowsMenu.Size = new Size(63, 20);
             windowsMenu.Text = "&Fenêtres";
@@ -286,40 +282,12 @@
             newWindowToolStripMenuItem.Text = "&Nouvelle fenêtre";
             newWindowToolStripMenuItem.Click += ShowNewForm;
             // 
-            // cascadeToolStripMenuItem
-            // 
-            cascadeToolStripMenuItem.Name = "cascadeToolStripMenuItem";
-            cascadeToolStripMenuItem.Size = new Size(190, 22);
-            cascadeToolStripMenuItem.Text = "&Cascade";
-            cascadeToolStripMenuItem.Click += CascadeToolStripMenuItem_Click;
-            // 
-            // tileVerticalToolStripMenuItem
-            // 
-            tileVerticalToolStripMenuItem.Name = "tileVerticalToolStripMenuItem";
-            tileVerticalToolStripMenuItem.Size = new Size(190, 22);
-            tileVerticalToolStripMenuItem.Text = "Mosaïque &verticale";
-            tileVerticalToolStripMenuItem.Click += TileVerticalToolStripMenuItem_Click;
-            // 
-            // tileHorizontalToolStripMenuItem
-            // 
-            tileHorizontalToolStripMenuItem.Name = "tileHorizontalToolStripMenuItem";
-            tileHorizontalToolStripMenuItem.Size = new Size(190, 22);
-            tileHorizontalToolStripMenuItem.Text = "Mosaïque &horizontale";
-            tileHorizontalToolStripMenuItem.Click += TileHorizontalToolStripMenuItem_Click;
-            // 
             // closeAllToolStripMenuItem
             // 
             closeAllToolStripMenuItem.Name = "closeAllToolStripMenuItem";
             closeAllToolStripMenuItem.Size = new Size(190, 22);
             closeAllToolStripMenuItem.Text = "&Fermer tout";
             closeAllToolStripMenuItem.Click += CloseAllToolStripMenuItem_Click;
-            // 
-            // arrangeIconsToolStripMenuItem
-            // 
-            arrangeIconsToolStripMenuItem.Name = "arrangeIconsToolStripMenuItem";
-            arrangeIconsToolStripMenuItem.Size = new Size(190, 22);
-            arrangeIconsToolStripMenuItem.Text = "&Réorganiser les icônes";
-            arrangeIconsToolStripMenuItem.Click += ArrangeIconsToolStripMenuItem_Click;
             // 
             // helpMenu
             // 
@@ -541,7 +509,6 @@
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator8;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel;
         private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem tileHorizontalToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem fileMenu;
         private System.Windows.Forms.ToolStripMenuItem newToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem openToolStripMenuItem;
@@ -562,10 +529,7 @@
         private System.Windows.Forms.ToolStripMenuItem optionsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem windowsMenu;
         private System.Windows.Forms.ToolStripMenuItem newWindowToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem cascadeToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem tileVerticalToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem closeAllToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem arrangeIconsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem helpMenu;
         private System.Windows.Forms.ToolStripMenuItem contentsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem indexToolStripMenuItem;

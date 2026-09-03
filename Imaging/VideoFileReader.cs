@@ -174,13 +174,6 @@ namespace MED.Imaging
 
             Capture.ImageGrabbed += Capture_ImageGrabbed;
 
-            if (!ImageSizeMin.IsEmpty)
-            {
-                Capture.Set(Emgu.CV.CvEnum.CapProp.FrameWidth, ImageSizeMin.Width);
-                Capture.Set(Emgu.CV.CvEnum.CapProp.FrameHeight, ImageSizeMin.Height);
-                Performance?.Step($"ImageSizeMin {Capture.Get(Emgu.CV.CvEnum.CapProp.FrameWidth)} x {Capture.Get(Emgu.CV.CvEnum.CapProp.FrameHeight)}");
-            }
-
             return true;
         }
         public override void Dispose_Capture()

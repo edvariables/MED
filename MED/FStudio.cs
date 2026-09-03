@@ -411,7 +411,7 @@ namespace MED
         private void LoadKeyboardHandler()
         {
 
-        GameController.KeyboardController KeyboardController= new("Keyboard keys", Performance?.Sub("Keyboard"), this);
+            GameController.KeyboardController KeyboardController = new("Keyboard keys", Performance?.Sub("Keyboard"), this);
             KeyboardController.UsagePropertiesMap.Add("Start", "F5", typeof(bool));
             KeyboardController.UsagePropertiesMap.Add("Pause", "F10", typeof(bool));
             KeyboardController.UsagePropertiesMap.Add("StepPrevious", "Shift+F10", typeof(bool));
@@ -783,9 +783,8 @@ namespace MED
         private void CloseAllToolStripMenuItem_Click(object sender, EventArgs e)
         {
             foreach (Form childForm in MdiChildren)
-            {
-                childForm.Close();
-            }
+                if (childForm is ProcessForm)
+                    childForm.Close();
         }
 
         private void FormChild_SizeChanged(object? sender, EventArgs e)
@@ -862,26 +861,6 @@ namespace MED
         private void StatusBarToolStripMenuItem_Click(object sender, EventArgs e)
         {
             statusStrip.Visible = statusBarToolStripMenuItem.Checked;
-        }
-
-        private void CascadeToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            LayoutMdi(MdiLayout.Cascade);
-        }
-
-        private void TileVerticalToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            LayoutMdi(MdiLayout.TileVertical);
-        }
-
-        private void TileHorizontalToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            LayoutMdi(MdiLayout.TileHorizontal);
-        }
-
-        private void ArrangeIconsToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            LayoutMdi(MdiLayout.ArrangeIcons);
         }
     }
 
