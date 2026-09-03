@@ -100,12 +100,13 @@ namespace MED.Imaging
                 var image = base.Image;
 
                 if (image != null
+                    && _FrameDimension != null
                     && _FrameCount > 1)
                 {
                     long delay = DateTime.Now.Ticks - _FrameTime;
                     if (delay > _FrameDuration)
                     {
-                        image.SelectActiveFrame(FrameDimension.Time, _FrameIndex++);//TODO GDI+ exception
+                        image.SelectActiveFrame(_FrameDimension, _FrameIndex++);//TODO GDI+ exception
                         if (_FrameIndex >= _FrameCount)
                             _FrameIndex = 0;
                     }
@@ -128,6 +129,7 @@ namespace MED.Imaging
             return GetImageFromSource(provider);
         }
 
+        FrameDimension? _FrameDimension;
         int _FrameCount = 0;
         int _FrameIndex = 0;
         long _FrameTime = 0;
@@ -160,7 +162,8 @@ namespace MED.Imaging
                     }
 
                     //GIF Number of frames
-                    _FrameCount = image.GetFrameCount(FrameDimension.Time);
+                    _FrameDimension = new(image.FrameDimensionsList.First());
+                    _FrameCount = image.GetFrameCount(_FrameDimension);
                     if (_FrameCount > 1)
                     {
                         _FrameIndex = 0;

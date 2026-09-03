@@ -81,9 +81,7 @@ namespace MED
                         continue;
                     else if (ObjectsNodes.ContainsKey(item.GetHashCode()))
                     {
-#pragma warning disable CS8600 // Conversion de littéral ayant une valeur null ou d'une éventuelle valeur null en type non-nullable.
                         ObjectsNodes.Remove(item.GetHashCode(), out node);
-#pragma warning restore CS8600 // Conversion de littéral ayant une valeur null ou d'une éventuelle valeur null en type non-nullable.
                         if (node != null && node.Parent == rootNode)
                         {
                             insertNodeIndex = node.Index;
