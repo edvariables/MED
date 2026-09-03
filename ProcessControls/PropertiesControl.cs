@@ -40,7 +40,7 @@ namespace MED
             ProcessClasses.Add("Attractor", typeof(MED.Imaging.Attractor).FullName ?? "");
             ProcessClasses.Add("VideoMover", typeof(MED.Imaging.VideoMover).FullName ?? "");
             ProcessClasses.Add("VideoCapture", typeof(MED.Imaging.VideoCapture).FullName ?? "");
-            ProcessClasses.Add("VideoPlayer", typeof(MED.Imaging.VideoCapture).FullName ?? "");
+            ProcessClasses.Add("VideoFileReader", typeof(MED.Imaging.VideoFileReader).FullName ?? "");
             ProcessClasses.Add("Background", typeof(MED.Imaging.Background).FullName ?? "");
             ProcessClasses.Add("Gravity", typeof(MED.Imaging.Gravity).FullName ?? "");
             ProcessClasses.Add("ImageSourced", typeof(MED.Imaging.ImageSourced).FullName ?? "");

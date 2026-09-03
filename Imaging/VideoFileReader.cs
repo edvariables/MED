@@ -16,9 +16,9 @@ using System.Windows.Forms.Design;
 namespace MED.Imaging
 {
     //isAsynchrone = true
-    public class VideoReader : VideoCaptureEmgu
+    public class VideoFileReader : VideoCaptureEmgu
     {
-        public VideoReader(string name = "VideoReader", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
+        public VideoFileReader(string name = "VideoFileReader", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
         : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
         {
             ProcessIcon = ProcessIconDefault = "save";
@@ -116,10 +116,12 @@ namespace MED.Imaging
                                 Performance?.Step($"PlayLoop Thread.Sleep({(int)((framesCount - frameIndex) / fps * 1000)})");
                                 Thread.Sleep((int)((framesCount - frameIndex) / fps * 1000));
                                 Performance?.Step($"PlayLoop Sleeped({(int)((framesCount - frameIndex) / fps * 1000)}) {LoopEndTask}");
-                                if (LoopEndTask == null)
+                                if (LoopEndTask == null || Capture==null)
                                     return;
                                 Capture.Set(Emgu.CV.CvEnum.CapProp.PosMsec, 0);
                                 Capture.Set(Emgu.CV.CvEnum.CapProp.PosFrames, 0);
+
+                                Capture.Start();
 
                                 LoopEndTask = null;
                             });
