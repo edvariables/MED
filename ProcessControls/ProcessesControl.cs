@@ -75,13 +75,12 @@ namespace MED
                 NodesClear(rootNode);
             else
             {
-                TreeNode? node;
                 foreach (var item in items)
                     if (item == null)
                         continue;
                     else if (ObjectsNodes.ContainsKey(item.GetHashCode()))
                     {
-                        ObjectsNodes.Remove(item.GetHashCode(), out node);
+                        ObjectsNodes.Remove(item.GetHashCode(), out TreeNode? node);
                         if (node != null && node.Parent == rootNode)
                         {
                             insertNodeIndex = node.Index;
@@ -146,6 +145,10 @@ namespace MED
 
         private Dictionary<int, TreeNode> ObjectsNodes = new Dictionary<int, TreeNode>();
 
+        /**
+         * AddItems
+         * 
+         * */
         public void AddItems(object[] items, TreeNodeCollection nodes, bool addChildren = true)
         {
             foreach (var item in items)
@@ -153,6 +156,10 @@ namespace MED
                     AddItem(item, nodes, addChildren);
         }
 
+        /**
+         * AddItem
+         * 
+         * */
         public TreeNode? AddItem(object? item, TreeNodeCollection nodes, bool addChildren = true)
         {
             if (item == null)
@@ -172,8 +179,7 @@ namespace MED
                 {
                     if (ObjectsNodes.ContainsKey(item.GetHashCode()))
                     {
-                        TreeNode? n;
-                        ObjectsNodes.Remove(item.GetHashCode(), out n);
+                        ObjectsNodes.Remove(item.GetHashCode(), out TreeNode? n);
                         n?.Remove();
                     }
                     return null;

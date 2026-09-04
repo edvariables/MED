@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
+using System.Drawing.Design;
 using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
@@ -26,20 +27,20 @@ namespace MED.Imaging
     public class ImageCollider : ImageInteractor, IImageProvider, IImageCollider
     {
         public ImageCollider(string name = "ImageCollidable", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
-        : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
+                        : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
         {
         }
 
         #region Properties
 
-        [Category("Mover")]
+        [Category("Collider")]
         public override float Mass { get; set; } = 1F;
 
         /**
          * Surface friction in collision
          * 
          * */
-        [Category("Mover")]
+        [Category("Collider")]
         public virtual float SurfaceFriction { get; set; } = 1F;
 
 
@@ -82,7 +83,16 @@ namespace MED.Imaging
             location.Y += offset.Y;
             return location;
         }
-        public virtual bool CollideItem(IImageCollider item2, PointF offset2) => false;
+        public virtual bool CollideItem(IImageCollider item2, PointF offset2){
+            if (OnCollideItemScript == null)
+                return true;
+            return OnCollideItemScript.Eval(this, item2, offset2); 
+        }
+
+        [Category("Collider")]
+        [Editor(typeof(EventScriptEditor), typeof(UITypeEditor))]
+        [TypeConverter(typeof(EventScriptConvertor))]
+        public EventScript? OnCollideItemScript { get; set; }
 
         #endregion
 
@@ -93,11 +103,22 @@ namespace MED.Imaging
             if (settings == null && (settings = ProcessSettings) == null)
                 return;
             SurfaceFriction = (float)(settings.GetValue("SurfaceFriction", SurfaceFriction) ?? SurfaceFriction);
+
+            string? script = OnCollideItemScript == null ? "" : OnCollideItemScript.Script;
+            script = (string?)(settings.GetValue("OnCollideItemScript", script) ?? script);
+            if (!string.IsNullOrEmpty(script))
+            {
+                if (OnCollideItemScript == null)
+                    OnCollideItemScript = new(this, "CollideItem");
+                OnCollideItemScript.Script = script;
+            }
         }
         public override JsonObject SaveProcess(JsonObject? node = null)
         {
             node = base.SaveProcess(node);
             node.Add("SurfaceFriction", SurfaceFriction);
+            if (OnCollideItemScript != null && !string.IsNullOrEmpty(OnCollideItemScript.Script))
+                node.Add("OnCollideItemScript", OnCollideItemScript.Script);
             return node;
         }
         #endregion

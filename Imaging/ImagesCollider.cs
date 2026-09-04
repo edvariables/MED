@@ -144,7 +144,6 @@ namespace MED.Imaging
 
                 item.Direction = direction;
             }
-
             return changed;
         }
         /**

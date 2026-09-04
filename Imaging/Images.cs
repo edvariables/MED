@@ -80,15 +80,15 @@ namespace MED.Imaging
 
         #endregion
 
-        public override Performance? Performance { get => ImageProcesses.Performance; }
+        public override Performance? Performance => ImageProcesses.Performance;
 
-        public override bool IsRunning { get => ImageProcesses.ProcessState == ThreadState.Running || ImageProcesses.ProcessState == ThreadState.Suspended; }
+        public override bool IsRunning => ImageProcesses.IsRunning;
 
-        public override System.Threading.ThreadState ProcessState { get => ImageProcesses.ProcessState; set => ImageProcesses.ProcessState = value; }
+        public override System.Threading.ThreadState ProcessState => ImageProcesses.ProcessState;
 
         public void Invoke_ProcessStateChanged(IProcess sender, System.Threading.ThreadState state)
         {
-            OnProcessStateChanged?.Invoke(sender, state);
+            OnProcessStateChanged?.Invoke(this, state);
             MoveItemsTimeOnProcessStateChanged(state);
         }
 
@@ -156,7 +156,7 @@ namespace MED.Imaging
          * */
         public override Bitmap? GetImage(IImageProvider? provider = null)
         {
-            Performance?.Resume($"Make Image from {Items.Count}", true);
+            Performance?.Resume($"Generate Image from {Items.Count}", true);
 
             Bitmap? image;
             Size size = ImageSizeMin;
@@ -422,10 +422,23 @@ namespace MED.Imaging
 
                 if (item is IImageMover mover
                     && ImagesCollider.CollideItemWithImageBorders(modelImage, gr, mover, offset))
-                    return item.Location;
+                {
+                    OnCollideItemScript.Eval(this, item, offset);
+                    item.OnCollideItemScript?.Eval(item, this, offset);
 
-                if (ImagesCollider.Collide(modelImage, gr, item, offset).Count > 0)
                     return item.Location;
+                }
+
+                var itemsCollided = ImagesCollider.Collide(modelImage, gr, item, offset);
+                if (itemsCollided.Count > 0)
+                {
+                    foreach (var collidedItem in itemsCollided.Keys)
+                    {
+                        OnCollideItemScript.Eval(collidedItem, item, offset);
+                        item.OnCollideItemScript?.Eval(item, collidedItem, offset);
+                    }
+                    return item.Location;
+                }
             }
 
             if (offset.IsEmpty)
@@ -448,7 +461,12 @@ namespace MED.Imaging
                 if (modelImage != null)
                 {
                     Graphics gr = Graphics.FromImage(modelImage);
-                    return ImagesCollider.CollideItemWithImageBorders(modelImage, gr, mover, offset2);
+                    if (ImagesCollider.CollideItemWithImageBorders(modelImage, gr, mover, offset2))
+                    {
+                        OnCollideItemScript.Eval(this, item2, offset2);
+                        item2.OnCollideItemScript?.Eval(item2, this, offset2);
+                        return true;
+                    }
                 }
             }
             return false;

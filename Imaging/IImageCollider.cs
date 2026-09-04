@@ -24,5 +24,8 @@ namespace MED.Imaging
         PointF Collide(PointF offset);
 
         bool CollideItem(IImageCollider item2, PointF offset2);
+
+        [Browsable(true)]
+        EventScript? OnCollideItemScript { get; }
     }
 }
