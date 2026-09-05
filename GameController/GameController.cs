@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace MED.GameController
 {
-    public abstract class GameController : Process
+    public abstract class GameController : Process, IGameController
     {
         public GameController(string name, Performance? performance = null, Control? invokeHandler = null, IConsumer? consumer = null, bool isAsynchrone = true)
             : base(name, performance, invokeHandler, consumer, isAsynchrone)
@@ -15,22 +15,22 @@ namespace MED.GameController
             ProcessIconDefault = "Button";
         }
 
-        const string PropertyDomain = "Controller";
+        const string PropertyDomain = "GameController";
 
-        public delegate void ControllerChangedDelegate(GameController sender, PropertyChangedEventArgs e);
+        public delegate void GameControllerChangedDelegate(IGameController sender, PropertyChangedEventArgs e);
 
-        public ControllerChangedDelegate? OnControllerChanged;
+        public GameControllerChangedDelegate? OnGameControllerChanged;
 
 
         [Browsable(true)]
         [Category("Controller")]
         public UsagePropertiesMap UsagePropertiesMap { get; } = [];
 
-        public virtual void InvokeControllerChanged(GameController sender, PropertyChangedEventArgs e)
+        public virtual void InvokeControllerChanged(IGameController sender, PropertyChangedEventArgs e)
         {
             e.Property = UsagePropertiesMap.GetPropertyUsage(e.Property);
 
-            InvokePropertyChanged(sender, OnControllerChanged, e, PropertyDomain);
+            InvokePropertyChanged(sender, OnGameControllerChanged, e, PropertyDomain);
         }
 
         public override bool AddConsumer(IConsumer consumer, string controllerProperty, MulticastDelegate? consumerDelegate=null) => base.AddConsumer(consumer, $"{PropertyDomain}.{controllerProperty}", consumerDelegate );

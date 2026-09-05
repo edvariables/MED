@@ -99,20 +99,32 @@ namespace MED
             if (_editorUI == null)
             {
                 _editorUIWrapper = new();
+                _editorUIWrapper.Height = 200;
 
                 _editorUI = new RichTextBox();
                 _editorUI.Dock = DockStyle.Fill;
                 _editorUIWrapper.Controls.Add(_editorUI);
 
+                if (eventScript == null
+                && context != null
+                && context.PropertyDescriptor != null
+                && context.Instance is IProcess process)
+                {
+                    string eventName = context.PropertyDescriptor.Name;
+                    eventName = Regex.Replace(eventName, @"(^On)?(.*)((Changed)?Script)$", "$2");
+                    eventScript = new EventScript(process, eventName);
+                }
                 if (eventScript != null)
                 {
                     var helper = new Label();
                     if (eventScript.ParametersNames != null)
-                        helper.Text = eventScript.GetMethodName() + "(" + String.Join(", ", eventScript.ParametersNames.Keys) + ")";
+                    {
+                        helper.Font = new(_editorUI.Font.FontFamily, 7F);
+                        helper.Text = /*eventScript.GetMethodName() + "(" +*/ String.Join(", ", eventScript.ParametersNames.Keys) /*+ ")"*/;
+                    }
                     helper.Dock = DockStyle.Bottom;
                     _editorUIWrapper.Controls.Add(helper);
                 }
-
             }
             if (eventScript != null)
                 _editorUI.Text = eventScript.Script;

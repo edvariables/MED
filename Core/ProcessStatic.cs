@@ -1,6 +1,8 @@
 ﻿using MED.Core;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -73,11 +75,18 @@ namespace MED
                     if (targetHandler.Target == consumer && targetHandler.Method.Name == consumerMethodName)
                         return handlerDelegates;//Exists
             }
-
-            Delegate handler =
-                 Delegate.CreateDelegate(eventInfo.FieldType,
-                                         consumer,
-                                         miHandler);
+            Delegate handler;
+            try
+            {
+                handler = Delegate.CreateDelegate(eventInfo.FieldType,
+                                             consumer,
+                                             miHandler);
+            }
+            catch(Exception ex)
+            {
+                consumer.Performance?.Error($"{eventInfo.FieldType} {consumer} {miHandler}", ex);
+                return null;
+            }
             handler = Delegate.Combine(handlerDelegates, handler);
             eventInfo.SetValue(handler_obj, handler);
 
@@ -419,7 +428,8 @@ namespace MED
                         && delegateMethod is MulticastDelegate multicastDelegate
                         && process is Process pProcess
                         && pProcess._PropertiesDelegatesConsumers != null
-                    ) {
+                    )
+                    {
                         if (pProcess._PropertiesDelegatesConsumers.TryGetValue($"{propertyDomain}{propertyChangedEventArgs.Property}", out KeyValuePair<MulticastDelegate, Dictionary<IProcess, Delegate>> pair))
                             targets = pair.Value;
                     }
@@ -591,5 +601,45 @@ namespace MED
             return processTo.Name;
         }
         #endregion
+
+        /**
+         * GetGameController
+         * Search a GameController in processes tree
+         * */
+        public static IGameController? GetGameController(IProcess process) => GetGameController(process, new());
+        /**
+         * GetGameController
+         * Search a GameController in processes tree
+         * */
+        private static IGameController? GetGameController(IProcess process, HashSet<IProcess> ignoreProcesses)
+        {
+            if (process is ProcessForm processForm)
+            {
+                ignoreProcesses.Add(process);
+                return GetGameController(processForm.Project, ignoreProcesses);
+            }
+            if (process is IGameController gameController0)
+                return gameController0;
+
+            if (process is IProcesses processes)
+                foreach (var item in processes.Items)
+                    if (item.Enabled)
+                        if (item is IGameController gameController)
+                            return gameController;
+                        else if (item is IProcesses subProcesses
+                            && !ignoreProcesses.Contains(subProcesses))
+                        {   //Deep search
+                            ignoreProcesses.Add(process);
+                            var found = GetGameController(subProcesses, ignoreProcesses);
+                            if (found != null)
+                                return found;
+                        }
+            if (process.Consumer != null
+            && process != process.Consumer
+            && !ignoreProcesses.Contains(process.Consumer))
+                return GetGameController(process.Consumer, ignoreProcesses);
+
+            return null;
+        }
     }
 }

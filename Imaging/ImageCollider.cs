@@ -90,6 +90,7 @@ namespace MED.Imaging
         }
 
         [Category("Collider")]
+        [Browsable(true)]
         [Editor(typeof(EventScriptEditor), typeof(UITypeEditor))]
         [TypeConverter(typeof(EventScriptConvertor))]
         public EventScript? OnCollideItemScript { get; set; }
@@ -104,21 +105,14 @@ namespace MED.Imaging
                 return;
             SurfaceFriction = (float)(settings.GetValue("SurfaceFriction", SurfaceFriction) ?? SurfaceFriction);
 
-            string? script = OnCollideItemScript == null ? "" : OnCollideItemScript.Script;
-            script = (string?)(settings.GetValue("OnCollideItemScript", script) ?? script);
-            if (!string.IsNullOrEmpty(script))
-            {
-                if (OnCollideItemScript == null)
-                    OnCollideItemScript = new(this, "CollideItem");
-                OnCollideItemScript.Script = script;
-            }
+            EventScript.LoadSetting(settings, this, nameof(OnCollideItemScript));
         }
         public override JsonObject SaveProcess(JsonObject? node = null)
         {
             node = base.SaveProcess(node);
             node.Add("SurfaceFriction", SurfaceFriction);
             if (OnCollideItemScript != null && !string.IsNullOrEmpty(OnCollideItemScript.Script))
-                node.Add("OnCollideItemScript", OnCollideItemScript.Script);
+                node.Add(nameof(OnCollideItemScript), OnCollideItemScript.Script);
             return node;
         }
         #endregion

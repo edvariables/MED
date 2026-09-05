@@ -14,18 +14,16 @@ namespace MED.Imaging
     public interface IImageCollider : IImageInteractor
     {
 
-        [Browsable(false)]
         System.Drawing.Region? ClipEdgesRegion { get; }
+
         RectangleF GetClipRegionBounds(Graphics gr);
 
-        [Browsable(true)]
         float SurfaceFriction { get; }
 
         PointF Collide(PointF offset);
 
         bool CollideItem(IImageCollider item2, PointF offset2);
 
-        [Browsable(true)]
         EventScript? OnCollideItemScript { get; }
     }
 }

@@ -156,7 +156,7 @@ namespace MED
                     if (item == null)
                         continue;
                     if (item is Process process)
-                        process.Consumer = this.Consumer ?? this;
+                        process.Consumer = this.Consumer ?? this;//SIC
                     item.LoadSettings(processesSettings.ChildSettings(item.Name));
 
                     Items.Add(item);

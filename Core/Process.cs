@@ -168,11 +168,27 @@ namespace MED
         public virtual Control? InvokeHandler { get; set; }
 
         [Browsable(false)]
-        public virtual IConsumer? Consumer { get; set; }
+        public IConsumer? Consumer { get; set; }
 
         [Browsable(true)]
         [Category("Process")]
         public virtual Performance? Performance { get; set; }
+
+        #region GameController
+        public virtual void GameControllerChanged(IGameController gameController, PropertyChangedEventArgs eventArgs)
+        {
+            if (OnGameControllerScript == null)
+                return;
+            OnGameControllerScript.Eval(gameController, eventArgs);
+        }
+
+        [Browsable(true)]
+        [Category("GameController")]
+        [Editor(typeof(EventScriptEditor), typeof(UITypeEditor))]
+        [TypeConverter(typeof(EventScriptConvertor))]
+        public virtual GameControllerScript? OnGameControllerScript { get; set; }
+
+        #endregion
 
         /**
          * ObjectsProperties
@@ -205,25 +221,35 @@ namespace MED
                 settings = ProcessSettings = ProcessSettings.FromFile(fileName);
             else
                 ProcessSettings = settings;
-            if (settings != null && settings.Root != null)
-                LoadProcess(settings.Root);
-            if (settings != null)
-            {
-                Name = (string)(settings.GetValue("Name", Name) ?? Name);
-                ProcessIcon = (string)(settings.GetValue("ProcessIcon", ProcessIcon) ?? ProcessIcon);
-                IsAsynchrone = (bool)(settings.GetValue("IsAsynchrone", IsAsynchrone) ?? IsAsynchrone);
-                Enabled = (bool)(settings.GetValue("Enabled", Enabled) ?? Enabled);
+            if (settings == null)
+                return;
+            Name = (string)(settings.GetValue("Name", Name) ?? Name);
+            ProcessIcon = (string)(settings.GetValue("ProcessIcon", ProcessIcon) ?? ProcessIcon);
+            IsAsynchrone = (bool)(settings.GetValue("IsAsynchrone", IsAsynchrone) ?? IsAsynchrone);
+            Enabled = (bool)(settings.GetValue("Enabled", Enabled) ?? Enabled);
 
-                if (Performance != null)
-                {
-                    Performance.Name = Name;
-                    Performance.LoadSettings(settings.ChildSettings("Perf"));
-                }
+            if (Performance != null)
+            {
+                Performance.Name = Name;
+                Performance.LoadSettings(settings.ChildSettings("Perf"));
             }
+            if (settings.Root != null)
+                LoadProcess(settings.Root);
+
+            EventScript.LoadSetting(settings, this, nameof(OnGameControllerScript));
+
+            if (settings.OnLoadSettingsDone != null)
+                settings.OnLoadSettingsDone(this, EventArgs.Empty);
         }
 
         public virtual void LoadProcess(JsonNode node)
         {
+        }
+
+        public virtual void LoadSettingsDone(object? sender, EventArgs e)
+        {
+            if (OnGameControllerScript != null)
+                OnGameControllerScript.Script= OnGameControllerScript.Script;
         }
 
         public virtual void SaveSettings(ProcessSettings? settings = null, string fileName = "")
@@ -260,6 +286,9 @@ namespace MED
             node[nameof(Enabled)] = Enabled;
             if (ProcessIcon != ProcessIconDefault)
                 node[nameof(ProcessIcon)] = ProcessIcon;
+
+            if (OnGameControllerScript != null && !string.IsNullOrEmpty(OnGameControllerScript.Script))
+                node.Add(nameof(OnGameControllerScript), OnGameControllerScript.Script);
 
             node["Perf"] = Performance?.SaveNode();
 

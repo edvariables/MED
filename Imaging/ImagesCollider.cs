@@ -296,6 +296,7 @@ namespace MED.Imaging
             , IImageCollider item2, PointF offset2)
         {
             item.CollideItem(item2, offset2);
+            item2.CollideItem(item, offset);
 
             if (item.Location.IsEmpty)
                 return false;

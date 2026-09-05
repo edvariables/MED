@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing.Design;
 using System.Linq;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -22,31 +23,32 @@ namespace MED
 
         string ProcessIcon { get; }
 
-        [Browsable(false)]
         string ProcessIconDefault { get; }
+
         Performance? Performance { get; }
 
         #region Settings
         ProcessSettings? ProcessSettings { get; }
         void LoadSettings(ProcessSettings? settings = null, string fileName = "");
         void LoadProcess(JsonNode node);
+        void LoadSettingsDone(object? sender, EventArgs e);
 
-        //void LoadSettings(string fileName);
         void SaveSettings(ProcessSettings? settings = null, string fileName = "");
         JsonObject SaveProcess(JsonObject? node = null);
 
 
-        [Browsable(false)]
         IConsumer? Consumer { get; }
+
+        void GameControllerChanged (IGameController gameController, PropertyChangedEventArgs eventArgs);
+
+        GameControllerScript? OnGameControllerScript { get; }
 
         [Browsable(false)]
         Dictionary<string, object> ObjectsProperties { get; }
         #endregion
 
         #region IDisposable
-        [Browsable(false)]
         bool Disposing { get; }
-        [Browsable(false)]
         bool IsDisposed { get; }
         #endregion
 

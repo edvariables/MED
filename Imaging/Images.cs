@@ -55,7 +55,7 @@ namespace MED.Imaging
             if (processSettings != null)
                 ProcessSettings = processSettings;
             base.LoadSettings(processSettings, fileName);
-            ImageProcesses.LoadSettings(processSettings, fileName);
+            //Done in LoadProcess() => ImageProcesses.LoadProcess()// ImageProcesses.LoadSettings(processSettings, fileName);
 
         }
         public override void LoadProcess(JsonNode node)
@@ -434,8 +434,8 @@ namespace MED.Imaging
                 {
                     foreach (var collidedItem in itemsCollided.Keys)
                     {
-                        item.OnCollideItemScript?.Eval(collidedItem, offset);
-                        collidedItem.OnCollideItemScript?.Eval(item, offset);
+                        //item.OnCollideItemScript?.Eval(collidedItem, offset);
+                        //collidedItem.OnCollideItemScript?.Eval(item, offset);
                     }
                     return item.Location;
                 }

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing.Design;
 using System.Linq;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -122,6 +123,7 @@ namespace MED
             ProcessIcon = Project.ProcessIcon;
         }
         public virtual void LoadProcess(JsonNode node) => Project.LoadProcess(node);
+        public virtual void LoadSettingsDone(object? sender, EventArgs e) => throw new NotImplementedException();
 
         public virtual void SaveSettings(ProcessSettings? settings = null, string fileName = "") => Project.SaveSettings(settings, fileName);
 
@@ -144,23 +146,7 @@ namespace MED
         }
         #endregion
 
-        //public virtual void LoadSettings(bool loadChildren = true)
-        //{
-        //    Core.Settings.ClearCache(true, true, this.Name);
-        //    Performance.LoadSettings(Name + ".Perf");
-        //    Project.LoadSettings(loadChildren);
-        //}
-        //public virtual void SaveSettings(bool saveChildren = true)
-        //{
-        //    if (saveChildren && Processes != null)
-        //        foreach (var proc in Processes)
-        //            proc.SaveSettings();
-        //    Performance.SaveSettings(Name + ".Perf", saveChildren);
-
-        //    Core.Settings.Save();
-        //}
-        //#endregion
-
+        #region Processes
 
         [Browsable(true)]
         public virtual List<IProcess> Processes { get => Project.Items; }
@@ -190,13 +176,30 @@ namespace MED
 
         protected virtual void InitializeProcesses(bool resetAll = false) => Project.InitializeProcesses(resetAll);
 
-        public Performance? Performance { get => Project.Performance; }
+        #endregion
 
-        public bool IsRunning => Project.IsRunning;
-        public bool IsPaused => Project.IsPaused;
+        public Performance? Performance { get => Project.Performance; }
 
         [Browsable(false)]
         public IConsumer? Consumer => Project.Consumer;
+
+        public virtual void GameControllerChanged(IGameController gameController, PropertyChangedEventArgs eventArgs)
+        {
+            if (OnGameControllerScript == null)
+                return;
+            OnGameControllerScript.Eval(gameController, eventArgs);
+        }
+
+        [Browsable(true)]
+        [Category("GameController")]
+        [Editor(typeof(EventScriptEditor), typeof(UITypeEditor))]
+        [TypeConverter(typeof(EventScriptConvertor))]
+        public virtual GameControllerScript? OnGameControllerScript { get; set; }
+
+
+        #region Process
+        public bool IsRunning => Project.IsRunning;
+        public bool IsPaused => Project.IsPaused;
 
         [Browsable(false)]
         public IProcess.ProcessStateChangedDelegate? OnProcessStateChanged { get; set; }
@@ -204,8 +207,6 @@ namespace MED
         public System.Threading.ThreadState ProcessState { get => Project.ProcessState; set => Project.ProcessState = value; }
 
         public void Invoke_ProcessStateChanged(IProcess sender, System.Threading.ThreadState state) => OnProcessStateChanged?.Invoke(sender, state);
-
-        #region Process
 
         /**
          * 

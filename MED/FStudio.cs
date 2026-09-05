@@ -437,7 +437,7 @@ namespace MED
 
             Project.Items.Add(JoystickController);
         }
-        private void KeyboardController_OnPropertyChanged(GameController.GameController sender, PropertyChangedEventArgs e)
+        private void KeyboardController_OnPropertyChanged(IGameController sender, PropertyChangedEventArgs e)
         {
             //Performance?.Debug($"KeyboardController_OnPropertyChanged({e.Property} {e.Value})");
             //FLogger.Current?.RefreshProgress(this);

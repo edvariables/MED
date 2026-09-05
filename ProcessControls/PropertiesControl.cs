@@ -45,6 +45,7 @@ namespace MED
             ProcessClasses.Add("Gravity", typeof(MED.Imaging.Gravity).FullName ?? "");
             ProcessClasses.Add("ImageSourced", typeof(MED.Imaging.ImageSourced).FullName ?? "");
             ProcessClasses.Add("Keyboard", typeof(MED.GameController.KeyboardController).FullName ?? "");
+            ProcessClasses.Add("Joystick", typeof(MED.GameController.JoystickHIDController).FullName ?? "");
             //ProcessClasses.Add("Ball", (typeof(MED.Imaging.ImageMover).FullName ?? "") + "(ImageFile=../Movers/Ball.*.png;)");
 
             contextMenuAddProcess.Items.Clear();

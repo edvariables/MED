@@ -72,7 +72,7 @@ namespace MED.GameController
          * */
         private void HookCallback(System.Windows.Forms.KeyEventArgs keyEventArgs, bool pressed)
         {
-            if (base.OnControllerChanged != null)
+            if (OnGameControllerChanged != null)
             {
                 Performance?.Debug($"HookCallback {keyEventArgs.KeyCode} + {keyEventArgs.Modifiers} : {pressed}");
                 Performance?.Logger?.InvokeBufferChanged(this, keyEventArgs);

@@ -21,19 +21,23 @@ namespace MED
      * */
     public class ProcessSettings : INullable
     {
-        public ProcessSettings(string fileName, JsonNode? root = null)
+        public ProcessSettings(string fileName, JsonNode? root = null, ProcessSettings? settingsRoot = null)
         {
             FileName = fileName;
             if (root == null)
                 Root = new JsonObject();// JsonNode.Parse("{}");
             else
                 Root = root;
+            SettingsRoot = settingsRoot;
         }
 
         [EditorAttribute(typeof(FileNameEditor), typeof(UITypeEditor))]
         public string FileName { get; set; }
 
         public JsonNode Root { get; set; }
+        public ProcessSettings? SettingsRoot { get; set; }
+
+        public EventHandler? OnLoadSettingsDone;
 
         public bool IsNull => false;
 
@@ -84,11 +88,15 @@ namespace MED
                     return null;
             return (JsonArray?)Root[childName];
         }
+        /**
+         * ChildSettings
+         * Provides a new settings set
+         * */
         public ProcessSettings ChildSettings(string childName, bool asJsonArray = false)
         {
             if (asJsonArray)
-                return new("", ChildArray(childName, true));
-            return new("", ChildNode(childName, true));
+                return new("", ChildArray(childName, true), SettingsRoot??this);
+            return new("", ChildNode(childName, true), SettingsRoot ?? this);
         }
 
         public static ProcessSettings FromFile(string fileName)
