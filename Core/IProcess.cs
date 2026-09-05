@@ -35,6 +35,10 @@ namespace MED
         void SaveSettings(ProcessSettings? settings = null, string fileName = "");
         JsonObject SaveProcess(JsonObject? node = null);
 
+
+        [Browsable(false)]
+        IConsumer? Consumer { get; }
+
         [Browsable(false)]
         Dictionary<string, object> ObjectsProperties { get; }
         #endregion

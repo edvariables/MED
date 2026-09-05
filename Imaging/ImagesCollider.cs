@@ -151,9 +151,9 @@ namespace MED.Imaging
          * 
          * <param name="image">Not current drawing image. May be previous one.</param>
          * */
-        public Dictionary<IImageMover, Region> Collide(Bitmap image, Graphics gr, IImageCollider item1, PointF offset)
+        public Dictionary<IImageCollider, Region> Collide(Bitmap image, Graphics gr, IImageCollider item1, PointF offset)
         {
-            Dictionary<IImageMover, Region> someChanges = new();
+            Dictionary<IImageCollider, Region> someChanges = new();
 
             var colliders = Colliders;// ManageBorders(image, gr);
             if (colliders == null || colliders.Count < 2) return someChanges;
@@ -212,8 +212,8 @@ namespace MED.Imaging
                     PointF intersectBoundsCenter = new((intersectBounds.Right + intersectBounds.Left) / 2F, (intersectBounds.Bottom + intersectBounds.Top) / 2F);
 
                     if (mover1 != null && CollideItemPair(gr, intersectBounds, intersectBoundsCenter, intersect, mover1, offset, region1, item2, PointF.Empty))
-                        if (someChanges.ContainsKey(mover1)) someChanges[mover1] = region1;
-                        else someChanges.Add(mover1, region1);
+                        if (someChanges.ContainsKey(item2)) someChanges[item2] = region2;
+                        else someChanges.Add(item2, region2);
 
                     else if (mover2 != null
                         && CollideItemPair(gr, intersectBounds, intersectBoundsCenter, intersect, mover2, PointF.Empty, region2, item1, offset))

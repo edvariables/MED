@@ -86,7 +86,7 @@ namespace MED.Imaging
         public virtual bool CollideItem(IImageCollider item2, PointF offset2){
             if (OnCollideItemScript == null)
                 return true;
-            return OnCollideItemScript.Eval(this, item2, offset2); 
+            return OnCollideItemScript.Eval(item2, offset2); 
         }
 
         [Category("Collider")]

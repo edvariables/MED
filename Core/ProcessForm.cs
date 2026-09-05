@@ -196,6 +196,9 @@ namespace MED
         public bool IsPaused => Project.IsPaused;
 
         [Browsable(false)]
+        public IConsumer? Consumer => Project.Consumer;
+
+        [Browsable(false)]
         public IProcess.ProcessStateChangedDelegate? OnProcessStateChanged { get; set; }
 
         public System.Threading.ThreadState ProcessState { get => Project.ProcessState; set => Project.ProcessState = value; }

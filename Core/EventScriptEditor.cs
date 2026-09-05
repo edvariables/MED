@@ -121,7 +121,7 @@ namespace MED
 
             var oldValue = _editorUI.Text;
 
-            editorService.DropDownControl(_editorUI);
+            editorService.DropDownControl(_editorUIWrapper);
 
             string newScript = _editorUI.Text;
             if (newScript == oldValue)

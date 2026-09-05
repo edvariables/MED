@@ -423,8 +423,8 @@ namespace MED.Imaging
                 if (item is IImageMover mover
                     && ImagesCollider.CollideItemWithImageBorders(modelImage, gr, mover, offset))
                 {
-                    OnCollideItemScript.Eval(this, item, offset);
-                    item.OnCollideItemScript?.Eval(item, this, offset);
+                    OnCollideItemScript?.Eval(item, offset);
+                    item.OnCollideItemScript?.Eval(this, offset);
 
                     return item.Location;
                 }
@@ -434,8 +434,8 @@ namespace MED.Imaging
                 {
                     foreach (var collidedItem in itemsCollided.Keys)
                     {
-                        OnCollideItemScript.Eval(collidedItem, item, offset);
-                        item.OnCollideItemScript?.Eval(item, collidedItem, offset);
+                        item.OnCollideItemScript?.Eval(collidedItem, offset);
+                        collidedItem.OnCollideItemScript?.Eval(item, offset);
                     }
                     return item.Location;
                 }
