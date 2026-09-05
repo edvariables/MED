@@ -147,6 +147,8 @@ namespace MED.Imaging
             {
                 if (SpeedMax == 0)
                     _Speed_msec = value;
+                else if(value < 0F)
+                    _Speed_msec = Math.Max(value, - SpeedMax / 1000);
                 else
                     _Speed_msec = Math.Min(value, SpeedMax / 1000);
                 Direction = _Direction;//Reset Velocity and Vector

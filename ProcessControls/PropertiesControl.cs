@@ -38,6 +38,7 @@ namespace MED
             ProcessClasses.Add("Images", typeof(MED.Imaging.Images).FullName ?? "");
             ProcessClasses.Add("Collider mover", typeof(MED.Imaging.ImageMover).FullName ?? "");
             ProcessClasses.Add("Attractor", typeof(MED.Imaging.Attractor).FullName ?? "");
+            ProcessClasses.Add("Propulsor", typeof(MED.Imaging.Propulsor).FullName ?? "");
             ProcessClasses.Add("VideoMover", typeof(MED.Imaging.VideoMover).FullName ?? "");
             ProcessClasses.Add("VideoCapture", typeof(MED.Imaging.VideoCapture).FullName ?? "");
             ProcessClasses.Add("VideoFileReader", typeof(MED.Imaging.VideoFileReader).FullName ?? "");

@@ -214,11 +214,16 @@ namespace MED
         {
             if (e.Control)
             {
+                var selectedText = rtbLog.SelectedText ?? "";
                 if (e.KeyCode == Keys.C)
-                    Clipboard.SetText(rtbLog.SelectedText??"");
+                {
+                    if (selectedText != "")
+                        Clipboard.SetText(selectedText);
+                }
                 else if (e.KeyCode == Keys.X)
                 {
-                    Clipboard.SetText(rtbLog.SelectedText ?? "");
+                    if (selectedText != "")
+                        Clipboard.SetText(rtbLog.SelectedText ?? "");
                     rtbLog.SelectedText = "";
                 }
                 else if (e.KeyCode == Keys.V)

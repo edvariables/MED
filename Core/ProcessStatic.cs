@@ -468,11 +468,11 @@ namespace MED
 
                         if (invoke)
                         {
-                            process.Performance?.Debug($"-> PInvoke({consumer.GetType().Name}.{consumerDelegate.Method.Name}, {process})");
+                            //process.Performance?.Debug($"-> PInvoke({consumer.GetType().Name}.{consumerDelegate.Method.Name}, {process})");
 
                             invokeHandler.Invoke(consumerDelegate, process /*sender*/, eventArgs);
 
-                            process.Performance?.Debug($"{invoke_str} done");
+                            //process.Performance?.Debug($"{invoke_str} done");
                         }
                         else
                         {

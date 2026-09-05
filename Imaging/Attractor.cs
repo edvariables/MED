@@ -51,6 +51,7 @@ namespace MED.Imaging
         [Browsable(true)]
         [Category("Attractor")]
         [Description("Interaction angle added to RotationAngle in degrees")]
+        [DefaultValue(0F)]
         public virtual float InteractionConeAngleOffset { get; set; }
 
         [Browsable(true)]

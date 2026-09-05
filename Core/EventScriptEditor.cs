@@ -59,7 +59,7 @@ namespace MED
             {
                 string eventName = context.PropertyDescriptor.Name;
                 eventName = Regex.Replace(eventName, @"(^On)?(.*)((Changed)?Script)$", "$2");
-                var eventScript = new EventScript(process, eventName);
+                var eventScript = EventScript.GetNewEventScript(process, eventName, context);
                 eventScript.Script = script;
 
                 return eventScript;
@@ -112,7 +112,7 @@ namespace MED
                 {
                     string eventName = context.PropertyDescriptor.Name;
                     eventName = Regex.Replace(eventName, @"(^On)?(.*)((Changed)?Script)$", "$2");
-                    eventScript = new EventScript(process, eventName);
+                    eventScript = EventScript.GetNewEventScript(process, eventName, context);
                 }
                 if (eventScript != null)
                 {
@@ -147,7 +147,7 @@ namespace MED
                 {
                     string eventName = context.PropertyDescriptor.Name;
                     eventName = Regex.Replace(eventName, @"(^On)?(.*)((Changed)?Script)$", "$2");
-                    eventScript = new EventScript(process, eventName);
+                    eventScript = EventScript.GetNewEventScript(process, eventName, context);
                 }
             }
             if (eventScript != null)

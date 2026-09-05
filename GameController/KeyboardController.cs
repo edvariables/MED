@@ -63,6 +63,20 @@ namespace MED.GameController
             return false;
         }
 
+        /**
+         * TODO : does not work
+         * */
+        private void formHandler_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e) {
+            switch (e.KeyCode)
+            {
+                case Keys.Left:
+                case Keys.Right:
+                case Keys.Down:
+                case Keys.Up:
+                    e.IsInputKey = true;
+                    break;
+            }
+        }
         private void formHandler_KeyDown(object? sender, System.Windows.Forms.KeyEventArgs e) => HookCallback(e, true);
         private void formHandler_KeyUp(object? sender, System.Windows.Forms.KeyEventArgs e) => HookCallback(e, false);
 
@@ -116,6 +130,7 @@ namespace MED.GameController
          * */
         private void SetHook(Control handler)
         {
+            //handler.PreviewKeyDown += formHandler_PreviewKeyDown;
             handler.KeyDown += formHandler_KeyDown;
             handler.KeyUp += formHandler_KeyUp;
         }
@@ -131,6 +146,7 @@ namespace MED.GameController
                 if (handler is Form formHandler)
                     formHandler.KeyPreview = _saved_formHandler_KeyPreview;
 
+                //handler.PreviewKeyDown -= formHandler_PreviewKeyDown;
                 handler.KeyDown -= formHandler_KeyDown;
                 handler.KeyUp -= formHandler_KeyUp;
             }

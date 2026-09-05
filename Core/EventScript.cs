@@ -163,7 +163,7 @@ namespace MED
                 scriptAdd.AppendLine($"var {name} = ({paramType.FullName})Parameters[{paramIndex}];");
 
                 if (paramType.Equals(typeof(PropertyChangedEventArgs)))
-                    scriptAdd.AppendLine($"var property = (({paramType.FullName})Parameters[{paramIndex}]).Property;");
+                    scriptAdd.AppendLine($"var property = {name}.Property;");
 
                 paramIndex++;
             }
@@ -215,6 +215,15 @@ namespace MED
             return script.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         }
 
+        public static EventScript GetNewEventScript(IProcess process, string eventName, ITypeDescriptorContext? context = null)
+        {
+            if (context == null || context.PropertyDescriptor == null)
+                return new(process, eventName);
+            var constructor = context.PropertyDescriptor.PropertyType.GetConstructors().First();
+            object[] parameters = [process, eventName]; 
+            return (EventScript)constructor.Invoke(parameters);
+        }
+
         public static void LoadSetting(ProcessSettings settings, IProcess process, string propertyInfoName)
         {
             PropertyInfo? propertyInfo = process.GetType().GetProperty(propertyInfoName);
@@ -241,7 +250,8 @@ namespace MED
                 if (!string.IsNullOrEmpty(script))
                 {
                     eventScript.Script = script;
-                    if (settings.SettingsRoot != null){
+                    if (settings.SettingsRoot != null)
+                    {
                         settings.SettingsRoot.OnLoadSettingsDone -= process.LoadSettingsDone;
                         settings.SettingsRoot.OnLoadSettingsDone += process.LoadSettingsDone;
                     }
@@ -256,6 +266,8 @@ namespace MED
             public object[]? Parameters = parameters;
 
             public IProcess _Process = process;
+
+            public Performance? Performance = process.Performance;
         }
     }
 }

@@ -280,7 +280,7 @@ namespace MED.Imaging
          */
         public virtual Bitmap? GetImage(IImageProvider? provider = null)
         {
-            Performance?.Debug($"ImageProcess.GetImage ImageIsProvided={ImageIsProvided}, " + (provider == null ? "<null>" : "provider") + " / " + (ImageProvider == null ? "<null>" : "ImageProvider"));
+            //Performance?.Debug($"ImageProcess.GetImage ImageIsProvided={ImageIsProvided}, " + (provider == null ? "<null>" : "provider") + " / " + (ImageProvider == null ? "<null>" : "ImageProvider"));
 
             if (ImageIsProvided)
                 if (provider != null)
