@@ -220,6 +220,16 @@ namespace MED
             }
         }
 
+        private void ProcessesControl1_NodeMouseDoubleClick(object sender, TreeNodeMouseClickEventArgs e)
+        {
+            EventScript? eventScript = e.Node.Tag != null && e.Node.Tag is EventScript ? (EventScript)e.Node.Tag : null;
+            if (eventScript != null)
+            {
+                var f = new EventScriptForm(eventScript);
+                f.Show(FindForm());
+            }
+        }
+
         private void toolStripMenuProcAdd_Click(object sender, EventArgs e)
         {
             contextMenuAddProcess.Show(contextMenuProcesses.Left, contextMenuProcesses.Top);

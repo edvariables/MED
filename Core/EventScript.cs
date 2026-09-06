@@ -11,6 +11,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace MED
 {
@@ -18,10 +19,22 @@ namespace MED
     [TypeConverter(typeof(EventScriptConvertor))]
     public class EventScript(IProcess process, string eventName)
     {
+        [Browsable(false)]
         public IProcess Process { get; set; } = process;
+
+        [Browsable(true)]
+        [ReadOnly(true)]
+        [Category("Script")]
         public string EventName { get; set; } = eventName;
 
+        [Browsable(false)]
+        public virtual string Icon { get; set; } = "Script";
+
         private string? _Script;
+
+        [Browsable(true)]
+        [Category("Script")]
+        [Editor(typeof(EventScriptEditor), typeof(UITypeEditor))]
         public virtual string? Script
         {
             get => _Script;
@@ -30,24 +43,38 @@ namespace MED
                 _Script = value;
                 CompiledScript = null;
                 _ParametersNames = null;
+                if (OnScriptChanged != null)
+                    OnScriptChanged(this, EventArgs.Empty);
             }
         }
+
+        public EventHandler? OnScriptChanged;
+
         public string GetMethodName() => GetMethodName(Process, EventName);
 
         private Microsoft.CodeAnalysis.Scripting.Script? CompiledScript { get; set; }
 
         private Dictionary<string, Type>? _ParametersNames;
 
+        [Browsable(true)]
+        [ReadOnly(true)]
+        [Category("Script")]
         public Dictionary<string, Type>? ParametersNames
         {
             get
             {
                 if (_ParametersNames != null)
                     return _ParametersNames;
-                return _ParametersNames = GetParametersNames(process, eventName);
+                return _ParametersNames = GetParametersNames(Process, EventName);
             }
             protected set => _ParametersNames = value;
         }
+
+        [Browsable(true)]
+        [ReadOnly(true)]
+        [Category("Script")]
+        public Dictionary<string, Type>? VariablesNames { get; protected set; }
+
         private static Dictionary<string, Type>? GetParametersNames(IProcess process, string eventName)
         {
             var method = GetMethod(process, eventName);
@@ -89,7 +116,11 @@ namespace MED
 
             if (string.IsNullOrEmpty(script)) return true;
 
-            script = InjectParameters(script, Process, ParametersNames, out HashSet<Assembly> assemblies, parameters);
+            Dictionary<string, Type>? variablesNames;
+
+            script = InsertVariablesNames(script, Process, ParametersNames, out HashSet<Assembly> assemblies, out variablesNames, parameters);
+
+            VariablesNames = variablesNames;
 
             try
             {
@@ -142,16 +173,20 @@ namespace MED
             return true;
         }
 
-        private static string InjectParameters(string script, IProcess process, Dictionary<string, Type>? parametersNames, out HashSet<Assembly> assemblies, params object[]? parameters)
+        private static string InsertVariablesNames(string script, IProcess process
+            , Dictionary<string, Type>? parametersNames, out HashSet<Assembly> assemblies
+            , out Dictionary<string, Type>? variablesNames, params object[]? parameters)
         {
             assemblies = new();
+            variablesNames = new();
+
             if (parametersNames == null || parameters == null)
                 return script;
             int paramIndex = 0;
             StringBuilder scriptAdd = new();
             HashSet<string> namespaces = new();
 
-            namespaces.Add(typeof(PointF).Namespace);
+            namespaces.Add(typeof(PointF).Namespace ?? "");
 
             foreach (var (name, paramType) in parametersNames)
             {
@@ -160,10 +195,14 @@ namespace MED
                 if (!assemblies.Contains(paramType.Assembly))
                     assemblies.Add(paramType.Assembly);
 
-                scriptAdd.AppendLine($"var {name} = ({paramType.FullName})Parameters[{paramIndex}];");
+                scriptAdd.AppendLine($"var {name} = ({paramType.FullName})_parameters[{paramIndex}];");
+                variablesNames.Add(name, paramType);
 
                 if (paramType.Equals(typeof(PropertyChangedEventArgs)))
+                {
                     scriptAdd.AppendLine($"var property = {name}.Property;");
+                    variablesNames.Add("property", typeof(string));
+                }
 
                 paramIndex++;
             }
@@ -174,7 +213,13 @@ namespace MED
                 namespaces.Add(processType.Namespace);
             if (!assemblies.Contains(processType.Assembly))
                 assemblies.Add(processType.Assembly);
-            scriptAdd.AppendLine($"var Process = ({processType.FullName})_Process;");
+            scriptAdd.AppendLine($"var process = ({processType.FullName})_process;");
+            variablesNames.Add("process", processType);
+
+            //ScriptGlobals properties in variablesNames
+            foreach (var property in typeof(ScriptGlobals).GetFields(BindingFlags.Public | BindingFlags.Instance))
+                if (!property.Name.StartsWith('_'))
+                    variablesNames.Add(property.Name, property.FieldType);
 
             if (scriptAdd.Length > 0)
                 script = $"{scriptAdd.ToString()}\n{script}";
@@ -191,36 +236,17 @@ namespace MED
 
         public static string ClearComments(string script)
         {
-            script = Regex.Replace(script, @"\/\*[\s\S]*\*\/", "");
+            script = Regex.Replace(script, @"\/\*.+?\*\/", "", RegexOptions.Multiline);
             script = Regex.Replace(script, @"^//.*([\n\r]|$)", "");
             return script;
         }
 
-        private static string IdentifyStrings(string script, out Dictionary<string, string>? stringsKeys)
-        {
-            stringsKeys = null;
-            return script;
-        }
-
-        private static string RestoreStrings(string script, Dictionary<string, string>? stringsKeys)
-        {
-            if (stringsKeys != null)
-                foreach (var (name, value) in stringsKeys)
-                    script = script.Replace(name, value);
-            return script;
-        }
-
-        private static string[] ParseScript(string script)
-        {
-            return script.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        }
-
-        public static EventScript GetNewEventScript(IProcess process, string eventName, ITypeDescriptorContext? context = null)
+        public static EventScript GetNew(IProcess process, string eventName, ITypeDescriptorContext? context = null)
         {
             if (context == null || context.PropertyDescriptor == null)
                 return new(process, eventName);
             var constructor = context.PropertyDescriptor.PropertyType.GetConstructors().First();
-            object[] parameters = [process, eventName]; 
+            object[] parameters = [process, eventName];
             return (EventScript)constructor.Invoke(parameters);
         }
 
@@ -263,11 +289,11 @@ namespace MED
 
         public class ScriptGlobals(IProcess process, object[]? parameters)
         {
-            public object[]? Parameters = parameters;
+            public object[]? _parameters = parameters;
 
-            public IProcess _Process = process;
+            public IProcess _process = process;
 
-            public Performance? Performance = process.Performance;
+            public Performance? perf = process.Performance;
         }
     }
 }

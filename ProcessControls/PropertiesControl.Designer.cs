@@ -109,6 +109,7 @@
             processesControl1.BeforeSelect += ProcessesControl1_BeforeSelect;
             processesControl1.NodeMouseClick += processesControl1_NodeMouseClick;
             processesControl1.MouseClick += processesControl1_MouseClick;
+            processesControl1.NodeMouseDoubleClick += ProcessesControl1_NodeMouseDoubleClick;
             // 
             // splitContainer1
             // 

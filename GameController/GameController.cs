@@ -15,7 +15,7 @@ namespace MED.GameController
             ProcessIconDefault = "Button";
         }
 
-        const string PropertyDomain = "GameController";
+        public readonly string PropertyDomain = "GameController";
 
         public delegate void GameControllerChangedDelegate(IGameController sender, PropertyChangedEventArgs e);
 
@@ -33,8 +33,8 @@ namespace MED.GameController
             InvokePropertyChanged(sender, OnGameControllerChanged, e, PropertyDomain);
         }
 
-        public override bool AddConsumer(IConsumer consumer, string controllerProperty, MulticastDelegate? consumerDelegate=null) => base.AddConsumer(consumer, $"{PropertyDomain}.{controllerProperty}", consumerDelegate );
-        public override bool RemoveConsumer(IConsumer consumer, string controllerProperty, MulticastDelegate? consumerDelegate = null) => base.RemoveConsumer(consumer, $"{PropertyDomain}.{controllerProperty}", consumerDelegate );
+        public override bool AddConsumer(IConsumer consumer, string controllerProperty, MulticastDelegate? consumerDelegate = null) => base.AddConsumer(consumer, $"{PropertyDomain}.{controllerProperty}", consumerDelegate);
+        public override bool RemoveConsumer(IConsumer consumer, string controllerProperty, MulticastDelegate? consumerDelegate = null) => base.RemoveConsumer(consumer, $"{PropertyDomain}.{controllerProperty}", consumerDelegate);
 
         public abstract object? GetControllerPropertyValue(string controllerProperty);
         public abstract void SetControllerPropertyValue(string controllerProperty, object? value);

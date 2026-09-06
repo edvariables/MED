@@ -641,5 +641,23 @@ namespace MED
 
             return null;
         }
+
+        /**
+         * GetEventScripts
+         * Returns all process scripts
+         * */
+        public static Dictionary<string, EventScript?> GetEventScripts(IProcess process, bool eventIfEmpty=false) {
+            Dictionary<string, EventScript?> scripts = new();
+
+            foreach(var property in process.GetType().GetProperties())
+                if (property.PropertyType.IsAssignableTo(typeof(EventScript)))
+                {
+                    var value = property.GetValue(process);
+                    if (eventIfEmpty || value != null)
+                        scripts.Add(property.Name, (EventScript?)value);
+                }
+
+            return scripts;
+        }
     }
 }

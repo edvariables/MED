@@ -297,7 +297,17 @@ namespace MED
                         //    AddItems([kvp.Value], subNode.Nodes, false);
                         //}
                     }
+
+                    var eventScripts = ProcessStatic.GetEventScripts(iProcess, false);
+                    foreach (var (prop, eventScript) in eventScripts)
+                    {
+                        var subNode = node.Nodes.Add(prop);
+                        subNode.ImageKey = eventScript == null ? "Script" : eventScript.Icon;
+                        subNode.SelectedImageKey = subNode.ImageKey;
+                        subNode.Tag = eventScript;
+                    }
                 }
+
                 if (item is GameController.GameController controller)
                 {
                     var properties = controller.GetPropertiesDelegatesConsumers();
@@ -306,12 +316,14 @@ namespace MED
                         foreach (var (property, consumers) in properties)
                         {
                             string propertyLabel;
-                            if (property.StartsWith("Controller"))
+                            if (property.StartsWith(controller.PropertyDomain))
+                                propertyLabel = property.Substring(controller.PropertyDomain.Length);
+                            else if (property.StartsWith("Controller"))
                                 propertyLabel = property.Substring("Controller".Length);
                             else
                                 propertyLabel = property;
-                            if(usagePropertiesMap.TryGetValue(propertyLabel, out UsagePropertiesMapItem? usagePropertiesMapItem))
-                                propertyLabel+=" = " + usagePropertiesMapItem.Properties;
+                            if (usagePropertiesMap.TryGetValue(propertyLabel, out UsagePropertiesMapItem? usagePropertiesMapItem))
+                                propertyLabel += " = " + usagePropertiesMapItem.Properties;
                             var subNode = node.Nodes.Add(propertyLabel);
                             subNode.SelectedImageKey = subNode.ImageKey = "next_blue";
                             AddItems(consumers.Value.Keys.ToArray(), subNode.Nodes, false);
