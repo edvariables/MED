@@ -178,7 +178,7 @@ namespace MED
 
         #endregion
 
-        public Performance Performance { get => Project.Performance; }
+        public Performance? Performance { get => Project.Performance; }
 
         [Browsable(false)]
         public IConsumer? Consumer => Project.Consumer;

@@ -34,13 +34,14 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FLogger));
             rtbLog = new RichTextBox();
             panBottom = new Panel();
+            cmdLastErrors = new Button();
             cmdSave = new Button();
             lblProgressMessage = new Label();
             chkClearLogOnRun = new CheckBox();
             chkLogColored = new CheckBox();
             saveFileDialog1 = new SaveFileDialog();
             toolTip1 = new ToolTip(components);
-            cmdLastErrors = new Button();
+            chkEnabled = new CheckBox();
             panBottom.SuspendLayout();
             SuspendLayout();
             // 
@@ -59,6 +60,7 @@
             // 
             // panBottom
             // 
+            panBottom.Controls.Add(chkEnabled);
             panBottom.Controls.Add(cmdLastErrors);
             panBottom.Controls.Add(cmdSave);
             panBottom.Controls.Add(lblProgressMessage);
@@ -69,6 +71,23 @@
             panBottom.Name = "panBottom";
             panBottom.Size = new Size(1137, 26);
             panBottom.TabIndex = 9;
+            // 
+            // cmdLastErrors
+            // 
+            cmdLastErrors.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            cmdLastErrors.FlatAppearance.BorderSize = 0;
+            cmdLastErrors.FlatStyle = FlatStyle.Flat;
+            cmdLastErrors.Image = (Image)resources.GetObject("cmdLastErrors.Image");
+            cmdLastErrors.ImageAlign = ContentAlignment.BottomLeft;
+            cmdLastErrors.Location = new Point(970, 3);
+            cmdLastErrors.Name = "cmdLastErrors";
+            cmdLastErrors.Size = new Size(45, 21);
+            cmdLastErrors.TabIndex = 8;
+            cmdLastErrors.Text = "0";
+            cmdLastErrors.TextAlign = ContentAlignment.MiddleRight;
+            toolTip1.SetToolTip(cmdLastErrors, "Last errors");
+            cmdLastErrors.UseVisualStyleBackColor = true;
+            cmdLastErrors.Click += cmdLastErrors_Click;
             // 
             // cmdSave
             // 
@@ -110,7 +129,7 @@
             chkClearLogOnRun.Name = "chkClearLogOnRun";
             chkClearLogOnRun.Size = new Size(22, 22);
             chkClearLogOnRun.TabIndex = 5;
-            toolTip1.SetToolTip(chkClearLogOnRun, "Check to lear log when process start. Double-click to clear now.");
+            toolTip1.SetToolTip(chkClearLogOnRun, "Check to clear log when process start. Double-click to clear now.");
             chkClearLogOnRun.UseVisualStyleBackColor = false;
             chkClearLogOnRun.CheckedChanged += chkClearLogOnRun_CheckedChanged;
             // 
@@ -132,22 +151,26 @@
             chkLogColored.UseVisualStyleBackColor = false;
             chkLogColored.CheckedChanged += chkLogColored_CheckedChanged;
             // 
-            // cmdLastErrors
+            // chkEnabled
             // 
-            cmdLastErrors.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            cmdLastErrors.FlatAppearance.BorderSize = 0;
-            cmdLastErrors.FlatStyle = FlatStyle.Flat;
-            cmdLastErrors.Image = (Image)resources.GetObject("cmdLastErrors.Image");
-            cmdLastErrors.ImageAlign = ContentAlignment.BottomLeft;
-            cmdLastErrors.Location = new Point(1003, 3);
-            cmdLastErrors.Name = "cmdLastErrors";
-            cmdLastErrors.Size = new Size(45, 21);
-            cmdLastErrors.TabIndex = 8;
-            cmdLastErrors.Text = "0";
-            cmdLastErrors.TextAlign = ContentAlignment.MiddleRight;
-            toolTip1.SetToolTip(cmdLastErrors, "Last errors");
-            cmdLastErrors.UseVisualStyleBackColor = true;
-            cmdLastErrors.Click += cmdLastErrors_Click;
+            chkEnabled.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            chkEnabled.Appearance = Appearance.Button;
+            chkEnabled.AutoSize = true;
+            chkEnabled.BackColor = SystemColors.Control;
+            chkEnabled.Checked = true;
+            chkEnabled.CheckState = CheckState.Checked;
+            chkEnabled.FlatAppearance.BorderSize = 0;
+            chkEnabled.FlatAppearance.CheckedBackColor = Color.FromArgb(255, 255, 192);
+            chkEnabled.FlatStyle = FlatStyle.Flat;
+            chkEnabled.ForeColor = SystemColors.ControlText;
+            chkEnabled.Image = (Image)resources.GetObject("chkEnabled.Image");
+            chkEnabled.Location = new Point(1026, 1);
+            chkEnabled.Name = "chkEnabled";
+            chkEnabled.Size = new Size(22, 22);
+            chkEnabled.TabIndex = 9;
+            toolTip1.SetToolTip(chkEnabled, "Check to enable logger");
+            chkEnabled.UseVisualStyleBackColor = false;
+            chkEnabled.CheckedChanged += chkEnabled_CheckedChanged;
             // 
             // FLogger
             // 
@@ -178,5 +201,6 @@
         private SaveFileDialog saveFileDialog1;
         private ToolTip toolTip1;
         private Button cmdLastErrors;
+        private CheckBox chkEnabled;
     }
 }

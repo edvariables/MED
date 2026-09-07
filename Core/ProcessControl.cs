@@ -41,24 +41,22 @@ namespace MED
             }
             set
             {
-#pragma warning disable CS8602 // Déréférencement d'une éventuelle référence null.
                 if (_ActiveProcess != null)
                 {
-                    if (_ActiveProcess is ProcessForm)
-                        (_ActiveProcess as ProcessForm).OnProcessStateChanged -= ProcessStateChanged;
-                    else if (_ActiveProcess is Process)
-                        (_ActiveProcess as Process).OnProcessStateChanged -= ProcessStateChanged;
+                    if (_ActiveProcess is ProcessForm processForm)
+                        processForm.OnProcessStateChanged -= ProcessStateChanged;
+                    else if (_ActiveProcess is Process process)
+                        process.OnProcessStateChanged -= ProcessStateChanged;
                 }
                 _ActiveProcess = value;
 
                 if (_ActiveProcess != null)
                 {
-                    if (_ActiveProcess is ProcessForm)
-                        (_ActiveProcess as ProcessForm).OnProcessStateChanged += ProcessStateChanged;
-                    else if (_ActiveProcess is Process)
-                        (_ActiveProcess as Process).OnProcessStateChanged += ProcessStateChanged;
+                    if (_ActiveProcess is ProcessForm processForm)
+                        processForm.OnProcessStateChanged += ProcessStateChanged;
+                    else if (_ActiveProcess is Process process)
+                        process.OnProcessStateChanged += ProcessStateChanged;
                 }
-#pragma warning restore CS8602 // Déréférencement d'une éventuelle référence null.
             }
         }
 

@@ -227,9 +227,7 @@ namespace MED
                     kvp.Value.Stop(stop_subs);
             if (!WasRunning)
                 return "";
-            var s = Log(Report());
-            if (Logger != null)
-                Logger.InvokeBufferChanged(this, EventArgs.Empty);
+            var s = Log(Report(), true);
             return s;
         }
         public string Suspend(string step = "Suspend", bool suspend_subs = false)
@@ -435,13 +433,26 @@ namespace MED
             return current;
         }
 
-        public string Log(string s)
+        public string Log(string s, bool forceInvoke = false)
         {
             if (IsEmpty || !Enabled || s == "")
                 return String.Empty;
 
             if (Logger != null)
+            {
+                bool loggerEnabled = false;
+                if (forceInvoke)
+                    if (!(loggerEnabled = Logger.Enabled))
+                        Logger.Enabled = true;
+
                 Logger.AppendLine(LogColored(s));
+
+                if (forceInvoke)
+                {
+                    Logger.InvokeBufferChanged(this, EventArgs.Empty);
+                    Logger.Enabled = loggerEnabled;
+                }
+            }
             return s;
         }
 

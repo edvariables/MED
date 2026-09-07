@@ -17,6 +17,9 @@ namespace MED
     {
         private StringBuilder Buffer = new();
 
+        [Category("Logger")]
+        public bool Enabled { get; set; } = true;
+
         public void Clear()
         {
             Buffer.Clear();
@@ -25,6 +28,8 @@ namespace MED
 
         public void AppendLine(string msg, params object[] args)
         {
+            if (!Enabled) return;
+
             for (int i = 0; i < args.Length; i++)
             {
                 msg = msg.Replace("{" + i.ToString() + "}", args[i].ToString());
@@ -36,6 +41,8 @@ namespace MED
         }
         public void Append(string msg, params object[] args)
         {
+            if (!Enabled) return;
+            
             for (int i = 0; i < args.Length; i++)
             {
                 msg = msg.Replace("{" + i.ToString() + "}", args[i].ToString());

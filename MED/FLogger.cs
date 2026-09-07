@@ -288,5 +288,11 @@ namespace MED
         {
             FProperties.Current?.ShowNodeProperties(Logger);
         }
+
+        private void chkEnabled_CheckedChanged(object sender, EventArgs e)
+        {
+            Logger.Enabled = chkEnabled.Checked;
+            chkEnabled.Image = Logger.Enabled ? MEDIcons.Pause_blue : MEDIcons.Start_blue;
+        }
     }
 }

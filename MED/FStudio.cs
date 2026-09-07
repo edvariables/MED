@@ -234,7 +234,7 @@ namespace MED
         private ProcessForm GetNewProcessForm(string? fileName = null, ProcessForm? processForm = null)
         {
             if (processForm == null)
-                processForm = new("Projet " + childFormNumber++);
+                processForm = new ImageProcessForm("Projet " + childFormNumber++);
             processForm.MdiParent = this;
             processForm.OnProcessStateChanged += ProcessStateChanged;
 
@@ -251,13 +251,8 @@ namespace MED
                 controller.Show();
                 processForm.Controls.Add(controller);
 
-                pictureBox = new();
-                pictureBox.BackColor = System.Drawing.Color.LightSteelBlue;
-                pictureBox.Size = processForm.ClientSize;
-                pictureBox.Dock = DockStyle.Fill;
-                processForm.Controls.Add(pictureBox);
-
-                processForm.Activated += (object? sender, EventArgs e) => pictureBox.Focus();
+                if (processForm is ImageProcessForm imageProcessForm)
+                    pictureBox = imageProcessForm.RenderPictureBox;
 
             }
             if (!string.IsNullOrEmpty(fileName))
@@ -678,7 +673,8 @@ namespace MED
         void ProcessStateChanged(IProcess sender, System.Threading.ThreadState state)
         {
             var activeProcess = ActiveProcess;
-            if (ProcessForm.FindProcessForm(sender) == activeProcess)
+            ProcessForm? processForm = ProcessForm.FindProcessForm(sender);
+            if (processForm == activeProcess)
                 ActiveProcessChanged(sender, state);
             if (state == System.Threading.ThreadState.Running)
             {

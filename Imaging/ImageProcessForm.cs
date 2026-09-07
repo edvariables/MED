@@ -6,14 +6,21 @@ using System.Linq;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace MED
 {
     public class ImageProcessForm : ProcessForm, IImageConsumer
     {
-        public ImageProcessForm() : base()
+        public ImageProcessForm(string name) : base(name)
         {
             ProcessIcon = "VisualTrue";
+
+            RenderPictureBox = new();
+            RenderPictureBox.BackColor = System.Drawing.Color.LightSteelBlue;
+            RenderPictureBox.Size = ClientSize;
+            RenderPictureBox.Dock = DockStyle.Fill;
+            Controls.Add(RenderPictureBox);
         }
         #region Settings
 
@@ -25,7 +32,7 @@ namespace MED
             base.LoadSettings(settings, fileName);
             if (settings == null && (settings = ProcessSettings) == null)
                 return;
-            ImageSizeMin = (Size)(settings.GetValue("ImageSizeMin", ImageSizeMin)?? ImageSizeMin);
+            ImageSizeMin = (Size)(settings.GetValue("ImageSizeMin", ImageSizeMin) ?? ImageSizeMin);
         }
 
         public override JsonObject SaveProcess(JsonObject? node = null)
@@ -54,6 +61,17 @@ namespace MED
 
             if (RenderPictureBox != null)
                 Imaging.Render.RefreshRender(sender, RenderPictureBox, Performance, e);
+        }
+
+        public override void Start()
+        {
+            base.Start();
+
+            if (RenderPictureBox != null)
+            {
+                //Activate();
+                RenderPictureBox.Focus();
+            }
         }
         #endregion
     }

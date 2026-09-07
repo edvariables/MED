@@ -245,11 +245,16 @@ namespace MED
             if (replaceNodeCache)
                 ObjectsNodes.Add(item.GetHashCode(), node);
 
-            node.Tag = item;
+            bool nodeExpand = node.Parent == null || node.Parent.Parent == null;
+
+                node.Tag = item;
             node.ImageKey = image;
             node.SelectedImageKey = node.ImageKey;
             if (item is IProcess process)
             {
+                if (!process.Enabled)
+                    nodeExpand = false;
+
                 ItemProcess_StateChanged(process, process.ProcessState);
                 if (!process.Enabled)
                 {
@@ -321,9 +326,11 @@ namespace MED
 
                 if (item is GameController.GameController controller)
                 {
+                    nodeExpand = false;
                     var properties = controller.GetPropertiesDelegatesConsumers();
                     var usagePropertiesMap = controller.UsagePropertiesMap;
                     if (properties.Count > 0)
+                    {
                         foreach (var (property, consumers) in properties)
                         {
                             string propertyLabel;
@@ -339,6 +346,7 @@ namespace MED
                             subNode.SelectedImageKey = subNode.ImageKey = "next_blue";
                             AddItems(consumers.Value.Keys.ToArray(), subNode.Nodes, false);
                         }
+                    }
 
                     //if (controller.UsagePropertiesMap.Count > 0)
                     //{
@@ -367,7 +375,7 @@ namespace MED
 
                 }
 
-                if (node.Parent == null || node.Parent.Parent == null)
+                if (nodeExpand)
                     node.Expand();
             }
 
