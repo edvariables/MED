@@ -16,6 +16,7 @@ namespace MED
             KeyDown += Control_KeyDown;
         }
 
+
         private void Control_KeyDown(object? sender, KeyEventArgs e)
         {
             if ((e.KeyCode == Keys.ControlKey || e.KeyCode == Keys.ShiftKey)
@@ -38,46 +39,26 @@ namespace MED
 
         }
 
-        //public enum TextModes
-        //{
-        //    TM_PLAINTEXT = 1,
-        //    TM_RICHTEXT = 2,
-        //    TM_SINGLELEVELUNDO = 4,
-        //    TM_MULTILEVELUNDO = 8,
-        //    TM_SINGLECODEPAGE = 16,
-        //    TM_MULTICODEPAGE = 32
-        //}
-
-        //[DllImport("user32.dll")]
-        //private static extern int SendMessage(IntPtr hWnd, int wMsg, IntPtr wParam, IntPtr lParam);
-
-        //private const int EM_GETTEXTMODE = 0x045a;
-        //private const int EM_SETTEXTMODE = 0x0459;
-
-        //private TextModes _TextMode;
-        //public TextModes TextMode
-        //{
-        //    get
-        //    {
-        //        var value = SendMessage(Handle, EM_GETTEXTMODE, IntPtr.Zero, 0);
-
-        //        return (TextModes)value;
-        //    }
-        //    set
-        //    {
-        //        _TextMode = value;
-        //        var r = SendMessage(Handle, EM_SETTEXTMODE, (int)_TextMode, 0);
-        //    }
-        //}
+        public const int UndoStackMaxLength = 64;
 
         Stack<Func<object>> undoStack = new Stack<Func<object>>();
         Stack<Func<object>> redoStack = new Stack<Func<object>>();
 
-        private void StackPush(object sender, Stack<Func<object>> stack)
+        /**
+         * Stack RichTextBoxMED
+         * */
+        private void StackPush(RichTextBoxMED textBox, Stack<Func<object>> stack)
         {
-            RichTextBoxMED textBox = (RichTextBoxMED)sender;
             var tBT = textBox.Text(textBox.Text, textBox.SelectionStart);
             stack.Push(tBT);
+            if (stack.Count > UndoStackMaxLength)
+            {
+                var newStack = new Stack<Func<object>>(stack.SkipLast(stack.Count - UndoStackMaxLength).Reverse());
+                if (undoStack.Equals(stack))
+                    undoStack = newStack;
+                else if (redoStack.Equals(stack))
+                    redoStack = newStack;
+            }
         }
 
         public new void Undo()
@@ -97,7 +78,7 @@ namespace MED
             }
         }
     }
-    public static class Extensions
+    public static partial class Extensions
     {
         public static Func<RichTextBoxMED> Text(this RichTextBoxMED textBox, string text, int sel)
         {
