@@ -41,26 +41,31 @@ namespace MED
 
         public const int UndoStackMaxLength = 64;
 
-        Stack<Func<object>> undoStack = new Stack<Func<object>>();
-        Stack<Func<object>> redoStack = new Stack<Func<object>>();
+        private Stack<Func<RichTextBoxMED>> undoStack = new Stack<Func<RichTextBoxMED>>();
+        private Stack<Func<RichTextBoxMED>> redoStack = new Stack<Func<RichTextBoxMED>>();
 
         /**
-         * Stack RichTextBoxMED
+         * Stack RichTextBoxMED state
          * */
-        private void StackPush(RichTextBoxMED textBox, Stack<Func<object>> stack)
+        private void StackPush(RichTextBoxMED textBox, Stack<Func<RichTextBoxMED>> stack)
         {
             var tBT = textBox.Text(textBox.Text, textBox.SelectionStart);
             stack.Push(tBT);
             if (stack.Count > UndoStackMaxLength)
             {
-                var newStack = new Stack<Func<object>>(stack.SkipLast(stack.Count - UndoStackMaxLength).Reverse());
+                var newStack = new Stack<Func<RichTextBoxMED>>(stack.SkipLast(stack.Count - UndoStackMaxLength).Reverse());
                 if (undoStack.Equals(stack))
                     undoStack = newStack;
                 else if (redoStack.Equals(stack))
                     redoStack = newStack;
+                else
+                    throw new NotImplementedException();
             }
         }
 
+        /**
+         * Undo
+         * */
         public new void Undo()
         {
             if (undoStack.Count > 0)
@@ -69,6 +74,9 @@ namespace MED
                 undoStack.Pop()();
             }
         }
+        /**
+         * Redo
+         * */
         public new void Redo()
         {
             if (redoStack.Count > 0)
