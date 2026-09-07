@@ -242,9 +242,8 @@ namespace MED
 
             PictureBox? pictureBox = null;
 
-            if (processForm.GetType() == typeof(ProcessForm) || processForm.Processes.Count == 0)
+            if (processForm.Processes.Count == 0)
             {
-
                 ProcessControl controller = new();
                 controller.BackColor = System.Drawing.Color.Transparent;
                 controller.Dock = DockStyle.Top;
@@ -256,12 +255,10 @@ namespace MED
                 pictureBox.BackColor = System.Drawing.Color.LightSteelBlue;
                 pictureBox.Size = processForm.ClientSize;
                 pictureBox.Dock = DockStyle.Fill;
-
-                //pictureBox.Click += (object? sender, EventArgs e) => pictureBox.Focus();
-
-                processForm.Activated += (object? sender, EventArgs e) =>pictureBox.Focus();
-
                 processForm.Controls.Add(pictureBox);
+
+                processForm.Activated += (object? sender, EventArgs e) => pictureBox.Focus();
+
             }
             if (!string.IsNullOrEmpty(fileName))
             {

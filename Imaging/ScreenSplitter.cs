@@ -14,8 +14,8 @@ namespace MED.Imaging
 {
     public class ScreenSplitter : ImageProcess
     {
-        public ScreenSplitter(string name = "ScreenSplitter", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = false)
-            : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
+        public ScreenSplitter(string name = "ScreenSplitter", Performance? performance = null, Control? invokeHandler = null, IConsumer? consumer = null, bool isAsynchrone = false)
+            : base(name, performance, invokeHandler, consumer, isAsynchrone)
         {
             ImageIsProvided = false;
             ResetOnImageChanged = true;

@@ -34,10 +34,10 @@ namespace MED
             if (gameController == null)
                 return;
             var script = ClearComments(Script).Replace(" ", "");
-            var matches = Regex.Matches(script, @"if\(property==""([^""]+)""\)");
+            var matches = Regex.Matches(script, @"if\(.*(property==|gameController\.GetControllerPropertyValue\()""([^""]+)""");
             foreach (var match in matches)
                 if (match != null && match is Match match1)
-                    gameController.AddConsumer(consumer, match1.Groups[1].Value, Process.GameControllerChanged);
+                    gameController.AddConsumer(consumer, match1.Groups[2].Value, Process.GameControllerChanged);
         }
         private void RemoveConsumers()
         {

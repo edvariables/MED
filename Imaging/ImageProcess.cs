@@ -21,13 +21,14 @@ namespace MED.Imaging
      * */
     public abstract class ImageProcess : Process, IImageConsumer, IImageProvider
     {
-        public ImageProcess(string name, Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = false)
-            : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
+        public ImageProcess(string name, Performance? performance = null, Control? invokeHandler = null, IConsumer? consumer = null, bool isAsynchrone = false)
+            : base(name, performance, invokeHandler, consumer, isAsynchrone)
         {
             ProcessIcon = ProcessIconDefault = "Image";
 
             ImageProviders = new();
-            ImageConsumer = imageConsumer;
+            if (consumer is IImageConsumer imageConsumer)
+                ImageConsumer = imageConsumer;
         }
 
 

@@ -14,8 +14,8 @@ namespace MED.Imaging
     public class Attractor : ImageInteractor
     {
         //isAsynchrone = true
-        public Attractor(string name = "Attractor", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
-            : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
+        public Attractor(string name = "Attractor", Performance? performance = null, Control? invokeHandler = null, IConsumer? consumer = null, bool isAsynchrone = true)
+            : base(name, performance, invokeHandler, consumer, isAsynchrone)
         {
             ProcessIcon = ProcessIconDefault = "Object";
             ResetOnImageChanged = false;//self managed

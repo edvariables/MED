@@ -26,8 +26,8 @@ namespace MED.Imaging
      * */
     public class ImageCollider : ImageInteractor, IImageProvider, IImageCollider
     {
-        public ImageCollider(string name = "ImageCollidable", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
-                        : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
+        public ImageCollider(string name = "ImageCollidable", Performance? performance = null, Control? invokeHandler = null, IConsumer? consumer = null, bool isAsynchrone = true)
+                        : base(name, performance, invokeHandler, consumer, isAsynchrone)
         {
         }
 

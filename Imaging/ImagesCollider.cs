@@ -100,7 +100,6 @@ namespace MED.Imaging
 
             bool changed = false;
             var itemBounds = item.GetClipRegionTranslatedBounds(gr, offset);
-            var itemCenter = new PointF(itemBounds.X + itemBounds.Width / 2, itemBounds.Y + itemBounds.Height / 2);
             Vector2 overlap = Vector2.Zero;
 
             switch (borderBehavior)
@@ -140,24 +139,29 @@ namespace MED.Imaging
 
                 case BorderBehaviors.Circular:
                 default:
+                    var itemCenter = new PointF(itemBounds.X + itemBounds.Width / 2, itemBounds.Y + itemBounds.Height / 2);
                     if (itemCenter.Y < 0)
                     {
-                        location.Y = image.Height + itemBounds.Y;
+                        overlap.Y = location.Y - itemBounds.Y;
+                        location.Y = image.Height + itemCenter.Y - itemBounds.Height / 2;
+                        changed = true;
+                    }
+                    else if (itemCenter.Y > image.Height)
+                    {
+                        overlap.Y = location.Y - itemBounds.Y;
+                        location.Y = itemCenter.Y - image.Height - itemBounds.Height / 2;
                         changed = true;
                     }
                     if (itemCenter.X < 0)
                     {
+                        overlap.X = location.X - itemBounds.X;
                         location.X = image.Width + itemBounds.X;
                         changed = true;
                     }
-                    if (itemCenter.Y > image.Height)
+                    else if (itemCenter.X > image.Width)
                     {
-                        location.Y = itemBounds.Y - image.Height;
-                        changed = true;
-                    }
-                    if (itemCenter.X > image.Width)
-                    {
-                        location.X = (itemBounds.X - image.Width)% image.Width;
+                        overlap.X = location.X - itemBounds.X;
+                        location.X = itemBounds.X - image.Width;
                         changed = true;
                     }
                     break;

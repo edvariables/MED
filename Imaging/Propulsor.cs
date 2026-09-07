@@ -14,8 +14,8 @@ namespace MED.Imaging
     public class Propulsor : ImageMover
     {
         //isAsynchrone = true
-        public Propulsor(string name = "Propulsor", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
-            : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
+        public Propulsor(string name = "Propulsor", Performance? performance = null, Control? invokeHandler = null, IConsumer? consumer = null, bool isAsynchrone = true)
+            : base(name, performance, invokeHandler, consumer, isAsynchrone)
         {
             ProcessIcon = ProcessIconDefault = "Object";
             ResetOnImageChanged = false;//self managed
@@ -47,9 +47,10 @@ namespace MED.Imaging
                 double radians = (float)(Math.PI * (RotationAngle + RotationAngleOffset) / 180F);
                 var propulsionVector = new Vector2((float)Math.Cos(radians), (float)Math.Sin(radians));
                 var propulsionFactor = Propulsion * PropulsorStrenght;
-                var direction = VelocityVector * elapsedTime - propulsionVector * propulsionFactor;
+                var direction = VelocityVector * elapsedTime - propulsionVector * Math.Abs(propulsionFactor);
                 Speed += propulsionFactor;
-                //Speed = direction.Length();
+                //if (Speed < 0F)
+                //    Speed *= -1F;
 
                 Direction = new(Vector2.Normalize(direction));
             }

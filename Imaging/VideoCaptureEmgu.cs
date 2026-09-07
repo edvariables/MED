@@ -18,8 +18,8 @@ namespace MED.Imaging
     //isAsynchrone = true
     public abstract class VideoCaptureEmgu : ImageProcess, IImageProvider, IMatFrameProvider
     {
-        public VideoCaptureEmgu(string name = "VideoCaptureEmgu", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
-        : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
+        public VideoCaptureEmgu(string name = "VideoCaptureEmgu", Performance? performance = null, Control? invokeHandler = null, IConsumer? consumer = null, bool isAsynchrone = true)
+        : base(name, performance, invokeHandler, consumer, isAsynchrone)
         {
             ProcessIcon = ProcessIconDefault = "Object";
         }

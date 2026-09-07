@@ -18,8 +18,8 @@ namespace MED.Imaging
     //isAsynchrone = true
     public class VideoFileReader : VideoCaptureEmgu
     {
-        public VideoFileReader(string name = "VideoFileReader", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
-        : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
+        public VideoFileReader(string name = "VideoFileReader", Performance? performance = null, Control? invokeHandler = null, IConsumer? consumer = null, bool isAsynchrone = true)
+        : base(name, performance, invokeHandler, consumer, isAsynchrone)
         {
             ProcessIcon = ProcessIconDefault = "save";
         }

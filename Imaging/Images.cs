@@ -14,8 +14,8 @@ namespace MED.Imaging
 {
     public class Images : ImageCollider, IProcesses
     {
-        public Images(string name = "Images", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
-            : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
+        public Images(string name = "Images", Performance? performance = null, Control? invokeHandler = null, IConsumer? consumer = null, bool isAsynchrone = true)
+            : base(name, performance, invokeHandler, consumer, isAsynchrone)
         {
             ProcessIcon = ProcessIconDefault = "icon-folder-open";
 

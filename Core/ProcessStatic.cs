@@ -525,7 +525,7 @@ namespace MED
          * 
          * 
          * */
-        public static IProcess? CreateProcess(JsonNode node, Performance? performance, Control? invokeHandler)
+        public static IProcess? CreateProcess(JsonNode node, Performance? performance, Control? invokeHandler, IConsumer? consumer = null)
         {
             string? processClass = node["ProcessClass"]?.GetValue<string>();
             string? processLib = node["ProcessLib"]?.GetValue<string>();
@@ -537,20 +537,20 @@ namespace MED
             bool isAsynchrone = (bool)(Parser.ObjectFromJsonNode(node["IsAsynchrone"] ?? false, false) ?? false);
             if (processClass == null || name == null)
                 return null;
-            return CreateProcess(processClass, processLib, name, isAsynchrone, performance, invokeHandler);
+            return CreateProcess(processClass, processLib, name, isAsynchrone, performance, invokeHandler, consumer);
         }
 
         /***
          * 
          * 
          * */
-        public static IProcess? CreateProcess(string processClass, string? processLib, string name, bool isAsynchrone, Performance? performance, Control? invokeHandler)
+        public static IProcess? CreateProcess(string processClass, string? processLib, string name, bool isAsynchrone, Performance? performance, Control? invokeHandler, IConsumer? consumer = null)
         {
             if (processClass == "")
                 processClass = "MED.Process";
             if (processLib == null)
                 processLib = "";
-            object[] paramsObjects = [name, performance?.Sub(name), invokeHandler, null, isAsynchrone];
+            object[] paramsObjects = [name, performance?.Sub(name), invokeHandler, consumer, isAsynchrone];
             return (IProcess?)AssemblyLoader.CreateObjectInstance(processLib, processClass, paramsObjects);
         }
         #endregion

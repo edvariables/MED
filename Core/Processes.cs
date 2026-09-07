@@ -152,7 +152,7 @@ namespace MED
                     continue;
                 try
                 {
-                    IProcess? item = ProcessStatic.CreateProcess(procNode, Performance, InvokeHandler);
+                    IProcess? item = ProcessStatic.CreateProcess(procNode, Performance, InvokeHandler, this);
                     if (item == null)
                         continue;
                     if (item is Process process)

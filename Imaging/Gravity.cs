@@ -13,8 +13,8 @@ namespace MED.Imaging
     public class Gravity : ImageInteractor
     {
         //isAsynchrone = true
-        public Gravity(string name = "Gravity", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
-            : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
+        public Gravity(string name = "Gravity", Performance? performance = null, Control? invokeHandler = null, IConsumer? consumer = null, bool isAsynchrone = true)
+            : base(name, performance, invokeHandler, consumer, isAsynchrone)
         {
             ProcessIcon = ProcessIconDefault = "Object";
             ResetOnImageChanged = false;//self managed

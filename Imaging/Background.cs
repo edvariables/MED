@@ -25,8 +25,8 @@ namespace MED.Imaging
      * class Background : ImageSourced, IImageProvider
      * <summary>Image as a physic object that can move, rotate and collide</summary>
      * */
-    public class Background(string name = "BackgroundImage", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
-        : ImageSourced(name, performance, invokeHandler, imageConsumer, isAsynchrone), IImageProvider
+    public class Background(string name = "BackgroundImage", Performance? performance = null, Control? invokeHandler = null, IConsumer? consumer = null, bool isAsynchrone = true)
+        : ImageSourced(name, performance, invokeHandler, consumer, isAsynchrone), IImageProvider
     {
 
         #region Properties

@@ -23,8 +23,8 @@ namespace MED.Imaging
      * class Mover : ImageCollidable, IImageMover
      * <summary>Image as a physical object that can move, rotate and collide</summary>
      * */
-    public class ImageMover(string name = "Mover", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true) 
-                : ImageCollider(name, performance, invokeHandler, imageConsumer, isAsynchrone), IImageMover
+    public class ImageMover(string name = "Mover", Performance? performance = null, Control? invokeHandler = null, IConsumer? consumer = null, bool isAsynchrone = true) 
+                : ImageCollider(name, performance, invokeHandler, consumer, isAsynchrone), IImageMover
     {
         public override Region? ClipRegion
         {
@@ -92,9 +92,7 @@ namespace MED.Imaging
             Matrix transformMatrix = new Matrix();
             transformMatrix.Translate(location.X, location.Y);
             if (Rotation != 0F)
-            {
                 transformMatrix.RotateAt(Rotation, new PointF(imageSize.Width / 2F, imageSize.Height / 2F));
-            }
             region.Transform(transformMatrix);
 
             return region;

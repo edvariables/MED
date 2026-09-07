@@ -25,8 +25,8 @@ namespace MED.Imaging
      * */
     public class ImageInteractor : ImageSourced, IImageProvider, IImageInteractor
     {
-        public ImageInteractor(string name = "ImageInteractor", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
-        : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
+        public ImageInteractor(string name = "ImageInteractor", Performance? performance = null, Control? invokeHandler = null, IConsumer? consumer = null, bool isAsynchrone = true)
+        : base(name, performance, invokeHandler, consumer, isAsynchrone)
         {
         }
 

@@ -16,8 +16,8 @@ namespace MED.Imaging
 {
     public class Render : ImageProcess
     {
-        public Render(string name = "Render", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = false)
-            : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
+        public Render(string name = "Render", Performance? performance = null, Control? invokeHandler = null, IConsumer? consumer = null, bool isAsynchrone = false)
+            : base(name, performance, invokeHandler, consumer, isAsynchrone)
         {
             ProcessIcon = ProcessIconDefault = "drive";
 
@@ -28,7 +28,7 @@ namespace MED.Imaging
             if (invokeHandler is PictureBox)
                 RenderImageControl = (PictureBox)invokeHandler;
 
-            if (imageConsumer == null)
+            if (consumer == null)
                 RenderImageControl = (Control?)invokeHandler;
         }
 

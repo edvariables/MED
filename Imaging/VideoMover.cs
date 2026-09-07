@@ -14,8 +14,8 @@ namespace MED.Imaging
     public class VideoMover : ImageMover, IMatFrameConsumer, IMatFrameProvider
     {
         //isAsynchrone = true
-        public VideoMover(string name = "VideoMover", Performance? performance = null, Control? invokeHandler = null, IImageConsumer? imageConsumer = null, bool isAsynchrone = true)
-            : base(name, performance, invokeHandler, imageConsumer, isAsynchrone)
+        public VideoMover(string name = "VideoMover", Performance? performance = null, Control? invokeHandler = null, IConsumer? consumer = null, bool isAsynchrone = true)
+            : base(name, performance, invokeHandler, consumer, isAsynchrone)
         {
             ProcessIcon = ProcessIconDefault = "Client";
             ResetOnImageChanged = false;//self managed
