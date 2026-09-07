@@ -12,6 +12,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using static Microsoft.CodeAnalysis.CSharp.SyntaxTokenParser;
 
 namespace MED
 {
@@ -53,6 +54,7 @@ namespace MED
         public string GetMethodName() => GetMethodName(Process, EventName);
 
         private Microsoft.CodeAnalysis.Scripting.Script? CompiledScript { get; set; }
+        public List<object>? CompiledScriptErrors { get; set; }
 
         private Dictionary<string, Type>? _ParametersNames;
 
@@ -124,17 +126,30 @@ namespace MED
 
             try
             {
+                Process.Performance?.Sub("EventScript").Debug($"Compiling {EventName}...");
+                Process.Performance?.Logger?.InvokeBufferChanged(this, EventArgs.Empty);
                 using (var loader = new InteractiveAssemblyLoader())
                 {
                     CompiledScript = CSharpScript.Create<bool>(script, ScriptOptions.Default.WithReferences(assemblies), globalsType: typeof(ScriptGlobals), assemblyLoader: loader);
                 }
-                CompiledScript.Compile();
-
-                Process.Performance?.Sub($"EventScript").Debug("\n" + CompiledScript.Code);
+                var results = CompiledScript.Compile();
+                if (results.Length > 0)
+                {
+                    var message = $"Script {EventName}: Compilation error";
+                    foreach (var result in results)
+                        message += $"\n{result}";
+                    message += $"\n* Script :\n{script}";
+                    Process.Performance?.Error(message);
+                    CompiledScriptErrors = results.ToList<object>();
+                }
+                else
+                {
+                    CompiledScriptErrors = null;
+                }
             }
             catch (Exception ex)
             {
-                Process.Performance?.Sub($"EventScript").Error($"Error in compilation of {script}", ex);
+                Process.Performance?.Error($"Script {EventName}: Compilation error in\n {script}", ex);
                 return false;
             }
             return true;
@@ -153,6 +168,8 @@ namespace MED
             if (CompiledScript == null)
                 if (!CompileScript(parameters))
                     return false;
+            if (CompiledScriptErrors != null)
+                return false;
             if (CompiledScript == null)
                 return true;
 
@@ -165,9 +182,14 @@ namespace MED
             {
                 var result = script.RunAsync(new ScriptGlobals(process, parameters)).Result;
             }
+            catch (AggregateException ex)
+            {
+                process.Performance?.Error($"Script : Evaluation error in \n{script.Code}\n--- {process} ---\n", ex.InnerException);
+                return false;
+            }
             catch (Exception ex)
             {
-                process.Performance?.Sub($"EventScript").Error($"Error in evaluation of \n{script.Code}", ex);
+                process.Performance?.Error($"Script : Evaluation error in \n{script.Code}\n--- {process} ---\n", ex);
                 return false;
             }
             return true;
@@ -186,7 +208,12 @@ namespace MED
             StringBuilder scriptAdd = new();
             HashSet<string> namespaces = new();
 
+            // namespaces
+            namespaces.Add(typeof(Exception).Namespace ?? "");
             namespaces.Add(typeof(PointF).Namespace ?? "");
+
+            // assemblies
+            //assemblies.Add(typeof(Exception).Assembly);
 
             foreach (var (name, paramType) in parametersNames)
             {
@@ -195,7 +222,7 @@ namespace MED
                 if (!assemblies.Contains(paramType.Assembly))
                     assemblies.Add(paramType.Assembly);
 
-                scriptAdd.AppendLine($"var {name} = ({paramType.FullName})_parameters[{paramIndex}];");
+                scriptAdd.AppendLine($"var {name} = ({paramType.FullName})_p_[{paramIndex}];");
                 variablesNames.Add(name, paramType);
 
                 if (paramType.Equals(typeof(PropertyChangedEventArgs)))
@@ -209,7 +236,8 @@ namespace MED
 
             //Process cast from Globals._Process
             var processType = process.GetType();
-            if (processType.Namespace != null && !namespaces.Contains(processType.Namespace))
+            if (processType.Namespace != null
+                && !namespaces.Contains(processType.Namespace))
                 namespaces.Add(processType.Namespace);
             if (!assemblies.Contains(processType.Assembly))
                 assemblies.Add(processType.Assembly);
@@ -289,7 +317,7 @@ namespace MED
 
         public class ScriptGlobals(IProcess process, object[]? parameters)
         {
-            public object[]? _parameters = parameters;
+            public object[]? _p_ = parameters;
 
             public IProcess _process = process;
 

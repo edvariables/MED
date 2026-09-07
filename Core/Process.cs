@@ -42,7 +42,7 @@ namespace MED
 
             RemovePropertyDelegateConsumers();
 
-            Performance = null;
+            Performance = MED.Performance.Empty();
             Consumer = null;
             InvokeHandler = null;
 
@@ -172,7 +172,7 @@ namespace MED
 
         [Browsable(true)]
         [Category("Process")]
-        public virtual Performance? Performance { get; set; }
+        public virtual Performance Performance { get; set; }
 
         #region GameController
         public virtual void GameControllerChanged(IGameController gameController, PropertyChangedEventArgs eventArgs)

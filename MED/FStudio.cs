@@ -308,12 +308,24 @@ namespace MED
             }
 
             Processes.Add(processForm);
-            FProperties.CurrentProperties = (object[])[this.Project];
+            FProperties.CurrentProperties = (object[])[this, Project];
 
             ActiveProcess = processForm;
 
             return processForm;
         }
+
+        public override Dictionary<string, object> ObjectsProperties
+        {
+            get
+            {
+                var dic = base.ObjectsProperties;
+                if (FLogger.Current != null)
+                    dic.Add("Logger", FLogger.Current.Logger);
+                return dic;
+            }
+        }
+
         private void ProcessForm_Activated(object? sender, EventArgs e)
         {
             var activeProcess = ActiveProcessForm;

@@ -73,6 +73,21 @@ namespace MED
                 rtbLog.ScrollToCaret();
 
                 rtbLog.ResumeLayout();
+
+                RefreshLastErrors();
+            }
+        }
+
+        private int _LastErrorsCount;
+        public void RefreshLastErrors()
+        {
+            if (_LastErrorsCount != Logger.LastErrorsCount)
+            {
+                if (Logger.LastErrorsCount == 0)
+                    cmdLastErrors.Image = MEDIcons.ok;
+                else if (_LastErrorsCount == 0)
+                    cmdLastErrors.Image = MEDIcons.alert;
+                cmdLastErrors.Text = (_LastErrorsCount = Logger.LastErrorsCount).ToString();
             }
         }
 
@@ -258,9 +273,8 @@ namespace MED
                 {
                     var start = new ProcessStartInfo(logFileName);
                     start.UseShellExecute = true;
-#pragma warning disable CS8602 // Déréférencement d'une éventuelle référence null.
-                    start.WorkingDirectory = Directory.GetParent(logFileName).FullName;
-#pragma warning restore CS8602 // Déréférencement d'une éventuelle référence null.
+                    var dirParent = Directory.GetParent(logFileName);
+                    start.WorkingDirectory = dirParent == null ? "" : dirParent.FullName;
                     start.Verb = "OPEN";
                     System.Diagnostics.Process.Start(start);
                 }
@@ -268,6 +282,11 @@ namespace MED
                 {
                     MessageBox.Show(ex.InnerException != null ? ex.InnerException.Message : ex.Message, "Ouverture du fichier de log", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
+        }
+
+        private void cmdLastErrors_Click(object sender, EventArgs e)
+        {
+            FProperties.Current?.ShowNodeProperties(Logger);
         }
     }
 }

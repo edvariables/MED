@@ -38,10 +38,9 @@
             lblProgressMessage = new Label();
             chkClearLogOnRun = new CheckBox();
             chkLogColored = new CheckBox();
-            chkVideoCaptureLogger = new CheckBox();
-            chkRenderLogger = new CheckBox();
             saveFileDialog1 = new SaveFileDialog();
             toolTip1 = new ToolTip(components);
+            cmdLastErrors = new Button();
             panBottom.SuspendLayout();
             SuspendLayout();
             // 
@@ -60,12 +59,11 @@
             // 
             // panBottom
             // 
+            panBottom.Controls.Add(cmdLastErrors);
             panBottom.Controls.Add(cmdSave);
             panBottom.Controls.Add(lblProgressMessage);
             panBottom.Controls.Add(chkClearLogOnRun);
             panBottom.Controls.Add(chkLogColored);
-            panBottom.Controls.Add(chkVideoCaptureLogger);
-            panBottom.Controls.Add(chkRenderLogger);
             panBottom.Dock = DockStyle.Bottom;
             panBottom.Location = new Point(0, 110);
             panBottom.Name = "panBottom";
@@ -134,37 +132,22 @@
             chkLogColored.UseVisualStyleBackColor = false;
             chkLogColored.CheckedChanged += chkLogColored_CheckedChanged;
             // 
-            // chkVideoCaptureLogger
+            // cmdLastErrors
             // 
-            chkVideoCaptureLogger.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            chkVideoCaptureLogger.AutoSize = true;
-            chkVideoCaptureLogger.BackColor = SystemColors.Control;
-            chkVideoCaptureLogger.Checked = true;
-            chkVideoCaptureLogger.CheckState = CheckState.Checked;
-            chkVideoCaptureLogger.FlatStyle = FlatStyle.Flat;
-            chkVideoCaptureLogger.ForeColor = SystemColors.ControlText;
-            chkVideoCaptureLogger.Location = new Point(953, 3);
-            chkVideoCaptureLogger.Name = "chkVideoCaptureLogger";
-            chkVideoCaptureLogger.Size = new Size(95, 19);
-            chkVideoCaptureLogger.TabIndex = 5;
-            chkVideoCaptureLogger.Text = "VideoCapture";
-            chkVideoCaptureLogger.UseVisualStyleBackColor = false;
-            // 
-            // chkRenderLogger
-            // 
-            chkRenderLogger.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            chkRenderLogger.AutoSize = true;
-            chkRenderLogger.BackColor = SystemColors.Control;
-            chkRenderLogger.Checked = true;
-            chkRenderLogger.CheckState = CheckState.Checked;
-            chkRenderLogger.FlatStyle = FlatStyle.Flat;
-            chkRenderLogger.ForeColor = SystemColors.ControlText;
-            chkRenderLogger.Location = new Point(887, 3);
-            chkRenderLogger.Name = "chkRenderLogger";
-            chkRenderLogger.Size = new Size(60, 19);
-            chkRenderLogger.TabIndex = 5;
-            chkRenderLogger.Text = "Render";
-            chkRenderLogger.UseVisualStyleBackColor = false;
+            cmdLastErrors.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            cmdLastErrors.FlatAppearance.BorderSize = 0;
+            cmdLastErrors.FlatStyle = FlatStyle.Flat;
+            cmdLastErrors.Image = (Image)resources.GetObject("cmdLastErrors.Image");
+            cmdLastErrors.ImageAlign = ContentAlignment.BottomLeft;
+            cmdLastErrors.Location = new Point(1003, 3);
+            cmdLastErrors.Name = "cmdLastErrors";
+            cmdLastErrors.Size = new Size(45, 21);
+            cmdLastErrors.TabIndex = 8;
+            cmdLastErrors.Text = "0";
+            cmdLastErrors.TextAlign = ContentAlignment.MiddleRight;
+            toolTip1.SetToolTip(cmdLastErrors, "Last errors");
+            cmdLastErrors.UseVisualStyleBackColor = true;
+            cmdLastErrors.Click += cmdLastErrors_Click;
             // 
             // FLogger
             // 
@@ -190,11 +173,10 @@
         private Panel panBottom;
         private CheckBox chkClearLogOnRun;
         private CheckBox chkLogColored;
-        private CheckBox chkVideoCaptureLogger;
-        private CheckBox chkRenderLogger;
         private Label lblProgressMessage;
         private Button cmdSave;
         private SaveFileDialog saveFileDialog1;
         private ToolTip toolTip1;
+        private Button cmdLastErrors;
     }
 }

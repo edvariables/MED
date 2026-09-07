@@ -9,6 +9,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Windows.Forms.Design;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace MED
 {
@@ -88,7 +89,7 @@ namespace MED
     public class EventScriptEditor : UITypeEditor
     {
         private Panel? _editorUIWrapper;
-        private RichTextBox? _editorUI;
+        private RichTextBoxMED? _editorUI;
         private ITypeDescriptorContext? Context;
 
         /// <inheritdoc />
@@ -111,58 +112,9 @@ namespace MED
             if (_editorUI == null)
             {
                 editorNewlyCreated = true;
-
-                _editorUIWrapper = new();
-                _editorUIWrapper.Size = new(400, 300);
-
-                _editorUI = new RichTextBox();
-                _editorUI.Font = new Font("Cascadia Code", 8F);
-                _editorUI.Dock = DockStyle.Fill;
-                _editorUI.TextChanged += (object? sender, EventArgs e) => CodeRender((RichTextBox?)sender, eventScript);
-                _editorUIWrapper.Controls.Add(_editorUI);
-
-                if (eventScript == null
-                && context != null
-                && context.PropertyDescriptor != null
-                && context.Instance is IProcess process)
-                {
-                    string eventName = context.PropertyDescriptor.Name;
-                    eventName = Regex.Replace(eventName, @"(^On)?(.*)((Changed)?Script)$", "$2");
-                    eventScript = EventScript.GetNew(process, eventName, context);
-                }
-                if (eventScript != null)
-                {
-                    var helper = new StatusStrip();
-                    if (eventScript.ParametersNames != null)
-                    {
-                        helper.Font = new(_editorUI.Font.FontFamily, 7F);
-                        var _ = helper.Items.Add(String.Join(", ", eventScript.ParametersNames.Keys));
-                        //helper.Text = /*eventScript.GetMethodName() + "(" +*/ String.Join(", ", eventScript.ParametersNames.Keys) /*+ ")"*/;
-                    }
-                    helper.GripStyle = ToolStripGripStyle.Hidden;
-                    helper.SizingGrip = false;
-
-                    helper.Items.Add("");
-
-                    ToolStripStatusLabel itemL = new();
-                    itemL.Text = "";
-                    itemL.Spring = true;
-                    helper.Items.Add(itemL);
-
-                    var item = helper.Items.Add(MEDIcons.above);
-                    item.Tag = new SizeF(0.5F, 0.5F);
-                    item.Click += EnlargePanel;
-
-                    item = helper.Items.Add(MEDIcons.below);
-                    item.Tag = new SizeF(2F, 2F);
-                    item.Click += EnlargePanel;
-
-                    item = helper.Items.Add(MEDIcons.VisualTrue);
-                    item.Dock = DockStyle.Right;
-                    item.Click += ShowInForm;
-
-                    _editorUIWrapper.Controls.Add(helper);
-                }
+                CreateEditorUI(context, eventScript);
+                if (_editorUI == null)
+                    return value;
             }
             if (eventScript != null)
                 _editorUI.Text = eventScript.Script;
@@ -200,6 +152,62 @@ namespace MED
             }
 
             return value;
+        }
+
+        private void CreateEditorUI(ITypeDescriptorContext? context, EventScript? eventScript)
+        {
+            _editorUIWrapper = new();
+            _editorUIWrapper.Size = new(400, 300);
+
+            _editorUI = new RichTextBoxMED();
+            _editorUI.Font = new Font("Cascadia Code", 9F);
+            _editorUI.Dock = DockStyle.Fill;
+            _editorUI.TextChanged += (object? sender, EventArgs e) => CodeRender((RichTextBoxMED?)sender, eventScript);
+            _editorUIWrapper.Controls.Add(_editorUI);
+
+            if (eventScript == null
+            && context != null
+            && context.PropertyDescriptor != null
+            && context.Instance is IProcess process)
+            {
+                string eventName = context.PropertyDescriptor.Name;
+                eventName = Regex.Replace(eventName, @"(^On)?(.*)((Changed)?Script)$", "$2");
+                eventScript = EventScript.GetNew(process, eventName, context);
+            }
+            if (eventScript != null)
+            {
+                var helper = new StatusStrip();
+                helper.Name = "statusStrip";
+                if (eventScript.ParametersNames != null)
+                {
+                    helper.Font = new(_editorUI.Font.FontFamily, 7F);
+                    var _ = helper.Items.Add(String.Join(", ", eventScript.ParametersNames.Keys));
+                    //helper.Text = /*eventScript.GetMethodName() + "(" +*/ String.Join(", ", eventScript.ParametersNames.Keys) /*+ ")"*/;
+                }
+                helper.GripStyle = ToolStripGripStyle.Hidden;
+                helper.SizingGrip = false;
+
+                helper.Items.Add("");
+
+                ToolStripStatusLabel itemL = new();
+                itemL.Text = "";
+                itemL.Spring = true;
+                helper.Items.Add(itemL);
+
+                var item = helper.Items.Add(MEDIcons.above);
+                item.Tag = new SizeF(0.5F, 0.5F);
+                item.Click += EnlargePanel;
+
+                item = helper.Items.Add(MEDIcons.below);
+                item.Tag = new SizeF(2F, 2F);
+                item.Click += EnlargePanel;
+
+                item = helper.Items.Add(MEDIcons.VisualTrue);
+                item.Dock = DockStyle.Right;
+                item.Click += ShowInForm;
+
+                _editorUIWrapper.Controls.Add(helper);
+            }
         }
 
         private void ShowInForm(object? sender, EventArgs e)
@@ -250,7 +258,7 @@ namespace MED
 
 
         #region Code editor
-        public static void CodeRender(RichTextBox? richTextBox, EventScript? eventScript)
+        public static void CodeRender(RichTextBoxMED? richTextBox, EventScript? eventScript)
         {
             if (richTextBox == null || richTextBox.IsDisposed)
                 return;
@@ -286,7 +294,17 @@ namespace MED
             int originalLength = richTextBox.SelectionLength;
             Color originalColor = Color.Black;
 
+            bool isActiveControl = richTextBox.Focused;
+
+            if(richTextBox.Parent!= null
+                && richTextBox.Parent.Controls["statusStrip"] != null
+                && richTextBox.Parent.Controls["statusStrip"] is StatusStrip statusStrip)
+            {
+                statusStrip.Items[1].Text =$"{richTextBox.UndoActionName}";
+            }
+
             richTextBox.SuspendLayout();
+            richTextBox.Enabled = false;
 
             // removes any previous highlighting (so modified words won't remain highlighted)
             richTextBox.SelectionStart = 0;
@@ -333,6 +351,11 @@ namespace MED
             richTextBox.SelectionStart = originalIndex;
             richTextBox.SelectionLength = originalLength;
             richTextBox.SelectionColor = originalColor;
+
+            richTextBox.Enabled = true;
+
+            if (isActiveControl)
+                richTextBox.Focus();
 
             richTextBox.ResumeLayout();
 

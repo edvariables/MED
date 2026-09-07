@@ -29,13 +29,13 @@
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(EventScriptForm));
-            RTBEditor = new RichTextBox();
-            statusStrip1 = new StatusStrip();
+            RTBEditor = new RichTextBoxMED();
+            statusStrip = new StatusStrip();
             dropDownVariables = new ToolStripDropDownButton();
             toolStripStatusLabel1 = new ToolStripStatusLabel();
             cmdSave = new ToolStripStatusLabel();
             cmdClose = new ToolStripStatusLabel();
-            statusStrip1.SuspendLayout();
+            statusStrip.SuspendLayout();
             SuspendLayout();
             // 
             // RTBEditor
@@ -52,13 +52,13 @@
             // 
             // statusStrip1
             // 
-            statusStrip1.Items.AddRange(new ToolStripItem[] { dropDownVariables, toolStripStatusLabel1, cmdSave, cmdClose });
-            statusStrip1.Location = new Point(0, 641);
-            statusStrip1.Name = "statusStrip1";
-            statusStrip1.ShowItemToolTips = true;
-            statusStrip1.Size = new Size(800, 25);
-            statusStrip1.SizingGrip = false;
-            statusStrip1.TabIndex = 1;
+            statusStrip.Items.AddRange(new ToolStripItem[] { dropDownVariables, toolStripStatusLabel1, cmdSave, cmdClose });
+            statusStrip.Location = new Point(0, 641);
+            statusStrip.Name = "statusStrip";
+            statusStrip.ShowItemToolTips = true;
+            statusStrip.Size = new Size(800, 25);
+            statusStrip.SizingGrip = false;
+            statusStrip.TabIndex = 1;
             // 
             // dropDownVariables
             // 
@@ -97,20 +97,20 @@
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 666);
             Controls.Add(RTBEditor);
-            Controls.Add(statusStrip1);
+            Controls.Add(statusStrip);
             FormBorderStyle = FormBorderStyle.SizableToolWindow;
             Name = "EventScriptForm";
             Text = "EventScriptForm";
-            statusStrip1.ResumeLayout(false);
-            statusStrip1.PerformLayout();
+            statusStrip.ResumeLayout(false);
+            statusStrip.PerformLayout();
             ResumeLayout(false);
             PerformLayout();
         }
 
         #endregion
 
-        private RichTextBox RTBEditor;
-        private StatusStrip statusStrip1;
+        private RichTextBoxMED RTBEditor;
+        private StatusStrip statusStrip;
         private ToolStripStatusLabel cmdSave;
         private ToolStripStatusLabel cmdClose;
         private ToolStripDropDownButton dropDownVariables;

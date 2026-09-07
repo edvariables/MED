@@ -8,6 +8,7 @@ using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace MED
 {
@@ -196,6 +197,7 @@ namespace MED
             Ticks_Start = Now;
             AverageSample_Counter = 0L;
             IgnoreFirsts_done = IgnoreFirsts == 0;
+            LastError = null;
 
             if (start_subs && Subs != null)
                 foreach (var sub in Subs)
@@ -347,13 +349,39 @@ namespace MED
 
         public string Error(string step, Exception? ex = null)
         {
-            return Step("[ERROR] " + step
-                + (ex == null ? ""
-                    : (" " + (ex.InnerException == null ? ex.Message : ex.InnerException.Message)
-                        + "\r\t\t" + (ex.InnerException == null ? ex.StackTrace : ex.InnerException.StackTrace)?.ReplaceLineEndings("\n\t\t"))
-                )
-            );
+            string message = "[ERROR] " + step + GetExceptionMessage(ex);
+            if (Logger != null)
+                Logger.LastError = LastError = new(this, message, ex);
+            return Step(message);
         }
+
+        public static string GetExceptionMessage(Exception? ex = null)
+        {
+            if (ex == null)
+                return "";
+            StringBuilder sb = new StringBuilder();
+            //Message
+            if (ex.InnerException == null)
+                sb.Append(ex.Message);
+            else if (ex.InnerException.InnerException == null)
+                sb.Append(ex.InnerException.Message);
+            else
+                sb.Append(ex.InnerException.InnerException.Message);
+
+            sb.Append("\r\t\t");
+            //StackTrace
+            if (ex.InnerException == null)
+                sb.Append(ex.StackTrace?.ReplaceLineEndings("\n\t\t"));
+            else if (ex.InnerException.InnerException == null)
+                sb.Append(ex.InnerException.StackTrace?.ReplaceLineEndings("\n\t\t"));
+            else
+                sb.Append(ex.InnerException.InnerException.StackTrace?.ReplaceLineEndings("\n\t\t"));
+            return sb.ToString();
+        }
+
+        [Browsable(true)]
+        [Category("Debug")]
+        public PerformanceException? LastError { get; internal set; }
 
         public string Debug(string step)
         {

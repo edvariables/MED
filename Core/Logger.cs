@@ -13,11 +13,15 @@ namespace MED
      * <summary>Host of a StringBuilder.
      * Used by Performance class</summary>
      * */
-    public class Logger:INullable
+    public class Logger : INullable
     {
         private StringBuilder Buffer = new();
 
-        public void Clear(bool clear = true) => Buffer.Clear();
+        public void Clear()
+        {
+            Buffer.Clear();
+            LastErrorsClear();
+        }
 
         public void AppendLine(string msg, params object[] args)
         {
@@ -54,6 +58,7 @@ namespace MED
             return s;
         }
 
+        [Browsable(false)]
         public int BufferLength
         {
             get
@@ -65,6 +70,7 @@ namespace MED
             }
         }
 
+        [Browsable(false)]
         public bool IsNull => false;
 
         /**
@@ -86,5 +92,62 @@ namespace MED
             if (BufferLength > 0 && OnBufferChanged != null)
                 OnBufferChanged(this, e);
         }
+
+        #region LastErrors
+        private PerformanceException? _LastError;
+        [Browsable(true)]
+        [ReadOnly(false)]
+        [Category("LastErrors")]
+        [Description("Dernière erreur")]
+        public PerformanceException? LastError
+        {
+            get => _LastError;
+            internal set
+            {
+                _LastError = value;
+                if (_LastError == null)
+                    return;
+                if (LastErrors.TryGetValue(_LastError.Performance, out Queue<PerformanceException>? lastExceptions))
+                {
+                    while (lastExceptions.Count >= LastExceptionsQueueLength)
+                    {
+                        lastExceptions.Dequeue();
+                        LastErrorsCount--;
+                    }
+                    lastExceptions.Enqueue(_LastError);
+                }
+                else
+                    LastErrors[_LastError.Performance] = new([_LastError]);
+                LastErrorTime = DateTime.Now;
+                LastErrorsCount++;
+            }
+        }
+
+        [Browsable(true)]
+        [ReadOnly(true)]
+        [Category("LastErrors")]
+        [Description("Historique des erreurs")]
+        public Dictionary<Performance, Queue<PerformanceException>> LastErrors { get; internal set; } = new();
+
+        public DateTime? LastErrorTime;
+        public int LastErrorsCount = 0;
+
+        [Browsable(true)]
+        [ReadOnly(false)]
+        [Category("LastErrors")]
+        [Description("Nombre d'exceptions conservées en mémoire")]
+        public int LastExceptionsQueueLength { get; set; } = 5;
+
+        /**
+         * LastErrorsClear
+         * */
+        public void LastErrorsClear()
+        {
+            LastError = null;
+            LastErrors = new();
+            LastErrorTime = DateTime.Now;
+            LastErrorsCount = 0;
+        }
+        #endregion
     }
 }

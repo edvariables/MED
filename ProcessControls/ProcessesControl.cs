@@ -290,12 +290,23 @@ namespace MED
                             subNode.SelectedImageKey = subNode.ImageKey = "next_blue";
                             AddItems(list.ToArray(), subNode.Nodes, false);
                         }
-                        //else if (kvp.Value is IConsumer)
-                        //{
-                        //    var subNode = node.Nodes.Add("Consumer");
-                        //    subNode.SelectedImageKey = subNode.ImageKey = "next_blue";
-                        //    AddItems([kvp.Value], subNode.Nodes, false);
-                        //}
+                        //Logger
+                        else if (kvp.Value is Logger logger)
+                        {
+                            var subNode = node.Nodes.Add("Logger");
+                            subNode.SelectedImageKey = subNode.ImageKey = "info";
+                            subNode.Tag = kvp.Value;
+
+                            foreach (var (perf, queue) in logger.LastErrors)
+                            {
+                                if (perf.LastError == null)
+                                    continue;
+                                var errNode = subNode.Nodes.Add($"{perf.LastError}");
+                                errNode.ImageKey = "alert";
+                                errNode.SelectedImageKey = errNode.ImageKey;
+                                errNode.Tag = perf.LastError;
+                            }
+                        }
                     }
 
                     var eventScripts = ProcessStatic.GetEventScripts(iProcess, false);
@@ -342,6 +353,18 @@ namespace MED
 
                     //    }
                     //}
+                }
+
+                if (item is IProcess process1
+                    && process1.Performance != null
+                    && process1.Performance.LastError != null
+                    )
+                {
+                    var subNode = node.Nodes.Add($"{process1.Performance.LastError.Message}");
+                    subNode.ImageKey = "alert";
+                    subNode.SelectedImageKey = subNode.ImageKey;
+                    subNode.Tag = process1.Performance.LastError;
+
                 }
 
                 if (node.Parent == null || node.Parent.Parent == null)

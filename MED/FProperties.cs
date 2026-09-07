@@ -49,5 +49,11 @@ namespace MED
                 propertiesControl1.ShowProperties(items);
         }
 
+        public void ShowNodeProperties(object? item)
+        {
+            if (item != null)
+                propertiesControl1.ShowNodeProperties(item);
+        }
+
     }
 }

@@ -105,7 +105,7 @@ namespace MED
         /**
          * 
          */
-        private void ShowNodeProperties(object? nodeItem)
+        public void ShowNodeProperties(object? nodeItem)
         {
             if (nodeItem == null)
                 return;
