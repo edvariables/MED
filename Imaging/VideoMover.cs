@@ -7,6 +7,7 @@ using System.Drawing.Drawing2D;
 using System.IO;
 using System.Numerics;
 using System.Text.Json.Nodes;
+using static MED.Imaging.VideoMover;
 
 namespace MED.Imaging
 {
@@ -130,8 +131,7 @@ namespace MED.Imaging
                 return;
             FixedBackground = (bool)(settings.GetValue("FixedBackground", FixedBackground) ?? FixedBackground);
             DetectionLimit = (int)(settings.GetValue("DetectionLimit", DetectionLimit) ?? DetectionLimit);
-            MovingDetectors a;
-            if (Enum.TryParse<MovingDetectors>((settings.GetValue("MovingDetector", MovingDetector) ?? MovingDetector).ToString(), out a))
+            if (Enum.TryParse((settings.GetValue("MovingDetector", MovingDetector) ?? MovingDetector).ToString(), out MovingDetectors a))
                 MovingDetector = a;
         }
         public override JsonObject SaveProcess(JsonObject? node = null)

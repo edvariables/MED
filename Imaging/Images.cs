@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MED.Core;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
@@ -6,6 +7,8 @@ using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Text;
 using System.Text.Json.Nodes;
+using static MED.Imaging.Images;
+using static MED.Imaging.VideoMover;
 
 namespace MED.Imaging
 {
@@ -50,12 +53,13 @@ namespace MED.Imaging
             set { if (ImageProcesses == null) base.ProcessSettings = value; else ImageProcesses.ProcessSettings = value; }
         }
 
-        public override void LoadSettings(ProcessSettings? processSettings = null, string fileName = "")
+        public override void LoadSettings(ProcessSettings? settings = null, string fileName = "")
         {
-            if (processSettings != null)
-                ProcessSettings = processSettings;
-            base.LoadSettings(processSettings, fileName);
-            //Done in LoadProcess() => ImageProcesses.LoadProcess()// ImageProcesses.LoadSettings(processSettings, fileName);
+            base.LoadSettings(settings, fileName);
+            if (settings == null && (settings = ProcessSettings) == null)
+                return;
+            if (Enum.TryParse((settings.GetValue(nameof(BorderBehavior), BorderBehavior) ?? BorderBehavior).ToString(), out BorderBehaviors a))
+                BorderBehavior = a;
 
         }
         public override void LoadProcess(JsonNode node)
@@ -67,15 +71,19 @@ namespace MED.Imaging
 
         public override void SaveSettings(ProcessSettings? settings = null, string fileName = "")
         {
-            if (settings == null)
-                settings = ProcessSettings;
-
-            if (settings == null)
+            if (settings == null
+            && (settings = ProcessSettings) == null)
                 settings = ProcessSettings = new ProcessSettings(fileName);
 
             ImageProcesses.SaveSettings(settings, fileName);
 
             base.SaveSettings(settings, fileName);
+        }
+        public override JsonObject SaveProcess(JsonObject? node = null)
+        {
+            node = base.SaveProcess(node);
+            node.Add(nameof(BorderBehavior), BorderBehavior.ToString());
+            return node;
         }
 
         #endregion
@@ -402,6 +410,19 @@ namespace MED.Imaging
 
 
         #region Collider
+
+        public enum BorderBehaviors
+        {
+            None,
+            Bump,
+            Circular
+        }
+
+        [Category("Collider")]
+        [DefaultValue(BorderBehaviors.Bump)]
+        [Description("Comportement en bordure d'image")]
+        public virtual BorderBehaviors BorderBehavior { get; set; } = BorderBehaviors.Bump;
+
         [Browsable(false)]
         public virtual Bitmap? ModelImage
         {
@@ -421,7 +442,7 @@ namespace MED.Imaging
                 Graphics gr = Graphics.FromImage(modelImage);
 
                 if (item is IImageMover mover
-                    && ImagesCollider.CollideItemWithImageBorders(modelImage, gr, mover, offset))
+                    && ImagesCollider.CollideItemWithImageBorders(BorderBehavior, modelImage, gr, mover, offset))
                 {
                     OnCollideItemScript?.Eval(item, offset);
                     item.OnCollideItemScript?.Eval(this, offset);
@@ -461,9 +482,9 @@ namespace MED.Imaging
                 if (modelImage != null)
                 {
                     Graphics gr = Graphics.FromImage(modelImage);
-                    if (ImagesCollider.CollideItemWithImageBorders(modelImage, gr, mover, offset2))
+                    if (ImagesCollider.CollideItemWithImageBorders(BorderBehavior, modelImage, gr, mover, offset2))
                     {
-                        OnCollideItemScript.Eval(this, item2, offset2);
+                        OnCollideItemScript?.Eval(this, item2, offset2);
                         item2.OnCollideItemScript?.Eval(item2, this, offset2);
                         return true;
                     }

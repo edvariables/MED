@@ -95,12 +95,14 @@ namespace MED
         public ProcessSettings ChildSettings(string childName, bool asJsonArray = false)
         {
             if (asJsonArray)
-                return new("", ChildArray(childName, true), SettingsRoot??this);
+                return new("", ChildArray(childName, true), SettingsRoot ?? this);
             return new("", ChildNode(childName, true), SettingsRoot ?? this);
         }
 
         public static ProcessSettings FromFile(string fileName)
         {
+            if (fileName == "")
+                return new ProcessSettings("");
             if (!File.Exists(fileName))
                 if (!fileName.EndsWith(Settings.ProcessFileExtension))
                 {

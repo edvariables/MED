@@ -19,8 +19,23 @@ namespace MED
 
         private void Control_KeyDown(object? sender, KeyEventArgs e)
         {
-            if ((e.KeyCode == Keys.ControlKey || e.KeyCode == Keys.ShiftKey)
+            if (e.KeyCode == Keys.ControlKey
                 && ((ModifierKeys & Keys.Control) == Keys.Control))
+                return;
+            if (e.KeyCode == Keys.ShiftKey
+                && ((ModifierKeys & Keys.Shift) == Keys.Shift))
+                return;
+            if (e.KeyCode == Keys.Menu
+                && ((ModifierKeys & Keys.Alt) == Keys.Alt))
+                return;
+            if ((e.KeyCode == Keys.C)
+                && ((ModifierKeys & Keys.Control) == Keys.Control))
+                return;
+            if (e.KeyCode == Keys.Apps || e.KeyCode == Keys.NumLock || e.KeyCode == Keys.Insert
+                || e.KeyCode == Keys.Left || e.KeyCode == Keys.Right || e.KeyCode == Keys.Up || e.KeyCode == Keys.Down 
+                || e.KeyCode == Keys.PageUp || e.KeyCode == Keys.PageDown
+                 || e.KeyCode == Keys.F1 || e.KeyCode == Keys.F2 || e.KeyCode == Keys.F3 || e.KeyCode == Keys.F4 || e.KeyCode == Keys.F5 || e.KeyCode == Keys.F6 || e.KeyCode == Keys.F7 || e.KeyCode == Keys.F8 || e.KeyCode == Keys.F9 || e.KeyCode == Keys.F10 || e.KeyCode == Keys.F11 || e.KeyCode == Keys.F12
+                )
                 return;
             if (e.KeyCode == Keys.Z
             && e.Control)

@@ -16,6 +16,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Transactions;
 using static Emgu.Util.Platform;
+using static MED.Imaging.Images;
 using static System.Windows.Forms.LinkLabel;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.ToolTip;
 
@@ -77,9 +78,11 @@ namespace MED.Imaging
          * Collide with image borders
          * 
          * */
-        public bool CollideItemWithImageBorders(Bitmap image, Graphics gr, IImageMover item, PointF offset)
+        public bool CollideItemWithImageBorders(BorderBehaviors borderBehavior, Bitmap image, Graphics gr, IImageMover item, PointF offset)
         {
-            if (item.Speed == 0F)
+            if (borderBehavior == BorderBehaviors.None)
+                return false;
+            if (item.SpeedMax == 0F)
                 return false;
             var location = item.Location;
             if (!offset.IsEmpty)
@@ -87,51 +90,77 @@ namespace MED.Imaging
                 location.X += offset.X;
                 location.Y += offset.Y;
             }
-            else if (location.IsEmpty)
+            else if (location.IsEmpty && item.Speed == 0F)
                 return false;
+
             var direction = item.Direction;
-            var region = item.ClipRegionTranslated;
-            if (region == null)
+
+            if (item.ClipRegion == null)
                 return false;
-            if (!offset.IsEmpty)
-                (region = region.Clone()).Translate(offset.X, offset.Y);
-            //TODO Rotation
 
             bool changed = false;
-            var bounds = item.GetClipRegionTranslatedBounds(gr, offset);
-
+            var itemBounds = item.GetClipRegionTranslatedBounds(gr, offset);
+            var itemCenter = new PointF(itemBounds.X + itemBounds.Width / 2, itemBounds.Y + itemBounds.Height / 2);
             Vector2 overlap = Vector2.Zero;
 
-            //Process.Performance?.Sub(".Collider.Borders").Step($"{item} {bounds}");
-            if (bounds.Top < 0)
+            switch (borderBehavior)
             {
-                overlap.Y = -bounds.Top + 1;
-                if (direction.Y < 0)
-                    direction.Y *= -1;
-                changed = true;
-            }
-            if (bounds.Left < 0)
-            {
-                overlap.X = -bounds.Left + 1;
-                //location.X = 1;
-                if (direction.X < 0)
-                    direction.X *= -1;
-                changed = true;
-            }
-            if (bounds.Bottom > image.Height)
-            {
-                overlap.Y = image.Height - bounds.Bottom;
-                if (direction.Y > 0)
-                    direction.Y *= -1;
-                changed = true;
-            }
-            if (bounds.Right > image.Width)
-            {
-                overlap.X = image.Width - bounds.Right;
-                //location.X = image.Width - bounds.Width;
-                if (direction.X > 0)
-                    direction.X *= -1;
-                changed = true;
+                case BorderBehaviors.Bump:
+                    if (itemBounds.Top < 0)
+                    {
+                        overlap.Y = -itemBounds.Top + 1;
+                        if (direction.Y < 0)
+                            direction.Y *= -1;
+                        changed = true;
+                    }
+                    if (itemBounds.Left < 0)
+                    {
+                        overlap.X = -itemBounds.Left + 1;
+                        //location.X = 1;
+                        if (direction.X < 0)
+                            direction.X *= -1;
+                        changed = true;
+                    }
+                    if (itemBounds.Bottom > image.Height)
+                    {
+                        overlap.Y = image.Height - itemBounds.Bottom;
+                        if (direction.Y > 0)
+                            direction.Y *= -1;
+                        changed = true;
+                    }
+                    if (itemBounds.Right > image.Width)
+                    {
+                        overlap.X = image.Width - itemBounds.Right;
+                        //location.X = image.Width - bounds.Width;
+                        if (direction.X > 0)
+                            direction.X *= -1;
+                        changed = true;
+                    }
+                    break;
+
+                case BorderBehaviors.Circular:
+                default:
+                    if (itemCenter.Y < 0)
+                    {
+                        location.Y = image.Height + itemBounds.Y;
+                        changed = true;
+                    }
+                    if (itemCenter.X < 0)
+                    {
+                        location.X = image.Width + itemBounds.X;
+                        changed = true;
+                    }
+                    if (itemCenter.Y > image.Height)
+                    {
+                        location.Y = itemBounds.Y - image.Height;
+                        changed = true;
+                    }
+                    if (itemCenter.X > image.Width)
+                    {
+                        location.X = (itemBounds.X - image.Width)% image.Width;
+                        changed = true;
+                    }
+                    break;
             }
             if (changed)
             {

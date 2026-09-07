@@ -237,7 +237,6 @@ namespace MED
                 processForm = new("Projet " + childFormNumber++);
             processForm.MdiParent = this;
             processForm.OnProcessStateChanged += ProcessStateChanged;
-            processForm.Activated += ProcessForm_Activated;
 
             processForm.Logger = FLogger.Current?.Logger;
 
@@ -257,6 +256,11 @@ namespace MED
                 pictureBox.BackColor = System.Drawing.Color.LightSteelBlue;
                 pictureBox.Size = processForm.ClientSize;
                 pictureBox.Dock = DockStyle.Fill;
+
+                //pictureBox.Click += (object? sender, EventArgs e) => pictureBox.Focus();
+
+                processForm.Activated += (object? sender, EventArgs e) =>pictureBox.Focus();
+
                 processForm.Controls.Add(pictureBox);
             }
             if (!string.IsNullOrEmpty(fileName))
@@ -324,11 +328,6 @@ namespace MED
                     dic.Add("Logger", FLogger.Current.Logger);
                 return dic;
             }
-        }
-
-        private void ProcessForm_Activated(object? sender, EventArgs e)
-        {
-            var activeProcess = ActiveProcessForm;
         }
         /**
          * Image
