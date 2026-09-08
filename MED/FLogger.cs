@@ -28,12 +28,14 @@ namespace MED
             LoadSettings();
 
             Logger.OnBufferChanged += Logger_OnBufferChanged;
+
+            RefreshLastErrors();
         }
 
         private void FLogger_Activated(object sender, EventArgs e)
         {
-            if (FProperties.CurrentProperty is ImageProcess)
-                FProperties.CurrentProperty = ((ImageProcess)FProperties.CurrentProperty).Performance;
+            if (FProperties.CurrentProperty is ImageProcess imageProcess)
+                FProperties.CurrentProperty = imageProcess.Performance;
             else
                 FProperties.CurrentProperty = Performance;
         }
@@ -78,7 +80,7 @@ namespace MED
             }
         }
 
-        private int _LastErrorsCount;
+        private int _LastErrorsCount = -1;
         public void RefreshLastErrors()
         {
             if (_LastErrorsCount != Logger.LastErrorsCount)

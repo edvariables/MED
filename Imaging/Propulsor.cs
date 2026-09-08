@@ -27,6 +27,11 @@ namespace MED.Imaging
         [DefaultValue(1F)]
         public float PropulsorStrenght { get; set; } = 1F;
 
+        [Category("Propulsor")]
+        [Description("Propulsion acceleration")]
+        [DefaultValue(0.1F)]
+        public float PropulsionAcceleration { get; set; } = 0.1F;
+
         /**
          * Interaction angle added to RotationAngle in degrees
          * */
@@ -46,13 +51,17 @@ namespace MED.Imaging
             {
                 double radians = (float)(Math.PI * (RotationAngle + RotationAngleOffset) / 180F);
                 var propulsionVector = new Vector2((float)Math.Cos(radians), (float)Math.Sin(radians));
-                var propulsionFactor = Propulsion * PropulsorStrenght;
-                var direction = VelocityVector * elapsedTime - propulsionVector * Math.Abs(propulsionFactor);
-                Speed += propulsionFactor;
+                var propulsionFactor = Propulsion * PropulsorStrenght/1000F;
+                var direction = VelocityVector - propulsionVector * propulsionFactor;
+                Speed = direction.Length() *1000;
                 //if (Speed < 0F)
                 //    Speed *= -1F;
 
                 Direction = new(Vector2.Normalize(direction));
+
+                Propulsion *= (1F + PropulsionAcceleration);
+                if (Propulsion == float.NegativeInfinity || Propulsion == float.PositiveInfinity)
+                    Propulsion = 0F;
             }
             base.Move(elapsedTime);
         }
@@ -63,16 +72,16 @@ namespace MED.Imaging
             base.LoadSettings(settings, fileName);
             if (settings == null && (settings = ProcessSettings) == null)
                 return;
-            PropulsorStrenght = (float)(settings.GetValue("PropulsorStrenght", PropulsorStrenght) ?? PropulsorStrenght);
-            RotationAngleOffset = (float)(settings.GetValue("RotationAngleOffset", RotationAngleOffset) ?? RotationAngleOffset);
+            PropulsionAcceleration = (float)(settings.GetValue(nameof(PropulsionAcceleration), PropulsionAcceleration) ?? PropulsionAcceleration);
+            PropulsorStrenght = (float)(settings.GetValue(nameof(PropulsorStrenght), PropulsorStrenght) ?? PropulsorStrenght);
+            RotationAngleOffset = (float)(settings.GetValue(nameof(RotationAngleOffset), RotationAngleOffset) ?? RotationAngleOffset);
         }
         public override JsonObject SaveProcess(JsonObject? node = null)
         {
             node = base.SaveProcess(node);
-            if (!Location.IsEmpty)
-                node.Add("Location", Location.ToString());
-            node.Add("PropulsorStrenght", PropulsorStrenght);
-            node.Add("RotationAngleOffset", RotationAngleOffset);
+            node.Add(nameof(PropulsionAcceleration), PropulsionAcceleration);
+            node.Add(nameof(PropulsorStrenght), PropulsorStrenght);
+            node.Add(nameof(RotationAngleOffset), RotationAngleOffset);
             return node;
         }
         #endregion

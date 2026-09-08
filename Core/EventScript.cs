@@ -8,20 +8,22 @@ using System.ComponentModel;
 using System.Drawing.Design;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using static MED.EventScript;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxTokenParser;
 
 namespace MED
 {
     [Editor(typeof(EventScriptEditor), typeof(UITypeEditor))]
     [TypeConverter(typeof(EventScriptConvertor))]
-    public class EventScript(IProcess process, string eventName)
+    public class EventScript(IProcess iProcess, string eventName)
     {
         [Browsable(false)]
-        public IProcess Process { get; set; } = process;
+        public IProcess Process { get; set; } = iProcess;
 
         [Browsable(true)]
         [ReadOnly(true)]
@@ -41,13 +43,20 @@ namespace MED
             get => _Script;
             set
             {
+                RemoveConsumers();
                 _Script = value;
                 CompiledScript = null;
                 _ParametersNames = null;
+
+                AddConsumers();
                 if (OnScriptChanged != null)
                     OnScriptChanged(this, EventArgs.Empty);
             }
         }
+        protected virtual void AddConsumers() { }
+        protected virtual void RemoveConsumers() { }
+
+        public Dictionary<IGameController, List<string>> ConsumerProperties { get; protected set; } = [];
 
         public EventHandler? OnScriptChanged;
 
@@ -130,7 +139,7 @@ namespace MED
                 Process.Performance?.Logger?.InvokeBufferChanged(this, EventArgs.Empty);
                 using (var loader = new InteractiveAssemblyLoader())
                 {
-                    CompiledScript = CSharpScript.Create<bool>(script, ScriptOptions.Default.WithReferences(assemblies), globalsType: typeof(ScriptGlobals), assemblyLoader: loader);
+                    CompiledScript = CSharpScript.Create<bool>(script, ScriptOptions.Default.WithReferences(assemblies), globalsType: ScriptGlobalsType, assemblyLoader: loader);
                 }
                 var results = CompiledScript.Compile();
                 if (results.Length > 0)
@@ -140,12 +149,16 @@ namespace MED
                         message += $"\n{result}";
                     message += $"\n* Script :\n{script}";
                     Process.Performance?.Error(message);
+                    Process.Performance?.Logger?.InvokeBufferChanged(this, EventArgs.Empty);
                     CompiledScriptErrors = results.ToList<object>();
+
+                    return false;
                 }
-                else
-                {
-                    CompiledScriptErrors = null;
-                }
+
+                Process.Performance?.Sub("EventScript").Debug($"Compile {EventName} done");
+                Process.Performance?.Logger?.InvokeBufferChanged(this, EventArgs.Empty);
+                CompiledScriptErrors = null;
+
             }
             catch (Exception ex)
             {
@@ -173,14 +186,14 @@ namespace MED
             if (CompiledScript == null)
                 return true;
 
-            return Eval(Process, CompiledScript, parameters);
+            return Eval(Process, CompiledScript, ScriptGlobalsNew(Process, parameters), parameters);
         }
 
-        private static bool Eval(IProcess process, Script script, params object[]? parameters)
+        private static bool Eval(IProcess process, Script script, ScriptGlobals scriptGlobals, params object[]? parameters)
         {
             try
             {
-                var result = script.RunAsync(new ScriptGlobals(process, parameters)).Result;
+                var result = script.RunAsync(scriptGlobals).Result;
             }
             catch (AggregateException ex)
             {
@@ -211,9 +224,10 @@ namespace MED
             // namespaces
             namespaces.Add(typeof(Exception).Namespace ?? "");
             namespaces.Add(typeof(PointF).Namespace ?? "");
+            namespaces.Add(typeof(MessageBox).Namespace ?? "");
 
             // assemblies
-            //assemblies.Add(typeof(Exception).Assembly);
+            assemblies.Add(typeof(MessageBox).Assembly);
 
             foreach (var (name, paramType) in parametersNames)
             {
@@ -222,13 +236,13 @@ namespace MED
                 if (!assemblies.Contains(paramType.Assembly))
                     assemblies.Add(paramType.Assembly);
 
-                scriptAdd.AppendLine($"var {name} = ({paramType.FullName})_p_[{paramIndex}];");
+                scriptAdd.AppendLine($"var {name} = ({paramType.FullName})_params_[{paramIndex}];");
                 variablesNames.Add(name, paramType);
 
                 if (paramType.Equals(typeof(PropertyChangedEventArgs)))
                 {
-                    scriptAdd.AppendLine($"var property = {name}.Property;");
-                    variablesNames.Add("property", typeof(string));
+                    scriptAdd.AppendLine($"var eventProperty = {name}.Property;");
+                    variablesNames.Add("eventProperty", typeof(string));
                 }
 
                 paramIndex++;
@@ -315,13 +329,48 @@ namespace MED
             propertyInfo.SetValue(process, eventScript);
         }
 
+        #region ScriptGlobals
+        public virtual Type ScriptGlobalsType { get; } = typeof(ScriptGlobals);
+        public ScriptGlobals ScriptGlobalsNew(IProcess process, object[]? parameters) => (ScriptGlobals)ScriptGlobalsType.GetConstructors().First().Invoke([process, parameters]);
+
+        private Dictionary<string, MethodInfo>? _ScriptGlobalsFunctions;
+        public Dictionary<string, MethodInfo> ScriptGlobalsFunctions
+        {
+            get
+            {
+                if (_ScriptGlobalsFunctions != null)
+                    return _ScriptGlobalsFunctions;
+
+                var dic = new Dictionary<string, MethodInfo>();
+
+                foreach (var method in ScriptGlobalsType.GetMethods(BindingFlags.Public | BindingFlags.Instance))
+                    if (method.DeclaringType != typeof(object))
+                    {
+                        var name = new StringBuilder($"{method.Name}(");
+                        var index = 0;
+                        foreach (var parameter in method.GetParameters())
+                        {
+                            if (index++ > 0)
+                                name.Append(", ");
+                            name.Append(parameter.ParameterType.Name);
+                            name.Append(" ");
+                            name.Append(parameter.Name);
+                        }
+                        name.Append(")");
+                        dic.Add(name.ToString(), method);
+                    }
+                return _ScriptGlobalsFunctions = dic;
+            }
+        }
+
         public class ScriptGlobals(IProcess process, object[]? parameters)
         {
-            public object[]? _p_ = parameters;
+            public object[]? _params_ = parameters;
 
             public IProcess _process = process;
 
             public Performance? perf = process.Performance;
         }
+        #endregion
     }
 }

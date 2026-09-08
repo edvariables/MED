@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing.Design;
 using System.Globalization;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Windows.Forms.Design;
@@ -107,11 +108,8 @@ namespace MED
                 eventScript = (EventScript)value;
             Context = context;
 
-            bool editorNewlyCreated = false;
-
             if (_editorUI == null)
             {
-                editorNewlyCreated = true;
                 CreateEditorUI(context, eventScript);
                 if (_editorUI == null)
                     return value;
@@ -120,8 +118,10 @@ namespace MED
                 _editorUI.Text = eventScript.Script;
             else if (value is string script)
                 _editorUI.Text = script;
-            if (editorNewlyCreated)
-                CodeRender(_editorUI, eventScript);
+
+            //if (editorNewlyCreated)
+            //    _editorUI.CodeRender();
+            _editorUI.EventScript = eventScript;
 
             var oldValue = _editorUI.Text;
 
@@ -159,10 +159,13 @@ namespace MED
             _editorUIWrapper = new();
             _editorUIWrapper.Size = new(400, 300);
 
-            _editorUI = new RichTextBoxMED();
+            _editorUI = new RichTextBoxMED(eventScript);
             _editorUI.Font = new Font("Cascadia Code", 9F);
             _editorUI.Dock = DockStyle.Fill;
-            _editorUI.TextChanged += (object? sender, EventArgs e) => CodeRender((RichTextBoxMED?)sender, eventScript);
+            _editorUI.AcceptsTab = true;
+            _editorUI.ShowSelectionMargin = true;
+            _editorUI.WordWrap = false;
+
             _editorUIWrapper.Controls.Add(_editorUI);
 
             if (eventScript == null
@@ -240,8 +243,10 @@ namespace MED
                 else
                     return;
 
+                Cursor.Current = Cursors.WaitCursor;
                 var f = new EventScriptForm(eventScript, _editorUI);
                 f.Show(_editorUI.FindForm());
+                Cursor.Current = Cursors.Default;
 
             }
         }
@@ -256,111 +261,6 @@ namespace MED
             }
         }
 
-
-        #region Code editor
-        public static void CodeRender(RichTextBoxMED? richTextBox, EventScript? eventScript)
-        {
-            if (richTextBox == null || richTextBox.IsDisposed)
-                return;
-
-            // Source - https://stackoverflow.com/a/58481519
-            // Posted by Momoro
-            // Retrieved 2026-09-06, License - CC BY-SA 4.0
-
-            // getting keywords/functions
-            string keywords = @"\b(abstract|as|base|break|case|catch|checked|continue|default|delegate|do|else|event|explicit|extern|false|finally|fixed|for|foreach|goto|if|implicit|in|interface|internal|is|lock|namespace|new|null|object|operator|out|override|params|private|protected|public|readonly|ref|return|sealed|sizeof|stackalloc|switch|this|throw|true|try|typeof|unchecked|unsafe|using|virtual|volatile|while|var)\b";
-            MatchCollection keywordMatches = Regex.Matches(richTextBox.Text, keywords);
-
-            // getting types/classes/keyobjects from the text 
-            if (eventScript != null && eventScript.VariablesNames == null)
-                eventScript.CompileScript();
-            var variables = new Dictionary<string, Type>(eventScript?.VariablesNames ?? []);
-            string types = @"\b(Console|" + string.Join("|", variables.Keys) + @")\b";
-            MatchCollection typeMatches = Regex.Matches(richTextBox.Text, types);
-
-            // getting comments (inline or multiline)
-            string comments = @"(\/\/.+?$|\/\*.+?\*\/)";
-            MatchCollection commentMatches = Regex.Matches(richTextBox.Text, comments, RegexOptions.Multiline);
-
-            // getting strings
-            string strings = "\".+?\"";
-            MatchCollection stringMatches = Regex.Matches(richTextBox.Text, strings);
-
-            string stringz = "bool|byte|char|class|const|decimal|double|enum|float|int|long|sbyte|short|static|string|struct|uint|ulong|ushort|void";
-            MatchCollection stringzMatchez = Regex.Matches(richTextBox.Text, stringz);
-
-            // saving the original caret position + forecolor
-            int originalIndex = richTextBox.SelectionStart;
-            int originalLength = richTextBox.SelectionLength;
-            Color originalColor = Color.Black;
-
-            bool isActiveControl = richTextBox.Focused;
-
-            if(richTextBox.Parent!= null
-                && richTextBox.Parent.Controls["statusStrip"] != null
-                && richTextBox.Parent.Controls["statusStrip"] is StatusStrip statusStrip)
-            {
-                statusStrip.Items[1].Text =$"{richTextBox.UndoActionName}";
-            }
-
-            richTextBox.SuspendLayout();
-            richTextBox.Enabled = false;
-
-            // removes any previous highlighting (so modified words won't remain highlighted)
-            richTextBox.SelectionStart = 0;
-            richTextBox.SelectionLength = richTextBox.Text.Length;
-            richTextBox.SelectionColor = originalColor;
-
-            // scanning...
-            foreach (Match m in keywordMatches)
-            {
-                richTextBox.SelectionStart = m.Index;
-                richTextBox.SelectionLength = m.Length;
-                richTextBox.SelectionColor = Color.Blue;
-            }
-
-            foreach (Match m in typeMatches)
-            {
-                richTextBox.SelectionStart = m.Index;
-                richTextBox.SelectionLength = m.Length;
-                richTextBox.SelectionColor = Color.DarkCyan;
-            }
-
-            foreach (Match m in commentMatches)
-            {
-                richTextBox.SelectionStart = m.Index;
-                richTextBox.SelectionLength = m.Length;
-                richTextBox.SelectionColor = Color.Green;
-            }
-
-            foreach (Match m in stringMatches)
-            {
-                richTextBox.SelectionStart = m.Index;
-                richTextBox.SelectionLength = m.Length;
-                richTextBox.SelectionColor = Color.Brown;
-            }
-
-            foreach (Match m in stringzMatchez)
-            {
-                richTextBox.SelectionStart = m.Index;
-                richTextBox.SelectionLength = m.Length;
-                richTextBox.SelectionColor = Color.Purple;
-            }
-
-            // restoring the original colors, for further writing
-            richTextBox.SelectionStart = originalIndex;
-            richTextBox.SelectionLength = originalLength;
-            richTextBox.SelectionColor = originalColor;
-
-            richTextBox.Enabled = true;
-
-            if (isActiveControl)
-                richTextBox.Focus();
-
-            richTextBox.ResumeLayout();
-
-        }
-        #endregion
 
         /// <summary>
         ///  The MultilineStringEditor is a drop down editor, so this returns UITypeEditorEditStyle.DropDown.

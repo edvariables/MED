@@ -550,7 +550,8 @@ namespace MED
                 processClass = "MED.Process";
             if (processLib == null)
                 processLib = "";
-            object[] paramsObjects = [name, performance?.Sub(name), invokeHandler, consumer, isAsynchrone];
+            var subPerf = performance == null ? null : performance.Sub(name);
+            object?[] paramsObjects = [name, subPerf, invokeHandler, consumer, isAsynchrone];
             return (IProcess?)AssemblyLoader.CreateObjectInstance(processLib, processClass, paramsObjects);
         }
         #endregion

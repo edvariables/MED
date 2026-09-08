@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Reflection;
@@ -167,12 +168,12 @@ namespace MED
             try
             {
                 var disposed = false;
-                if (item is Control)
+                if (item is Control ctrl)
                 {
-                    if (((Control)item).IsDisposed || ((Control)item).Disposing)
+                    if (ctrl.IsDisposed || ctrl.Disposing)
                         disposed = true;
                 }
-                else if (item is Process && ((Process)item).IsDisposed || ((Process)item).Disposing)
+                else if (item is Process process1 && (process1.IsDisposed || process1.Disposing))
                     disposed = true;
 
                 if (disposed)
@@ -235,6 +236,11 @@ namespace MED
                 name = "Performance";
                 image = performance.Icon;
             }
+            else if (item is Logger logger1)
+            {
+                name = "Logger";
+                image = "help";
+            }
             else
                 name = item.ToString();
             if (image == "")
@@ -247,7 +253,7 @@ namespace MED
 
             bool nodeExpand = node.Parent == null || node.Parent.Parent == null;
 
-                node.Tag = item;
+            node.Tag = item;
             node.ImageKey = image;
             node.SelectedImageKey = node.ImageKey;
             if (item is IProcess process)
@@ -268,8 +274,8 @@ namespace MED
                     node.NodeFont = font;
                 }
             }
-            else
-                node.SelectedImageKey = "False";
+            //else
+            //    node.SelectedImageKey = "False";
 
             if (addChildren)
             {
@@ -280,6 +286,15 @@ namespace MED
                     if (node.Parent == null)
                         items = items.Reverse().ToArray<object>();
                     AddItems(items, node.Nodes);
+
+                    if (isRootNodes
+                        && processes.Performance != null
+                        && processes.Performance.Logger != null
+                        && processes.Performance.Logger.LastError != null
+                        )
+                    {
+                        AddItem(processes.Performance.Logger, node.Nodes);
+                    }
                 }
                 if (item is IProcess iProcess)
                 {
@@ -295,23 +310,6 @@ namespace MED
                             subNode.SelectedImageKey = subNode.ImageKey = "next_blue";
                             AddItems(list.ToArray(), subNode.Nodes, false);
                         }
-                        //Logger
-                        else if (kvp.Value is Logger logger)
-                        {
-                            var subNode = node.Nodes.Add("Logger");
-                            subNode.SelectedImageKey = subNode.ImageKey = "info";
-                            subNode.Tag = kvp.Value;
-
-                            foreach (var (perf, queue) in logger.LastErrors)
-                            {
-                                if (perf.LastError == null)
-                                    continue;
-                                var errNode = subNode.Nodes.Add($"{perf.LastError}");
-                                errNode.ImageKey = "alert";
-                                errNode.SelectedImageKey = errNode.ImageKey;
-                                errNode.Tag = perf.LastError;
-                            }
-                        }
                     }
 
                     var eventScripts = ProcessStatic.GetEventScripts(iProcess, false);
@@ -322,62 +320,84 @@ namespace MED
                         subNode.SelectedImageKey = subNode.ImageKey;
                         subNode.Tag = eventScript;
                     }
-                }
 
-                if (item is GameController.GameController controller)
-                {
-                    nodeExpand = false;
-                    var properties = controller.GetPropertiesDelegatesConsumers();
-                    var usagePropertiesMap = controller.UsagePropertiesMap;
-                    if (properties.Count > 0)
+                    if (iProcess.Performance != null
+                        && iProcess.Performance.LastError != null)
                     {
-                        foreach (var (property, consumers) in properties)
-                        {
-                            string propertyLabel;
-                            if (property.StartsWith(controller.PropertyDomain))
-                                propertyLabel = property.Substring(controller.PropertyDomain.Length);
-                            else if (property.StartsWith("Controller"))
-                                propertyLabel = property.Substring("Controller".Length);
-                            else
-                                propertyLabel = property;
-                            if (usagePropertiesMap.TryGetValue(propertyLabel, out UsagePropertiesMapItem? usagePropertiesMapItem))
-                                propertyLabel += " = " + usagePropertiesMapItem.Properties;
-                            var subNode = node.Nodes.Add(propertyLabel);
-                            subNode.SelectedImageKey = subNode.ImageKey = "next_blue";
-                            AddItems(consumers.Value.Keys.ToArray(), subNode.Nodes, false);
-                        }
+                        var error1 = iProcess.Performance.LastError;
+                        var errNode = node.Nodes.Add($"{error1}");
+                        errNode.ImageKey = "alert";
+                        errNode.SelectedImageKey = errNode.ImageKey;
+                        errNode.Tag = error1;
+                        nodeExpand = true;
                     }
-
-                    //if (controller.UsagePropertiesMap.Count > 0)
-                    //{
-                    //    var mapNode = node.Nodes.Add("Map");
-                    //    mapNode.SelectedImageKey = mapNode.ImageKey = "array";
-                    //    foreach (var (usage, usagePropertiesMapItem) in controller.UsagePropertiesMap)
-                    //    {
-                    //        if (usage.StartsWith("__p__"))
-                    //            continue;
-                    //        var subNode = mapNode.Nodes.Add($"{usage} = {usagePropertiesMapItem.Properties}");
-                    //        subNode.SelectedImageKey = subNode.ImageKey = "next_blue";
-
-                    //    }
-                    //}
                 }
-
-                if (item is IProcess process1
-                    && process1.Performance != null
-                    && process1.Performance.LastError != null
-                    )
-                {
-                    var subNode = node.Nodes.Add($"{process1.Performance.LastError.Message}");
-                    subNode.ImageKey = "alert";
-                    subNode.SelectedImageKey = subNode.ImageKey;
-                    subNode.Tag = process1.Performance.LastError;
-
-                }
-
-                if (nodeExpand)
-                    node.Expand();
             }
+
+            if (item is GameController.GameController controller)
+            {
+                nodeExpand = false;
+                var properties = controller.GetPropertiesDelegatesConsumers();
+                var usagePropertiesMap = controller.UsagePropertiesMap;
+                if (properties.Count > 0)
+                {
+                    foreach (var (property, consumers) in properties)
+                    {
+                        string propertyLabel;
+                        if (property.StartsWith(controller.PropertyDomain))
+                            propertyLabel = property.Substring(controller.PropertyDomain.Length);
+                        else if (property.StartsWith("Controller"))
+                            propertyLabel = property.Substring("Controller".Length);
+                        else
+                            propertyLabel = property;
+                        if (usagePropertiesMap.TryGetValue(propertyLabel, out UsagePropertiesMapItem? usagePropertiesMapItem))
+                            propertyLabel += " = " + usagePropertiesMapItem.Properties;
+                        var subNode = node.Nodes.Add(propertyLabel);
+                        subNode.SelectedImageKey = subNode.ImageKey = "next_blue";
+                        AddItems(consumers.Value.Keys.ToArray(), subNode.Nodes, false);
+                    }
+                }
+
+                //if (controller.UsagePropertiesMap.Count > 0)
+                //{
+                //    var mapNode = node.Nodes.Add("Map");
+                //    mapNode.SelectedImageKey = mapNode.ImageKey = "array";
+                //    foreach (var (usage, usagePropertiesMapItem) in controller.UsagePropertiesMap)
+                //    {
+                //        if (usage.StartsWith("__p__"))
+                //            continue;
+                //        var subNode = mapNode.Nodes.Add($"{usage} = {usagePropertiesMapItem.Properties}");
+                //        subNode.SelectedImageKey = subNode.ImageKey = "next_blue";
+
+                //    }
+                //}
+            }
+            else if (item is Logger logger
+                && logger.LastErrorsCount > 0)
+            {
+                foreach (var (perf, errors) in logger.LastErrors)
+                    if (errors.Count > 0)
+                    {
+                        var error0 = errors.Last();
+                        var perfNode = node.Nodes.Add($"{perf.Name} ({errors.Count}) {error0.DelayToString()} : {error0.Message}");
+                        perfNode.ImageKey = "alert";
+                        perfNode.SelectedImageKey = perfNode.ImageKey;
+                        perfNode.Tag = perf;
+                        int index = 0;
+                        foreach (var error in errors.Reverse())
+                            if (index++ > 0)
+                            {
+                                var subNode = perfNode.Nodes.Add($"{error.DelayToString()} : {error.Message}");
+                                subNode.ImageKey = "alert";
+                                subNode.SelectedImageKey = subNode.ImageKey;
+                                subNode.Tag = error;
+                            }
+                    }
+                nodeExpand = true;
+            }
+            
+            if (nodeExpand)
+                node.Expand();
 
             return node;
         }
@@ -394,7 +414,7 @@ namespace MED
                 TreeNode? node = ObjectsNodes[sender.GetHashCode()];
                 if (node == null)
                     return;
-                node.StateImageKey = state == ThreadState.Suspended ? "AutoReset" : (state == ThreadState.Running ? "True" : "False");
+                node.StateImageKey = state == System.Threading.ThreadState.Suspended ? "AutoReset" : (state == System.Threading.ThreadState.Running ? "True" : "False");
             }
         }
     }

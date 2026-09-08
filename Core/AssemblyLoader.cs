@@ -39,7 +39,7 @@ namespace MED
             return Assembly.Load(assemblyName);
         }
 
-        public static object? CreateObjectInstance(string processLib, string processClass, object[] paramsObjects)
+        public static object? CreateObjectInstance(string processLib, string processClass, object?[] paramsObjects)
         {
             foreach (var ass in AppDomain.CurrentDomain.GetAssemblies())
                 foreach (var type in ass.GetTypes())
@@ -58,15 +58,14 @@ namespace MED
             if (string.IsNullOrEmpty(processLib))
                 throw new Exception($"Librairie inconnue (argument processLib)");
 
-#pragma warning disable CS8602 // Déréférencement d'une éventuelle référence null.
-            var al = new AssemblyLoader(Directory.GetParent(processLib).FullName);
-#pragma warning restore CS8602 // Déréférencement d'une éventuelle référence null.
+            var folder = Directory.GetParent(processLib);
+            var folderPath = folder==null ? "" : folder.FullName;
+            var al = new AssemblyLoader(folderPath);
 
             Assembly assembly = al.LoadFromAssemblyPath(processLib);
 
-#pragma warning disable CS8604 // Existence possible d'un argument de référence null.
-            return Activator.CreateInstance(assembly.GetName().Name, processClass, paramsObjects);
-#pragma warning restore CS8604 // Existence possible d'un argument de référence null.
+            var assemblyName = assembly.GetName().Name;
+            return Activator.CreateInstance(assemblyName??"", processClass, paramsObjects);
 
             //foreach (var type in assembly.GetExportedTypes())
             //    if (type.FullName == processClass)

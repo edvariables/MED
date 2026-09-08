@@ -23,7 +23,7 @@ namespace MED.Imaging
      * class Mover : ImageCollidable, IImageMover
      * <summary>Image as a physical object that can move, rotate and collide</summary>
      * */
-    public class ImageMover(string name = "Mover", Performance? performance = null, Control? invokeHandler = null, IConsumer? consumer = null, bool isAsynchrone = true) 
+    public class ImageMover(string name = "Mover", Performance? performance = null, Control? invokeHandler = null, IConsumer? consumer = null, bool isAsynchrone = true)
                 : ImageCollider(name, performance, invokeHandler, consumer, isAsynchrone), IImageMover
     {
         public override Region? ClipRegion
@@ -145,8 +145,8 @@ namespace MED.Imaging
             {
                 if (SpeedMax == 0)
                     _Speed_msec = value;
-                else if(value < 0F)
-                    _Speed_msec = Math.Max(value, - SpeedMax / 1000);
+                else if (value < 0F)
+                    _Speed_msec = Math.Max(value, -SpeedMax / 1000);
                 else
                     _Speed_msec = Math.Min(value, SpeedMax / 1000);
                 Direction = _Direction;//Reset Velocity and Vector
@@ -198,7 +198,7 @@ namespace MED.Imaging
             {
                 _RotationVector = Vector2.Zero;
                 _ClipRegionTranslated = null;
-                base.RotationAngle = value;
+                base.RotationAngle = value % 360F;
             }
         }
 

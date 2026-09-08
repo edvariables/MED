@@ -10,23 +10,13 @@ namespace MED
 {
     public class GameControllerScript(IProcess process, string eventName) : EventScript(process, eventName)
     {
-        public override string? Script
-        {
-            get => base.Script;
-            set
-            {
-                RemoveConsumers();
-
-                base.Script = value;
-
-                AddConsumers();
-            }
-        }
 
         private IGameController? GetGameController() => ProcessStatic.GetGameController(Process);
 
-        private void AddConsumers()
+        protected override void AddConsumers()
         {
+            ConsumerProperties = [];
+
             if (Process is not IConsumer consumer
                 || string.IsNullOrEmpty(Script))
                 return;
@@ -34,13 +24,29 @@ namespace MED
             if (gameController == null)
                 return;
             var script = ClearComments(Script).Replace(" ", "");
-            var matches = Regex.Matches(script, @"if\(.*(property==|gameController\.GetControllerPropertyValue\()""([^""]+)""");
+            var matches = Regex.Matches(script, @".*(if\(.*eventProperty==|gameController\.GetControllerPropertyValue\(|GetControllerState\()(""([^""]+)""|Keys\.(\w+))");
             foreach (var match in matches)
                 if (match != null && match is Match match1)
-                    gameController.AddConsumer(consumer, match1.Groups[2].Value, Process.GameControllerChanged);
+                {
+                    var capture = match1.Groups[3].Value;
+                    if (string.IsNullOrEmpty(capture))
+                        capture = match1.Groups[4].Value;
+                    if (!string.IsNullOrEmpty(capture)
+                    && !(ConsumerProperties.ContainsKey(gameController)
+                        && ConsumerProperties[gameController].Contains(capture))
+                    )
+                    {
+                        gameController.AddConsumer(consumer, capture, Process.GameControllerChanged);
+                        if (!ConsumerProperties.ContainsKey(gameController))
+                            ConsumerProperties[gameController] = new();
+                        ConsumerProperties[gameController].Add(capture);
+                    }
+                }
         }
-        private void RemoveConsumers()
+        protected override void RemoveConsumers()
         {
+            ConsumerProperties = [];
+
             if (Process is not IConsumer consumer
                 || string.IsNullOrEmpty(Script))
                 return;
@@ -48,6 +54,21 @@ namespace MED
             if (gameController == null)
                 return;
             gameController.RemoveConsumer(consumer, "");
+        }
+
+        public override Type ScriptGlobalsType { get; } = typeof(ScriptGlobalsGameController);
+
+        public class ScriptGlobalsGameController(IProcess process, object[]? parameters) : ScriptGlobals(process, parameters)
+        {
+            public object? GetControllerState(Keys key) => GetControllerState(key.ToString());
+
+            public object? GetControllerState(string key)
+            {
+                if (this._params_ != null
+                && this._params_[0] is IGameController gameController)
+                    return gameController.GetControllerPropertyValue(key);
+                return null;
+            }
         }
     }
 }

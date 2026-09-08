@@ -190,7 +190,8 @@ namespace MED
             {
                 FLogger.Current.Show();
                 FLogger.Current.SizeChanged += FormChild_SizeChanged;
-                Performance.Logger = FLogger.Current.Logger;
+                if(Performance!=null)
+                    Performance.Logger = FLogger.Current.Logger;
             }
             if (FProperties.Current != null)
             {
@@ -304,7 +305,7 @@ namespace MED
             }
 
             Processes.Add(processForm);
-            FProperties.CurrentProperties = (object[])[this, Project];
+            FProperties.CurrentProperties = (object[])[Project];
 
             ActiveProcess = processForm;
 

@@ -17,7 +17,7 @@ namespace MED
         {
             var str = Delay.ToString();
             while (str.StartsWith("00:"))
-                str = "   " + str.Substring(3);
+                str = str.Substring(3);
             var i = str.LastIndexOf('.');
             if (i < str.Length - 3)
                 str = str.Substring(0, i + 4);

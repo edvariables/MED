@@ -117,21 +117,21 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <metadata name="statusStrip1.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+  <metadata name="statusStrip.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
     <value>17, 17</value>
   </metadata>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
   <data name="dropDownVariables.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8
-        YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAGNSURBVDhPhVM9a8JQFPUPdOm/6ezi4iJ0rbOLg4NDhgYe
-        hWxOgj9B6CJCWshS0EGhHVpwdcvmksWhcXi359zcpPELLxzyct49591789K4Ft77kYi8ElgPjL4dFHqf
-        j/LlMt1HkRB5vlAOe2tLOw+eAsw332/pbnevwqztJG7FMp1OJcvakiVtQU7KQ0z2HyzVuUSSxElpELdC
-        CWFAlAaJczSZmKwIEP2PfSQO4gjPBMklyLEC7pdglUdVeH/ox3FLCIp4Uh0UnXKciYn9AANDuTAAQpgw
-        IQ6Ld4Jt0TxzEBt+F4s1tez9kX2xX+3ZKqEwaAaK8XhccDVTzohzqwyYxCHSYDa7g7Cp4uFwqFCxGZBn
-        bmWAFuZhiNMBJtMkCGAA9Ho9FZQcTfi+3W6LFoo55E+6YaJbYG4lZuDlpXC2JC2/hhPO7sLxrQTxqf1d
-        MOh2u9XaTj++SAyQD6yEn6wu7nQ6Cq55MgeHvOs/FzafMZPJ5uddBbyFq9VXKnKg8PwfuBb8OiVYndEn
-        0Wj8AY6kFrKTumj8AAAAAElFTkSuQmCC
+        YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAGRSURBVDhPhVKxasJQFPUHuvRvOru4uAhd6+zi0MEhQwOP
+        QjYnwU8QXEQaCllKFUFoKRRc3bK5ZHEw4svtOTcvaYwtXjgkubnn3HPve43/wlo7FJEpkWXZo0tfDxKt
+        TYfpchnvg0CINH3X3Ol0Wruyy2AXkOebr5d4t7tVYtI2ErZCmUwmkiRtSaK2QCRmE0f7DVo1JpIoMlII
+        hC1ffAgQhUBkjEBg7Gh5oHv/bR+IATnAM0JxAebogP8L0OWZiyw79sOwJQRJ7FQFSfUcd+LI2SMWBrsQ
+        AHyIsCD082+CY1E8MSA7HBaLtZ4OZr/nXJxXZ3ZOSPSanmI0GuW5iih3xL2VAiziEikwm92A2FTyYDBQ
+        KNkJMM/aUgAjzH0f3QEWU8TzIAD0ej0lFDmK8Hu73eYj5HtIH/SHI10Da0syA0fynCu7IrVfQS3HkS9u
+        JRIfOt8fAt1ut3xno4uLxIClOzrhkVXJnU5HwXd25uLO7NcDP5+sPYw3369K4C1crT5jkeP07PZdC55O
+        Abpz6Vo0Gj/eaBZmqN524wAAAABJRU5ErkJggg==
 </value>
   </data>
   <data name="cmdSave.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">

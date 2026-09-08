@@ -225,8 +225,10 @@ namespace MED
             EventScript? eventScript = e.Node.Tag != null && e.Node.Tag is EventScript ? (EventScript)e.Node.Tag : null;
             if (eventScript != null)
             {
+                Cursor = Cursors.WaitCursor;
                 var f = new EventScriptForm(eventScript);
                 f.Show(FindForm());
+                Cursor = Cursors.Default;
             }
         }
 

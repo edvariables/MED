@@ -35,22 +35,26 @@
             toolStripStatusLabel1 = new ToolStripStatusLabel();
             cmdSave = new ToolStripStatusLabel();
             cmdClose = new ToolStripStatusLabel();
+            LineNumberTextBox = new RichTextBox();
             statusStrip.SuspendLayout();
             SuspendLayout();
             // 
             // RTBEditor
             // 
+            RTBEditor.AcceptsTab = true;
+            RTBEditor.BorderStyle = BorderStyle.None;
             RTBEditor.Dock = DockStyle.Fill;
             RTBEditor.Font = new Font("Cascadia Code", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RTBEditor.Location = new Point(0, 0);
+            RTBEditor.Location = new Point(34, 0);
             RTBEditor.Name = "RTBEditor";
-            RTBEditor.Size = new Size(800, 641);
+            RTBEditor.ShowSelectionMargin = true;
+            RTBEditor.Size = new Size(766, 641);
             RTBEditor.TabIndex = 0;
             RTBEditor.Text = "";
-            RTBEditor.TextChanged += Editor_TextChanged;
+            RTBEditor.WordWrap = false;
             RTBEditor.KeyUp += Editor_KeyUp;
             // 
-            // statusStrip1
+            // statusStrip
             // 
             statusStrip.Items.AddRange(new ToolStripItem[] { dropDownVariables, toolStripStatusLabel1, cmdSave, cmdClose });
             statusStrip.Location = new Point(0, 641);
@@ -91,12 +95,24 @@
             cmdClose.Size = new Size(16, 20);
             cmdClose.Click += CmdClose_Click;
             // 
+            // LineNumberTextBox
+            // 
+            LineNumberTextBox.BorderStyle = BorderStyle.None;
+            LineNumberTextBox.Dock = DockStyle.Left;
+            LineNumberTextBox.Location = new Point(0, 0);
+            LineNumberTextBox.Multiline = true;
+            LineNumberTextBox.Name = "LineNumberTextBox";
+            LineNumberTextBox.Size = new Size(34, 641);
+            LineNumberTextBox.TabIndex = 2;
+            LineNumberTextBox.SelectionAlignment = HorizontalAlignment.Right;
+            // 
             // EventScriptForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 666);
             Controls.Add(RTBEditor);
+            Controls.Add(LineNumberTextBox);
             Controls.Add(statusStrip);
             FormBorderStyle = FormBorderStyle.SizableToolWindow;
             Name = "EventScriptForm";
@@ -115,5 +131,6 @@
         private ToolStripStatusLabel cmdClose;
         private ToolStripDropDownButton dropDownVariables;
         private ToolStripStatusLabel toolStripStatusLabel1;
+        private RichTextBox LineNumberTextBox;
     }
 }
