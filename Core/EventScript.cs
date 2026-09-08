@@ -121,7 +121,7 @@ namespace MED
          * 
          * 
          * */
-        public bool CompileScript(params object[]? parameters)
+        public bool CompileScript(params object?[]? parameters)
         {
             var script = Script;
 
@@ -172,7 +172,7 @@ namespace MED
          * 
          * 
          * */
-        public bool Eval(params object[]? parameters)
+        public bool Eval(params object?[]? parameters)
         {
             var script = Script;
 
@@ -331,7 +331,7 @@ namespace MED
 
         #region ScriptGlobals
         public virtual Type ScriptGlobalsType { get; } = typeof(ScriptGlobals);
-        public ScriptGlobals ScriptGlobalsNew(IProcess process, object[]? parameters) => (ScriptGlobals)ScriptGlobalsType.GetConstructors().First().Invoke([process, parameters]);
+        public ScriptGlobals ScriptGlobalsNew(IProcess process, object?[]? parameters) => (ScriptGlobals)ScriptGlobalsType.GetConstructors().First().Invoke([process, parameters]);
 
         private Dictionary<string, MethodInfo>? _ScriptGlobalsFunctions;
         public Dictionary<string, MethodInfo> ScriptGlobalsFunctions
@@ -357,6 +357,7 @@ namespace MED
                             name.Append(parameter.Name);
                         }
                         name.Append(")");
+                        name.Append($" : {method.ReturnType.Name}");
                         dic.Add(name.ToString(), method);
                     }
                 return _ScriptGlobalsFunctions = dic;

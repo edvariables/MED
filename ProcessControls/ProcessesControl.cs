@@ -319,6 +319,11 @@ namespace MED
                         subNode.ImageKey = eventScript == null ? "Script" : eventScript.Icon;
                         subNode.SelectedImageKey = subNode.ImageKey;
                         subNode.Tag = eventScript;
+                        subNode.ToolTipText = "Double-click to edit";
+                        if (eventScript != null && !String.IsNullOrEmpty(eventScript.Script))
+                            nodeExpand = true;
+                        else
+                            subNode.ForeColor = Color.Gray;
                     }
 
                     if (iProcess.Performance != null
@@ -395,7 +400,7 @@ namespace MED
                     }
                 nodeExpand = true;
             }
-            
+
             if (nodeExpand)
                 node.Expand();
 

@@ -29,10 +29,11 @@
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(EventScriptForm));
-            RTBEditor = new RichTextBoxMED();
+            RichEditor = new RichTextBoxMED();
             statusStrip = new StatusStrip();
             dropDownVariables = new ToolStripDropDownButton();
-            toolStripStatusLabel1 = new ToolStripStatusLabel();
+            cmdPlayTest = new ToolStripStatusLabel();
+            statusStripItem = new ToolStripStatusLabel();
             cmdSave = new ToolStripStatusLabel();
             cmdClose = new ToolStripStatusLabel();
             LineNumberTextBox = new RichTextBox();
@@ -41,22 +42,28 @@
             // 
             // RTBEditor
             // 
-            RTBEditor.AcceptsTab = true;
-            RTBEditor.BorderStyle = BorderStyle.None;
-            RTBEditor.Dock = DockStyle.Fill;
-            RTBEditor.Font = new Font("Cascadia Code", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RTBEditor.Location = new Point(34, 0);
-            RTBEditor.Name = "RTBEditor";
-            RTBEditor.ShowSelectionMargin = true;
-            RTBEditor.Size = new Size(766, 641);
-            RTBEditor.TabIndex = 0;
-            RTBEditor.Text = "";
-            RTBEditor.WordWrap = false;
-            RTBEditor.KeyUp += Editor_KeyUp;
+            RichEditor.AcceptsTab = true;
+            RichEditor.BackColor = Color.Black;
+            RichEditor.BorderStyle = BorderStyle.None;
+            RichEditor.CodeColors = (Dictionary<string, Color>)resources.GetObject("RTBEditor.CodeColors");
+            RichEditor.Dock = DockStyle.Fill;
+            RichEditor.EventScript = null;
+            RichEditor.Font = new Font("Cascadia Code", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RichEditor.ForeColor = Color.White;
+            RichEditor.LineNumbersTextBox = null;
+            RichEditor.Location = new Point(34, 0);
+            RichEditor.Name = "RTBEditor";
+            RichEditor.ScrollBars = RichTextBoxScrollBars.ForcedBoth;
+            RichEditor.ShowSelectionMargin = true;
+            RichEditor.Size = new Size(766, 641);
+            RichEditor.TabIndex = 0;
+            RichEditor.Text = "";
+            RichEditor.WordWrap = false;
+            RichEditor.KeyUp += Editor_KeyUp;
             // 
             // statusStrip
             // 
-            statusStrip.Items.AddRange(new ToolStripItem[] { dropDownVariables, toolStripStatusLabel1, cmdSave, cmdClose });
+            statusStrip.Items.AddRange(new ToolStripItem[] { dropDownVariables, cmdPlayTest, statusStripItem, cmdSave, cmdClose });
             statusStrip.Location = new Point(0, 641);
             statusStrip.Name = "statusStrip";
             statusStrip.ShowItemToolTips = true;
@@ -73,11 +80,20 @@
             dropDownVariables.Text = "var";
             dropDownVariables.ToolTipText = "Variables disponibles dans ce script";
             // 
-            // toolStripStatusLabel1
+            // cmdPlayTest
             // 
-            toolStripStatusLabel1.Name = "toolStripStatusLabel1";
-            toolStripStatusLabel1.Size = new Size(603, 20);
-            toolStripStatusLabel1.Spring = true;
+            cmdPlayTest.Image = (Image)resources.GetObject("cmdPlayTest.Image");
+            cmdPlayTest.Name = "cmdPlayTest";
+            cmdPlayTest.Size = new Size(42, 20);
+            cmdPlayTest.Text = "test";
+            cmdPlayTest.IsLink = true;
+            cmdPlayTest.Click += cmdPlayTest_Click;
+            // 
+            // statusStripItem
+            // 
+            statusStripItem.Name = "statusStripItem";
+            statusStripItem.Size = new Size(561, 20);
+            statusStripItem.Spring = true;
             // 
             // cmdSave
             // 
@@ -100,18 +116,17 @@
             LineNumberTextBox.BorderStyle = BorderStyle.None;
             LineNumberTextBox.Dock = DockStyle.Left;
             LineNumberTextBox.Location = new Point(0, 0);
-            LineNumberTextBox.Multiline = true;
             LineNumberTextBox.Name = "LineNumberTextBox";
             LineNumberTextBox.Size = new Size(34, 641);
             LineNumberTextBox.TabIndex = 2;
-            LineNumberTextBox.SelectionAlignment = HorizontalAlignment.Right;
+            LineNumberTextBox.Text = "";
             // 
             // EventScriptForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 666);
-            Controls.Add(RTBEditor);
+            Controls.Add(RichEditor);
             Controls.Add(LineNumberTextBox);
             Controls.Add(statusStrip);
             FormBorderStyle = FormBorderStyle.SizableToolWindow;
@@ -125,12 +140,13 @@
 
         #endregion
 
-        private RichTextBoxMED RTBEditor;
+        private RichTextBoxMED RichEditor;
         private StatusStrip statusStrip;
         private ToolStripStatusLabel cmdSave;
         private ToolStripStatusLabel cmdClose;
         private ToolStripDropDownButton dropDownVariables;
-        private ToolStripStatusLabel toolStripStatusLabel1;
+        private ToolStripStatusLabel statusStripItem;
         private RichTextBox LineNumberTextBox;
+        private ToolStripStatusLabel cmdPlayTest;
     }
 }

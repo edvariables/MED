@@ -21,7 +21,7 @@ namespace MED
 
             InitializeComponent();
 
-            RTBEditor.LineNumbersTextBox = LineNumberTextBox;
+            RichEditor.LineNumbersTextBox = LineNumberTextBox;
 
             this.Activated += EventScriptForm_Activated;
         }
@@ -38,33 +38,94 @@ namespace MED
 
             Text = $"{eventScript.Process}.{eventScript.EventName} script";
 
-            toolStripStatusLabel1.Text = $"{eventScript.EventName}( {String.Join(", ", eventScript.ParametersNames ?? [])} )";
-            if (eventScript.VariablesNames == null)
-                eventScript.CompileScript();
-            if (eventScript.VariablesNames == null)
-                foreach (var (varName, varType) in eventScript.ParametersNames ?? [])
-                    dropDownVariables.DropDownItems.Add($"{varName} : {varType}", MEDIcons.Var);
-            else
-            {
-                dropDownVariables.Text = $"{eventScript.VariablesNames.Count} var{(eventScript.VariablesNames.Count > 1 ? "s" : "")}";
-                foreach (var (varName, varType) in eventScript.VariablesNames)
-                    dropDownVariables.DropDownItems.Add($"{varName} : {varType}", MEDIcons.Var);
-            }
-            foreach (var (varCall, varMethode) in eventScript.ScriptGlobalsFunctions)
-                dropDownVariables.DropDownItems.Add($"{varCall}", MEDIcons.Function);
+            InitVariables(eventScript, editorUI);
 
-            foreach (var (gameController, properties) in eventScript.ConsumerProperties)
-                foreach (var property in properties)
-                    dropDownVariables.DropDownItems.Add($"{gameController.Name}.{property}", MEDIcons.VarReadOnly);
+            RichEditor.Text = eventScript.Script ?? "";
 
-            RTBEditor.Text = eventScript.Script ?? "";
-
-            RTBEditor.ModifiedChanged += (sender, e) => cmdSave.IsLink = RTBEditor.Modified;
-            RTBEditor.Modified = cmdSave.IsLink = false;
+            RichEditor.ModifiedChanged += (sender, e) => cmdSave.IsLink = RichEditor.Modified;
+            RichEditor.Modified = cmdSave.IsLink = false;
 
             FormClosing += EventScriptForm_FormClosing;
 
             EventScript.OnScriptChanged += EventScript_OnScriptChanged;
+        }
+
+        private void InitVariables(EventScript eventScript, RichTextBox? editorUI = null)
+        {
+            dropDownVariables.DropDownItems.Clear();
+
+            statusStripItem.Text = $"{eventScript.EventName}( {String.Join(", ", eventScript.ParametersNames ?? [])} )";
+            if (eventScript.VariablesNames == null)
+                eventScript.CompileScript();
+            if (eventScript.VariablesNames == null)
+            {
+                if (eventScript.ParametersNames == null)
+                    dropDownVariables.Text = "-";
+                else
+                {
+                    dropDownVariables.Text = $"{eventScript.ParametersNames.Count} var{(eventScript.ParametersNames.Count > 1 ? "s" : "")}";
+                    foreach (var (varName, varType) in eventScript.ParametersNames)
+                        AddVariable($"{varName} : {varType}", "Parameter");
+                }
+            }
+            else
+            {
+                dropDownVariables.Text = $"{eventScript.VariablesNames.Count} var{(eventScript.VariablesNames.Count > 1 ? "s" : "")}";
+                foreach (var (varName, varType) in eventScript.VariablesNames)
+                    AddVariable($"{varName} : {varType}", "Variable");
+            }
+            foreach (var (varCall, varMethode) in eventScript.ScriptGlobalsFunctions)
+                AddVariable($"{varCall}", "Function");
+
+            foreach (var (gameController, properties) in eventScript.ConsumerProperties)
+                foreach (var property in properties)
+                    AddVariable($"{gameController.Name}.{property}", "ConsumerProperty");
+
+        }
+        private void AddVariable(string text, string variableType)
+        {
+            Image? image;
+            switch (variableType)
+            {
+                case "Function":
+                    image = MEDIcons.Function;
+                    break;
+                case "ConsumerProperty":
+                    image = MEDIcons.VarReadOnly;
+                    break;
+                case "Variable":
+                case "Parameter":
+                default:
+                    image = MEDIcons.Var;
+                    break;
+
+            }
+
+            var item = dropDownVariables.DropDownItems.Add(text, image);
+
+            if (variableType != "ConsumerProperty")
+                item.Click += Variable_Click;
+            else
+                item.Enabled = false;
+
+            switch (variableType)
+            {
+                case "Function":
+                    break;
+                case "ConsumerProperty":
+                    break;
+                case "Variable":
+                case "Parameter":
+                default:
+                    break;
+
+            }
+        }
+
+        private void Variable_Click(object? sender, EventArgs e)
+        {
+            if (sender is ToolStripDropDownItem item)
+                RichEditor.SelectedText = item.Text ?? "";
         }
 
         private void EventScriptForm_Activated(object? sender, EventArgs e)
@@ -94,7 +155,9 @@ namespace MED
                 _EventScript = value;
                 if (_editorUI is RichTextBoxMED richTextBoxMED)
                     richTextBoxMED.EventScript = _EventScript;
-                RTBEditor.EventScript = _EventScript;
+                RichEditor.EventScript = _EventScript;
+                if (_EventScript == null)
+                    UpdateSatusLabel("No script linked", MEDIcons.False);
             }
         }
 
@@ -103,14 +166,14 @@ namespace MED
             if (EventScript == null)
                 return;
 
-            RTBEditor.Text = EventScript.Script ?? "";
+            RichEditor.Text = EventScript.Script ?? "";
 
             if (_editorUI != null && !_editorUI.IsDisposed)
             {
-                _editorUI.Text = RTBEditor.Text;
+                _editorUI.Text = RichEditor.Text;
                 _editorUI.Modified = false;
             }
-            RTBEditor.Modified = false;
+            RichEditor.Modified = false;
         }
 
         private void Editor_KeyUp(object sender, KeyEventArgs e)
@@ -125,7 +188,7 @@ namespace MED
                 return true;
             if (askIfNeed)
             {
-                if (EventScript.Script != RTBEditor.Text || RTBEditor.Modified)
+                if (EventScript.Script != RichEditor.Text)
                     switch (MessageBox.Show("Voulez-vous enregistrer les modifications ?", Text, MessageBoxButtons.YesNoCancel))
                     {
                         case DialogResult.Yes:
@@ -144,30 +207,34 @@ namespace MED
 
             UpdateSatusLabel("Compiling...", MEDIcons.info);
 
-            EventScript.Script = RTBEditor.Text;
+            EventScript.Script = RichEditor.Text;
 
             if (!EventScript.CompileScript())
                 UpdateSatusLabel("Compilation error", MEDIcons.alert);
             else
                 UpdateSatusLabel("Saved", MEDIcons.ok);
 
+            InitVariables(EventScript, _editorUI);
+
             Cursor = Cursors.Default;
 
             if (_editorUI != null && !_editorUI.IsDisposed)
             {
-                _editorUI.Text = RTBEditor.Text;
+                _editorUI.Text = RichEditor.Text;
                 _editorUI.Modified = false;
             }
 
-            RTBEditor.Modified = false;
+            RichEditor.Modified = false;
 
             return true;
         }
 
         private void UpdateSatusLabel(string message, Image? image = null)
         {
-            statusStrip.Items[1].Text = message;
-            statusStrip.Items[1].Image = image;
+            var lines = message.Split('\n');
+            statusStripItem.Text = lines[0];
+            statusStripItem.Image = image;
+            statusStripItem.ToolTipText = message;
         }
 
         private void cmdSave_Click(object sender, EventArgs e)
@@ -181,8 +248,67 @@ namespace MED
         private void CmdClose_Click(object sender, EventArgs e)
         {
             if (Control.ModifierKeys == Keys.Control)
-                RTBEditor.Modified = false;
+            {
+                EventScript = null;
+                RichEditor.Modified = false;
+            }
             Close();
+        }
+
+        private void cmdPlayTest_Click(object sender, EventArgs e)
+        {
+            if (EventScript == null)
+            {
+                cmdPlayTest.Text = "No script object";
+                cmdPlayTest.Image = MEDIcons.close;
+                return;
+            }
+
+            cmdPlayTest.Text = "Compile";
+            cmdPlayTest.Image = MEDIcons.Pause_blue;
+
+            var selectionStart = RichEditor.SelectionStart;
+            var selectionLength = RichEditor.SelectionLength;
+            var previousScript = EventScript.Script;
+            var previousError = EventScript.Process.Performance == null ? null : EventScript.Process.Performance.LastError;
+
+            EventScript.Script = RichEditor.Text;
+
+            object?[] parameters = [2];
+            EventScript.CompileScript(parameters[0], parameters[1]);//TODO
+
+            if (EventScript.Process.Performance != null
+                && previousError != EventScript.Process.Performance.LastError
+                && EventScript.Process.Performance.LastError != null)
+            {
+                UpdateSatusLabel(EventScript.Process.Performance.LastError.Message, MEDIcons.alert);
+                cmdPlayTest.Text = "Compile error";
+                cmdPlayTest.Image = MEDIcons.nextPage;
+            }
+            else
+            {
+
+                EventScript.Eval(parameters[0], parameters[1]);//TODO
+
+                if (EventScript.Process.Performance != null
+                    && previousError != EventScript.Process.Performance.LastError
+                    && EventScript.Process.Performance.LastError != null)
+                {
+                    UpdateSatusLabel(EventScript.Process.Performance.LastError.Message, MEDIcons.alert);
+                    cmdPlayTest.Text = "Eval error";
+                    cmdPlayTest.Image = MEDIcons.nextPage;
+                }
+                else
+                {
+                    cmdPlayTest.Text = "Test";
+                    cmdPlayTest.Image = MEDIcons.nextPage_blue;
+                }
+            }
+
+            RichEditor.Text = previousScript ?? "";
+            RichEditor.SelectionStart = selectionStart;
+            RichEditor.SelectionLength = selectionLength;
+
         }
     }
 }

@@ -27,11 +27,11 @@ namespace MED
             {
                 CodeColors.Add("BackColor", Color.Black);
                 CodeColors.Add("ForeColor", Color.White);
-                CodeColors.Add("keyword", Color.LightBlue);
-                CodeColors.Add("type", Color.LightCyan);
+                CodeColors.Add("keyword", Color.LightPink);
+                CodeColors.Add("type", Color.LightGreen);
                 CodeColors.Add("comment", Color.Green);
-                CodeColors.Add("string", Color.Brown);
-                CodeColors.Add("stringz", Color.Purple);
+                CodeColors.Add("string", Color.LightCoral);
+                CodeColors.Add("stringz", Color.MediumPurple);
             }
             else
             {
@@ -114,6 +114,19 @@ namespace MED
 
         }
 
+        public new string SelectedText
+        {
+            get => base.SelectedText;
+
+            set
+            {
+                redoStack.Clear();
+                StackPush(this, undoStack);
+
+                base.SelectedText = value;
+            }
+        }
+
         public const int UndoStackMaxLength = 64;
 
         private Stack<Func<RichTextBoxMED>> undoStack = new Stack<Func<RichTextBoxMED>>();
@@ -174,7 +187,9 @@ namespace MED
                     _LineNumbersTextBox.ReadOnly = true;
                     _LineNumbersTextBox.Font = Font;
                     _LineNumbersTextBox.BackColor = BackColor;
-                    _LineNumbersTextBox.ForeColor = ForeColor;
+                    float gray = BackColor == Color.Black ? 0.7F : 1.3F;
+                    var foreColor = Color.FromArgb((int)(ForeColor.R * gray), (int)(ForeColor.B * gray), (int)(ForeColor.B * gray));
+                    _LineNumbersTextBox.ForeColor = foreColor;
                     _LineNumbersTextBox.ScrollBars = RichTextBoxScrollBars.None;
                     SetSelectionLineSpacing(260);
 

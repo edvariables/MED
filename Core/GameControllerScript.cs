@@ -24,13 +24,14 @@ namespace MED
             if (gameController == null)
                 return;
             var script = ClearComments(Script).Replace(" ", "");
-            var matches = Regex.Matches(script, @".*(if\(.*eventProperty==|gameController\.GetControllerPropertyValue\(|GetControllerState\()(""([^""]+)""|Keys\.(\w+))");
+            var pattern = @"eventProperty==|gameController\.GetControllerPropertyValue\(|GetControllerState\(|" + gameController.Name + @"\.";
+            var matches = Regex.Matches(script, @"\b(" + pattern + @")(""(?<key>[^""]+)""|Keys\.(?<Keys>\w+))", RegexOptions.ExplicitCapture);
             foreach (var match in matches)
                 if (match != null && match is Match match1)
                 {
-                    var capture = match1.Groups[3].Value;
+                    var capture = match1.Groups["key"].Value;
                     if (string.IsNullOrEmpty(capture))
-                        capture = match1.Groups[4].Value;
+                        capture = match1.Groups["Keys"].Value;
                     if (!string.IsNullOrEmpty(capture)
                     && !(ConsumerProperties.ContainsKey(gameController)
                         && ConsumerProperties[gameController].Contains(capture))

@@ -115,7 +115,7 @@ namespace MED
                     return value;
             }
             if (eventScript != null)
-                _editorUI.Text = eventScript.Script;
+                _editorUI.Text = eventScript.Script??"";
             else if (value is string script)
                 _editorUI.Text = script;
 
