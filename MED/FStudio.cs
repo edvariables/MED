@@ -584,6 +584,7 @@ namespace MED
             }
         }
         private IProcess? _active_Process;
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public IProcess? ActiveProcess
         {
             get

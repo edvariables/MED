@@ -65,6 +65,7 @@ namespace MED
         delegate void ProcessStateChangedDelegate(IProcess sender, System.Threading.ThreadState state);
 
         void OnProcessStateChanged(IProcess sender, System.Threading.ThreadState state);
+        EventScript? OnProcessStateScript { get; set; }
 
         ProcessStateChangedDelegate? ProcessStateChanged { get; set; }
 

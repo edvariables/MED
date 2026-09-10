@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using static MED.RichScriptBox;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace MED
 {
@@ -14,14 +16,17 @@ namespace MED
     {
         public RichScriptBox() : base()
         {
+            //Default property value
             AcceptsTab = true;
             ScrollBars = RichTextBoxScrollBars.ForcedVertical | RichTextBoxScrollBars.Horizontal;
             ShowSelectionMargin = true;
 
+            //Handle
             KeyDown += Control_KeyDown;
             TextChanged += RichScriptBox_TextChanged;
             SelectionChanged += RichScriptBox_SelectionChanged;
             MouseWheel += RichScriptBox_MouseWheel;
+            DoubleClick += RichScriptBox_DoubleClick;
 
             InitCodeColors();
         }
@@ -44,6 +49,7 @@ namespace MED
                 CodeColors.Add("comment", Color.Green);
                 CodeColors.Add("string", Color.LightCoral);
                 CodeColors.Add("stringz", Color.MediumPurple);
+                CodeColors.Add("Highlight", Color.DarkBlue);
             }
             else
             {
@@ -54,6 +60,7 @@ namespace MED
                 CodeColors.Add("comment", Color.Green);
                 CodeColors.Add("string", Color.Brown);
                 CodeColors.Add("stringz", Color.Purple);
+                CodeColors.Add("Highlight", Color.AliceBlue);
             }
             BackColor = CodeColors["BackColor"];
             ForeColor = CodeColors["ForeColor"];
@@ -140,63 +147,60 @@ namespace MED
                 }
                 else if (e.KeyCode == Keys.Enter)
                 {
-                    var lineIndex = GetLineFromCharIndex(SelectionStart);
-                    var lineCharIndex = GetFirstCharIndexFromLine(lineIndex);
-                    var lastCharIndex = GetFirstCharIndexFromLine(lineIndex + 1) - 1;
-                    if (lastCharIndex > SelectionStart)
-                        lastCharIndex = SelectionStart;
-                    float nbTabs = 0F;
-                    var lineText = Text.Substring(lineCharIndex, lastCharIndex - lineCharIndex);
-                    var lineTrimed = lineText.TrimEnd(' ', '\t');
-                    if (lineTrimed.Length > 0)
-                    {
-                        if (lineTrimed[lineTrimed.Length - 1] == '{')
-                            nbTabs++;
-                        else
-                        {
-                            lineTrimed = lineTrimed.TrimStart('\t').Replace(" ", "");
-                            if (lineTrimed.StartsWith("if") || lineTrimed.StartsWith("do(") || lineTrimed.StartsWith("while("))
-                                nbTabs++;
-                        }
-                    }
-                    for (var charIndex = 0; charIndex < lineText.Length; charIndex++)
-                    {
-                        if (lineText[charIndex] == ' ')
-                            nbTabs += 0.25F;
-                        else if (lineText[charIndex] == '\t')
-                            nbTabs += 1F;
-                        else
-                            break;
-                    }
-                    base.SelectedText = "\n" + (new String(' ', 4 * (int)Math.Floor(nbTabs)));
-                    e.SuppressKeyPress = true;
+                    Control_EnterKeyDown(e);
                 }
                 else if (e.KeyCode == Keys.Back)
                 {
-                    var lineIndex = GetLineFromCharIndex(SelectionStart);
-                    var lineCharIndex = GetFirstCharIndexFromLine(lineIndex);
-                    float nbSpaces = 0F;
-                    var lineText = Text.Substring(lineCharIndex, SelectionStart - lineCharIndex);
-                    for (var charIndex = lineText.Length - 1; charIndex >= 0; charIndex--)
-                        if (lineText[charIndex] == ' ')
-                        {
-                            nbSpaces++;
-                            if (nbSpaces == 4)
-                            {
-                                SelectionStart -= 4;
-                                SelectionLength = 4;
-                                base.SelectedText = "";
-                                e.SuppressKeyPress = true;
-                                return;
-                            }
-                        }
-                        else
-                            return;
+                    Control_BackKeyDown(e);
                 }
             }
 
         }
 
+        /**
+         * Return
+         * */
+        private void Control_EnterKeyDown(KeyEventArgs e)
+        {
+            var lineIndex = GetLineFromCharIndex(SelectionStart);
+            var lineCharIndex = GetFirstCharIndexFromLine(lineIndex);
+            var lastCharIndex = GetFirstCharIndexFromLine(lineIndex + 1) - 1;
+            if (lastCharIndex > SelectionStart)
+                lastCharIndex = SelectionStart;
+            else if (lastCharIndex < 0)
+                lastCharIndex = TextLength;
+            float nbTabs = 0F;
+            if (lineCharIndex < 0 || lastCharIndex - lineCharIndex < 0)
+                EventScript?.Process.Performance?.Debug("ICICIC");
+            var lineText = Text.Substring(lineCharIndex, lastCharIndex - lineCharIndex);
+            var lineTrimed = lineText.TrimEnd(' ', '\t');
+            if (lineTrimed.Length > 0)
+            {
+                if (lineTrimed[lineTrimed.Length - 1] == '{')
+                    nbTabs++;
+                else
+                {
+                    lineTrimed = lineTrimed.TrimStart('\t').Replace(" ", "");
+                    if (lineTrimed.StartsWith("if") || lineTrimed.StartsWith("do(") || lineTrimed.StartsWith("while("))
+                        nbTabs++;
+                }
+            }
+            for (var charIndex = 0; charIndex < lineText.Length; charIndex++)
+            {
+                if (lineText[charIndex] == ' ')
+                    nbTabs += 0.25F;
+                else if (lineText[charIndex] == '\t')
+                    nbTabs += 1F;
+                else
+                    break;
+            }
+            base.SelectedText = "\n" + (new String(' ', 4 * (int)Math.Floor(nbTabs)));
+            e.SuppressKeyPress = true;
+        }
+
+        /**
+         * Tab
+         * */
         private void Control_TabKeyDown(KeyEventArgs e)
         {
             var tabSpaces = "    ";
@@ -284,20 +288,36 @@ namespace MED
             e.Handled = true;
 
         }
-        #endregion
 
-        public new string SelectedText
+        /**
+         * Back
+         * */
+        private void Control_BackKeyDown(KeyEventArgs e)
         {
-            get => base.SelectedText;
-
-            set
-            {
-                StackPushUndo();
-
-                base.SelectedText = value;
-            }
+            var lineIndex = GetLineFromCharIndex(SelectionStart);
+            var lineCharIndex = GetFirstCharIndexFromLine(lineIndex);
+            float nbSpaces = 0F;
+            var lineText = Text.Substring(lineCharIndex, SelectionStart - lineCharIndex);
+            for (var charIndex = lineText.Length - 1; charIndex >= 0; charIndex--)
+                if (lineText[charIndex] == ' ')
+                {
+                    nbSpaces++;
+                    if (nbSpaces == 4)
+                    {
+                        SelectionStart -= 4;
+                        SelectionLength = 4;
+                        base.SelectedText = "";
+                        e.SuppressKeyPress = true;
+                        return;
+                    }
+                }
+                else
+                    return;
         }
 
+        #endregion
+
+        #region Undo Redo
         public const int UndoStackMaxLength = 64;
 
         private Stack<Func<RichScriptBox>> undoStack = new Stack<Func<RichScriptBox>>();
@@ -351,6 +371,8 @@ namespace MED
                 redoStack.Pop()();
             }
         }
+        #endregion
+
         #region  LineNumbersTextBox
 
         private RichTextBox? _LineNumbersTextBox;
@@ -445,11 +467,20 @@ namespace MED
             _LineNumbersTextBox.SuspendLayout();
         }
 
+        private void RichScriptBox_MouseWheel(object? sender, MouseEventArgs e)
+        {
+            if (ModifierKeys == Keys.Control
+                && _LineNumbersTextBox != null)
+                if (e.Delta < 0)
+                    _LineNumbersTextBox.ZoomFactor = ZoomFactor / 1.1F;
+                else
+                    _LineNumbersTextBox.ZoomFactor = ZoomFactor * 1.1F;
+        }
         #endregion
 
         #region Code editor
 
-        private static void UpdateSatusLabel(Control control, string message, Image? image = null)
+        private static void UpdateSatusLabel(Control control, string message, System.Drawing.Image? image = null)
         {
             if (control is StatusStrip statusStrip && statusStrip.Items.Count > 1)
             {
@@ -474,7 +505,14 @@ namespace MED
                     return;
                 _EventScript = value;
                 if (_EventScript == null)
+                {
+                    var enabled = Enabled;
+                    var focused = Focused;
+                    Enabled = false;
                     ResetText();
+                    Enabled = enabled;
+                    if (focused) Focus();
+                }
                 CodeRenderPrepare();
                 CodeRender();
             }
@@ -485,11 +523,8 @@ namespace MED
 
         bool CodeRenderClearRTF = false;
 
-        public new void Paste(System.Windows.Forms.DataFormats.Format clipFormat)
-        {
-            base.Paste(DataFormats.GetFormat(DataFormats.Text));
-        }
-
+        [Category("Script")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public new string Text
         {
             get => base.Text;
@@ -499,9 +534,23 @@ namespace MED
                 base.Text = value;
             }
         }
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        [Browsable(false)]
+        public new string SelectedText
+        {
+            get => base.SelectedText;
+
+            set
+            {
+                StackPushUndo();
+
+                base.SelectedText = value;
+            }
+        }
         private void RichScriptBox_TextChanged(object? sender, EventArgs e)
         {
-            if (Parent == null || (FindForm() is Form form && form.IsDisposed))
+            if (!Enabled || Parent == null || (FindForm() is Form form && form.IsDisposed))
                 return;
             LastSelectionStart = PreviousSelectionStart;
             CodeRender();
@@ -516,16 +565,49 @@ namespace MED
             LastSelectionStart = SelectionStart;
         }
 
-        private void RichScriptBox_MouseWheel(object? sender, MouseEventArgs e)
+        string? PreviousHighlightedWord;
+        private void RichScriptBox_DoubleClick(object? sender, EventArgs e)
         {
-            if (ModifierKeys == Keys.Control
-                && _LineNumbersTextBox != null)
-                if (e.Delta < 0)
-                    _LineNumbersTextBox.ZoomFactor = ZoomFactor / 1.1F;
-                else
-                    _LineNumbersTextBox.ZoomFactor = ZoomFactor * 1.1F;
-        }
 
+            var selectedText = SelectedText;
+
+            var enabled = Enabled;
+
+            var selectionStart = SelectionStart;
+            var selectionLength = SelectionLength;
+
+            SuspendLayout();
+            Enabled = false;
+
+            if (!String.IsNullOrEmpty(PreviousHighlightedWord))
+                HighlightWord(PreviousHighlightedWord);
+            HighlightWord(selectedText, CodeColors["Highlight"]);
+
+            SelectionStart = selectionStart;
+            SelectionLength = selectionLength;
+            Enabled = enabled;
+            ResumeLayout();
+
+            Focus();
+
+            PreviousHighlightedWord = selectedText;
+        }
+        private void HighlightWord(string word, Color? highlightColor = null)
+        {
+            MatchCollection matches = new Regex(@"\b" + Regex.Escape(word)).Matches(Text);
+            if (highlightColor == null)
+                highlightColor = BackColor;
+
+            foreach (Match m in matches)
+            {
+                SelectionStart = m.Index;
+                SelectionLength = m.Length;
+                SelectionBackColor = highlightColor ?? BackColor;
+            }
+        }
+        #endregion
+
+        #region CodeRender
         Dictionary<string, Regex> CodeRenderRegex = [];
         void CodeRenderPrepare()
         {
@@ -584,13 +666,18 @@ namespace MED
             if (CodeRenderRegex.Count == 0)
                 CodeRenderPrepare();
 
+            var enabled = richTextBox.Enabled;
+
             string text;
             int selectionStart = GetFirstCharIndexFromLine(GetLineFromCharIndex(LastSelectionStart));
             int selectionEnd = GetFirstCharIndexFromLine(GetLineFromCharIndex(SelectionStart) + 1) - 1;
             if (selectionEnd < selectionStart)
                 selectionEnd = TextLength;
             if (LastSelectionStart == 0/*richTextBox.Enabled && richTextBox.Focused*/)
+            {
                 text = Text;
+                PreviousHighlightedWord = null;
+            }
             else
                 text = Text.Substring(selectionStart, selectionEnd - selectionStart);
 
@@ -622,6 +709,8 @@ namespace MED
 
             //UpdateSatusLabel(richTextBox, $"{richTextBox.UndoActionName}");
 
+            Color color;
+
             richTextBox.SuspendLayout();
             richTextBox.Enabled = false;
 
@@ -642,39 +731,44 @@ namespace MED
             }
 
             // scanning...
+            color = CodeColors["keyword"];
             foreach (Match m in keywordMatches)
             {
                 richTextBox.SelectionStart = m.Index + selectionStart;
                 richTextBox.SelectionLength = m.Length;
-                richTextBox.SelectionColor = CodeColors["keyword"];//Blue
+                richTextBox.SelectionColor = color;//Blue
             }
 
+            color = CodeColors["type"];
             foreach (Match m in typeMatches)
             {
                 richTextBox.SelectionStart = m.Index + selectionStart;
                 richTextBox.SelectionLength = m.Length;
-                richTextBox.SelectionColor = CodeColors["type"]; //Color.DarkCyan;
+                richTextBox.SelectionColor = color; //Color.DarkCyan;
             }
 
+            color = CodeColors["string"];
             foreach (Match m in stringMatches)
             {
                 richTextBox.SelectionStart = m.Index + selectionStart;
                 richTextBox.SelectionLength = m.Length;
-                richTextBox.SelectionColor = CodeColors["string"]; //Color.Brown;
+                richTextBox.SelectionColor = color; //Color.Brown;
             }
 
+            color = CodeColors["stringz"];
             foreach (Match m in stringzMatchez)
             {
                 richTextBox.SelectionStart = m.Index + selectionStart;
                 richTextBox.SelectionLength = m.Length;
-                richTextBox.SelectionColor = CodeColors["stringz"]; //Color.Purple;
+                richTextBox.SelectionColor = color; //Color.Purple;
             }
 
+            color = CodeColors["comment"];
             foreach (Match m in commentMatches)
             {
                 richTextBox.SelectionStart = m.Index + selectionStart;
                 richTextBox.SelectionLength = m.Length;
-                richTextBox.SelectionColor = CodeColors["comment"]; //Color.Green;
+                richTextBox.SelectionColor = color; //Color.Green;
             }
 
             // restoring the original colors, for further writing
@@ -682,7 +776,7 @@ namespace MED
             richTextBox.SelectionLength = originalLength;
             richTextBox.SelectionColor = originalColor;
 
-            richTextBox.Enabled = true;
+            richTextBox.Enabled = enabled;
 
             if (isActiveControl)
                 richTextBox.Focus();
@@ -762,6 +856,9 @@ namespace MED
     }
     public static partial class Extensions
     {
+        /**
+         * Cache and restore Text and Location for Undo/Redo tasks
+         * */
         public static Func<RichScriptBox> Text(this RichScriptBox textBox, string text, int sel)
         {
             return () =>

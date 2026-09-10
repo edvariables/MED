@@ -229,7 +229,7 @@ namespace MED
             string strings = "\".+?\"";
             CodeAnalysisRegex.Add("strings", new(strings));
 
-            string processPath = @"(^|\s|\(|\[|\{|\=)(?<path>([.\:\/]+)(\/?\w)+\b)";
+            string processPath = @"(^|\s|\(|\[|\{|\=|\!)(?<path>(?<selector>[.\:\/]+)(?<name>(\/?[_a-zA-Z]\w*)+)\b)|(?<parent>\(\.+\))";
             CodeAnalysisRegex["path"] = new(processPath, RegexOptions.ExplicitCapture);
         }
 
@@ -243,8 +243,8 @@ namespace MED
 
             cleanScript = CodeAnalysisRegex["strings"].Replace(cleanScript, (Match match) => { return "\"" + (new string(' ', match.Groups[0].Value.Length - 2)) + "\""; });
 
-            string processPath = @"(^|\s|\(|\[|\{|\=)(?<path>([.\:\/]+)(?<name>(\/?[_a-zA-Z]\w*)+)\b)|(?<parent>\(\.+\))";
-            CodeAnalysisRegex["path"] = new(processPath, RegexOptions.ExplicitCapture);
+            //string processPath = @"(^|\s|\(|\[|\{|\=|\!)(?<path>(?<selector>[.\:\/]+)(?<name>(\/?[_a-zA-Z]\w*)+)\b)|(?<parent>\(\.+\))";
+            //CodeAnalysisRegex["path"] = new(processPath, RegexOptions.ExplicitCapture);
             var matches = CodeAnalysisRegex["path"].Matches(cleanScript);
             var replaceOffset = 0;
             foreach (Match match in matches)
@@ -258,14 +258,15 @@ namespace MED
                     {
                         var replace = $"(({parent.GetType()}){nameof(ScriptGlobals.GetProcess)}(\"{parentPath}\"))";
                         script = script.Substring(0, parentGroup.Index + replaceOffset) + replace + script.Substring(parentGroup.Index + parentGroup.Length + replaceOffset);
-                        replaceOffset += replace.Length - parentPath.Length;
+                        replaceOffset += replace.Length - parentPath.Length - 2;
                     }
 
                     continue;
                 }
+                var selector = match.Groups["selector"].Value;
                 var pathGroup = match.Groups["path"];
                 var path = pathGroup.Value;
-                if (path[0] == '.')
+                if (selector == ".")
                 {
                     var name = match.Groups["name"].Value;
                     if (name[0] != '/')
@@ -281,7 +282,7 @@ namespace MED
                 var foundProcess = ProcessStatic.GetProcess(process, path);
                 if (foundProcess != null)
                 {
-                    var replace = $"(({foundProcess.GetType()})FindProcess(\"{path}\"))";
+                    var replace = $"(({foundProcess.GetType()}){nameof(ScriptGlobals.GetProcess)}(\"{path}\"))";
                     script = script.Substring(0, pathGroup.Index + replaceOffset) + replace + script.Substring(pathGroup.Index + pathGroup.Length + replaceOffset);
                     replaceOffset += replace.Length - path.Length;
                 }

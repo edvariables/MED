@@ -88,8 +88,8 @@ namespace MED.GameController
         {
             if (GameControllerChanged != null)
             {
-                Performance?.Debug($"HookCallback {keyEventArgs.KeyCode} + {keyEventArgs.Modifiers} : {pressed}");
-                Performance?.Logger?.InvokeBufferChanged(this, keyEventArgs);
+                //Performance?.Debug($"HookCallback {keyEventArgs.KeyCode} + {keyEventArgs.Modifiers} : {pressed}");
+                //Performance?.Logger?.InvokeBufferChanged(this, keyEventArgs);
                 Keys key = keyEventArgs.KeyCode;
                 if (!KeysState.TryAdd(key, pressed))
                     KeysState[key] = pressed;

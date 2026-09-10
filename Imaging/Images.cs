@@ -204,7 +204,7 @@ namespace MED.Imaging
             MoveItems();
 
             Graphics graphics = Graphics.FromImage(image);
-            
+
             //Collider.Collide(image, graphics);
 
             int nProvider = 0;
@@ -316,14 +316,19 @@ namespace MED.Imaging
                     }
                 }
                 //graphics.DrawEllipse()
-                
+
 
                 if (item.OnPaintScript != null)
                 {
                     graphics.ResetTransform();
-                    graphics.TranslateTransform(location.X + imageSrc.Width / 2, location.Y + imageSrc.Height / 2);
-                    if (rotation != 0F)
-                        graphics.RotateTransform(rotation, MatrixOrder.Prepend);
+                    if (clipRegion != null)
+                    {
+                        graphics.TranslateTransform(location.X + imageSrc.Width / 2, location.Y + imageSrc.Height / 2);
+                        if (rotation != 0F)
+                            graphics.RotateTransform(rotation, MatrixOrder.Prepend);
+                    }
+                    else if(! location.IsEmpty)
+                        graphics.TranslateTransform(location.X, location.Y);
                     item.OnPaint(graphics, EventArgs.Empty);
                 }
 

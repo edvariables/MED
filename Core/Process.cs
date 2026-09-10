@@ -245,6 +245,7 @@ namespace MED
                 LoadProcess(settings.Root);
 
             EventScript.LoadSetting(settings, this, nameof(OnGameControllerScript));
+            EventScript.LoadSetting(settings, this, nameof(OnProcessStateScript));
 
             if (settings.OnLoadSettingsDone != null)
                 settings.OnLoadSettingsDone(this, EventArgs.Empty);
@@ -256,6 +257,8 @@ namespace MED
         {
             if (OnGameControllerScript != null)
                 OnGameControllerScript.Script = OnGameControllerScript.Script;
+            if (OnProcessStateScript != null)
+                OnProcessStateScript.Script = OnProcessStateScript.Script;
         }
 
         public virtual void SaveSettings(ProcessSettings? settings = null, string fileName = "")
@@ -296,6 +299,9 @@ namespace MED
             if (OnGameControllerScript != null && !string.IsNullOrEmpty(OnGameControllerScript.Script))
                 node.Add(nameof(OnGameControllerScript), OnGameControllerScript.Script);
 
+            if (OnProcessStateScript!= null && !string.IsNullOrEmpty(OnProcessStateScript.Script))
+                node.Add(nameof(OnProcessStateScript), OnProcessStateScript.Script);
+
             node["Perf"] = Performance?.SaveNode();
 
             return node;
@@ -332,7 +338,14 @@ namespace MED
         [Browsable(false)]
         public IProcess.ProcessStateChangedDelegate? ProcessStateChanged { get; set; }
 
-        public virtual void OnProcessStateChanged(IProcess sender, System.Threading.ThreadState state) => ProcessStateChanged?.Invoke(this, state);
+        public virtual void OnProcessStateChanged(IProcess sender, System.Threading.ThreadState state) {
+            ProcessStateChanged?.Invoke(this, state);
+            OnProcessStateScript?.Eval(this, ProcessState);
+        }
+
+        [Browsable(true)]
+        [Category("Process")]
+        public EventScript? OnProcessStateScript { get; set; }
 
         public virtual void Stop()
         {

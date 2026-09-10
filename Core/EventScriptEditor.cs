@@ -44,6 +44,9 @@ namespace MED
                 return base.ConvertTo(context, culture, value, destinationType);
             if (value is EventScript eventScript)
                 return eventScript.Script;
+            if (value == null && context != null && context.PropertyDescriptor != null && context.Instance != null)
+                if( (value = context.PropertyDescriptor.GetValue(context.Instance)) is EventScript eventScript1)
+                    value = eventScript1.Script;
             return value;
         }
 
@@ -92,6 +95,7 @@ namespace MED
         private Panel? _editorUIWrapper;
         private RichScriptBox? _editorUI;
         private ITypeDescriptorContext? Context;
+        private IProcess? ProcessComponent;
 
         /// <inheritdoc />
         public override object? EditValue(ITypeDescriptorContext? context, IServiceProvider provider, object? value)
@@ -106,6 +110,15 @@ namespace MED
                 eventScript = eventScript0;
             else if (value is EventScript)
                 eventScript = (EventScript)value;
+            else if (context != null && context.Instance is IProcess process1
+                && context.PropertyDescriptor != null)
+            {
+                ProcessComponent = process1;
+                eventScript = (EventScript?)context.PropertyDescriptor.GetValue(process1);
+            }
+            if (eventScript != null)
+                ProcessComponent = eventScript.Process;
+
             Context = context;
 
             if (_editorUI == null)
@@ -115,7 +128,7 @@ namespace MED
                     return value;
             }
             if (eventScript != null)
-                _editorUI.Text = eventScript.Script??"";
+                _editorUI.Text = eventScript.Script ?? "";
             else if (value is string script)
                 _editorUI.Text = script;
 
@@ -125,7 +138,7 @@ namespace MED
 
             var oldValue = _editorUI.Text;
 
-            editorService.DropDownControl(_editorUIWrapper);
+            editorService.DropDownControl(_editorUIWrapper ?? (Control)_editorUI);
 
             string newScript = _editorUI.Text;
             if (newScript == oldValue)
@@ -133,13 +146,23 @@ namespace MED
 
             if (eventScript == null)
             {
-                if (context != null
-                && context.PropertyDescriptor != null
-                && context.Instance is IProcess process)
+                if (_editorUI.EventScript != null)
+                    if (!_editorUI.Modified)
+                        return _editorUI.EventScript;
+                    else
+                        eventScript = _editorUI.EventScript;
+                else if (context != null
+                && context.PropertyDescriptor != null)
                 {
-                    string eventName = context.PropertyDescriptor.Name;
-                    eventName = Regex.Replace(eventName, @"(^On)?(.*)((Changed)?Script)$", "$2");
-                    eventScript = EventScript.GetNew(process, eventName, context);
+                    IProcess? process = ProcessComponent;
+                    if (context.Instance is IProcess process2)
+                        process = process2;
+                    if (process != null)
+                    {
+                        string eventName = context.PropertyDescriptor.Name;
+                        eventName = Regex.Replace(eventName, @"(^On)?(.*)((Changed)?Script)$", "$2");
+                        eventScript = EventScript.GetNew(process, eventName, context);
+                    }
                 }
             }
             if (eventScript != null)

@@ -101,10 +101,12 @@ namespace MED
         [ReadOnly(true)]
 
         [Category("Process")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public Processes Project { get; protected set; }
 
 
         [Category("Process")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public Logger? Logger { get => Project.Logger; set => Project.Logger = value; }
 
         #region Settings
@@ -113,11 +115,13 @@ namespace MED
         [ReadOnly(true)]
 
         [Category("Process")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool IsAsynchrone { get => Project.IsAsynchrone; set => Project.IsAsynchrone = value; }
 
         [Browsable(true)]
 
         [Category("Process")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public ProcessSettings? ProcessSettings { get => Project.ProcessSettings; set => Project.ProcessSettings = value; }
 
         public virtual void LoadSettings(ProcessSettings? processSettings = null, string fileName = "")
@@ -191,6 +195,7 @@ namespace MED
 
 
         [Category("Process")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public Performance? Performance { get => Project.Performance; set => Project.Performance = value; }
 
         [Browsable(false)]
@@ -207,6 +212,7 @@ namespace MED
         [Category("GameController")]
         [Editor(typeof(EventScriptEditor), typeof(UITypeEditor))]
         [TypeConverter(typeof(EventScriptConvertor))]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public virtual GameControllerScript? OnGameControllerScript { get; set; }
 
 
@@ -215,7 +221,13 @@ namespace MED
         public bool IsPaused => Project.IsPaused;
 
         [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public IProcess.ProcessStateChangedDelegate? ProcessStateChanged { get; set; }
+
+        [Browsable(true)]
+        [Category("Process")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public EventScript? OnProcessStateScript { get => Project.OnProcessStateScript; set => Project.OnProcessStateScript = value; }
 
         public virtual void OnProcessStateChanged(IProcess sender, System.Threading.ThreadState state)
         {
@@ -224,6 +236,7 @@ namespace MED
                 Project.OnProcessStateChanged(this, ProcessState);
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public System.Threading.ThreadState ProcessState { get => Project.ProcessState; set => Project.ProcessState = value; }
 
         /**
@@ -262,8 +275,8 @@ namespace MED
 
 
         [Browsable(true)]
-
         [Category("Process")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool StartFullScreen { get; set; }
 
         private FormWindowState StartFullScreen_WindowState;
@@ -273,6 +286,7 @@ namespace MED
 
 
         [Category("Process")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public virtual Dictionary<string, object> ObjectsProperties
         {
             get
@@ -284,6 +298,7 @@ namespace MED
 
 
         [Category("Process")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public virtual string ProcessIcon
         {
             get => Project.ProcessIcon;
@@ -297,13 +312,16 @@ namespace MED
 
 
         [Category("Process")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public virtual string ProcessIconDefault { get; protected set; } = "Visual";
 
 
         [Category("Process")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public Dictionary<string, object?>? Data { get; set; }
 
         [Category("Process")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public new object? Tag { get; set; }
 
 

@@ -138,9 +138,8 @@ namespace MED.Imaging
         }
         public static Bitmap? ResizeImage(IImageProvider sender)
         {
-            if (!(sender is Render) || sender.Image == null)
+            if (sender is not Render render || sender.Image == null)
                 return sender.Image;
-            Render render = (Render)sender;
             var image = sender.Image;
             if (render.RenderImageControl == null)
                 return image;

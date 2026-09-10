@@ -152,6 +152,7 @@ namespace MED
 
         RichTextBox? _editorUI;
         EventScript? _EventScript;
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public EventScript? EventScript
         {
             get => _EventScript;
@@ -218,15 +219,21 @@ namespace MED
                 if (EventScript.Process.Performance != null && EventScript.Process.Performance.LastError != null)
                 {
                     var lastError = EventScript.Process.Performance.LastError;
-                    var message = $"{lastError.DelayToString()} sec {lastError.Message}";
+                    var message = lastError.Message;
+                    var lines = message.Split('\n', 2);
+                    if (lines.Length > 1 && lines[1].StartsWith("("))
+                        message = $"{lines[1]}\n{message}";
+                    message = $"{lastError.DelayToString()} sec {message}";
                     UpdateSatusLabel(message, MEDIcons.alert);
                 }
                 else if (EventScript.CompiledScript != null)
                     UpdateSatusLabel($"Compilation error\n{EventScript.CompiledScript.Code}", MEDIcons.alert);
-                else 
+                else
                     UpdateSatusLabel($"Compilation error\n(no script)", MEDIcons.alert);
-                else if (EventScript.CompiledScript != null)
+            else if (EventScript.CompiledScript != null)
                 UpdateSatusLabel($"Saved\n{EventScript.CompiledScript.Code}", MEDIcons.ok);
+            else
+                UpdateSatusLabel($"Saved\n(no script)", MEDIcons.ok);
 
             InitVariables(EventScript, _editorUI);
 
