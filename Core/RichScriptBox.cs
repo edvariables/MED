@@ -45,6 +45,7 @@ namespace MED
                 CodeColors.Add("BackColor", Color.Black);
                 CodeColors.Add("ForeColor", Color.LightGray);
                 CodeColors.Add("keyword", Color.HotPink);
+                CodeColors.Add("variable", Color.PaleGoldenrod);
                 CodeColors.Add("type", Color.LightGreen);
                 CodeColors.Add("comment", Color.Green);
                 CodeColors.Add("string", Color.LightCoral);
@@ -55,6 +56,7 @@ namespace MED
             {
                 CodeColors.Add("BackColor", Color.White);
                 CodeColors.Add("ForeColor", Color.Black);
+                CodeColors.Add("variable", Color.BlueViolet);
                 CodeColors.Add("keyword", Color.Blue);
                 CodeColors.Add("type", Color.DarkCyan);
                 CodeColors.Add("comment", Color.Green);
@@ -618,21 +620,25 @@ namespace MED
             if (eventScript != null && eventScript.VariablesNames == null)
                 eventScript.CompileScript();
 
-            string keys = "";
+            string variables = "";
             string varTypes = "";
             if (eventScript != null && eventScript.VariablesNames != null)
             {
-                var variables = new Dictionary<string, Type>(eventScript.VariablesNames);
-                keys = string.Join("|", variables.Keys);
+                var vars = new Dictionary<string, Type>(eventScript.VariablesNames);
+                variables = string.Join("|", vars.Keys);
                 varTypes = String.Join('|', eventScript.VariablesNames.Select(kvp => kvp.Value.Name) ?? []);
             }
 
-            // getting keywords/functions
-            var functions = String.Join('|', eventScript?.ScriptGlobalsFunctions.Select(kvp => kvp.Value.Name) ?? []);
-            if (varTypes != "") keys += "|";
-            if (functions != "") functions += "|";
-            string keywords = @"\b(" + functions + keys + @"abstract|as|base|break|case|catch|checked|continue|default|delegate|do|else|event|explicit|extern|false|finally|fixed|for|foreach|goto|if|implicit|in|interface|internal|is|lock|namespace|new|null|object|operator|out|override|params|private|protected|public|readonly|ref|return|sealed|sizeof|stackalloc|switch|this|throw|true|try|typeof|unchecked|unsafe|using|virtual|volatile|while|var)\b";
+            // getting keywords
+            string keywords = @"\b(abstract|as|base|break|case|catch|checked|continue|default|delegate|do|else|event|explicit|extern|false|finally|fixed|for|foreach|goto|if|implicit|in|interface|internal|is|lock|namespace|new|null|object|operator|out|override|params|private|protected|public|readonly|ref|return|sealed|sizeof|stackalloc|switch|this|throw|true|try|typeof|unchecked|unsafe|using|virtual|volatile|while|var)\b";
             CodeRenderRegex.Add("keywords", new(keywords));
+
+            // getting variables & functions
+            var functions = String.Join('|', eventScript?.ScriptGlobalsFunctions.Select(kvp => kvp.Value.Name) ?? []);
+            //if (variables != "") variables += "|";
+            if (functions != "") functions += "|";
+            string varsfuncs = @"\b(" + functions + variables + @")\b";
+            CodeRenderRegex.Add("variables", new(varsfuncs));
 
             // getting types/classes/keyobjects from the text 
             if (varTypes != "") varTypes = "|" + varTypes;
@@ -647,7 +653,7 @@ namespace MED
             string strings = "\".+?\"";
             CodeRenderRegex.Add("strings", new(strings));
 
-            string stringz = "\b(bool|byte|char|class|const|decimal|double|enum|float|int|long|sbyte|short|static|string|struct|uint|ulong|ushort|void)\b";
+            string stringz = @"\b(bool|byte|char|class|const|decimal|double|enum|float|int|long|sbyte|short|static|string|struct|uint|ulong|ushort|void)\b";
             CodeRenderRegex.Add("stringz", new(stringz));
 
         }
@@ -687,8 +693,11 @@ namespace MED
             // Posted by Momoro
             // Retrieved 2026-09-06, License - CC BY-SA 4.0
 
-            // getting keywords/functions
+            // getting keywords
             MatchCollection keywordMatches = CodeRenderRegex["keywords"].Matches(text);
+
+            // getting variables & functions
+            MatchCollection variableMatches = CodeRenderRegex["variables"].Matches(text);
 
             // getting types/classes/keyobjects from the text 
             MatchCollection typeMatches = CodeRenderRegex["types"].Matches(text);
@@ -698,6 +707,8 @@ namespace MED
 
             // getting strings
             MatchCollection stringMatches = CodeRenderRegex["strings"].Matches(text);
+
+            // getting basic types
             MatchCollection stringzMatchez = CodeRenderRegex["stringz"].Matches(text);
 
             // saving the original caret position + forecolor
@@ -745,6 +756,14 @@ namespace MED
                 richTextBox.SelectionStart = m.Index + selectionStart;
                 richTextBox.SelectionLength = m.Length;
                 richTextBox.SelectionColor = color; //Color.DarkCyan;
+            }
+
+            color = CodeColors["variable"];
+            foreach (Match m in variableMatches)
+            {
+                richTextBox.SelectionStart = m.Index + selectionStart;
+                richTextBox.SelectionLength = m.Length;
+                richTextBox.SelectionColor = color; //Color.Blue;
             }
 
             color = CodeColors["string"];

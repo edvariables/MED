@@ -160,5 +160,12 @@ namespace MED.Core
         //    }
         //    return expando;
         //}
+
+        public static string GetTypeName(Type type)
+        {
+            if (type.IsGenericType)
+                return $"{type.Name}[{string.Join(", ", type.GenericTypeArguments.Select((item) => { return item.Name; }))}]";
+            return type.Name;
+        }
     }
 }

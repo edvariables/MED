@@ -201,7 +201,7 @@ namespace MED
         [Browsable(false)]
         public IConsumer? Consumer => Project.Consumer;
 
-        public virtual void OnGameControllerChanged(IGameController gameController, PropertyChangedEventArgs eventArgs)
+        public virtual void OnGameControllerChanged(MED.GameController.IGameController gameController, PropertyChangedEventArgs eventArgs)
         {
             if (OnGameControllerScript == null)
                 return;
@@ -226,8 +226,10 @@ namespace MED
 
         [Browsable(true)]
         [Category("Process")]
+        [Editor(typeof(EventScriptEditor), typeof(UITypeEditor))]
+        [TypeConverter(typeof(EventScriptConvertor))]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public EventScript? OnProcessStateScript { get => Project.OnProcessStateScript; set => Project.OnProcessStateScript = value; }
+        public ProcessStateScript? OnProcessStateScript { get => Project.OnProcessStateScript; set => Project.OnProcessStateScript = value; }
 
         public virtual void OnProcessStateChanged(IProcess sender, System.Threading.ThreadState state)
         {

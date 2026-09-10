@@ -49,17 +49,19 @@ namespace MED.Imaging
         {
             if (Propulsion != 0F)
             {
+                bool wasSpeedMax = Speed == SpeedMax;
                 double radians = (float)(Math.PI * (RotationAngle + RotationAngleOffset) / 180F);
                 var propulsionVector = new Vector2((float)Math.Cos(radians), (float)Math.Sin(radians));
-                var propulsionFactor = Propulsion * PropulsorStrenght/1000F;
+                var propulsionFactor = Propulsion * PropulsorStrenght / 1000F;
                 var direction = VelocityVector - propulsionVector * propulsionFactor;
-                Speed = direction.Length() *1000;
+                Speed = direction.Length() * 1000;
                 //if (Speed < 0F)
                 //    Speed *= -1F;
 
                 Direction = new(Vector2.Normalize(direction));
 
-                Propulsion *= (1F + PropulsionAcceleration);
+                if (!(Speed == SpeedMax && wasSpeedMax))
+                    Propulsion *= (1F + PropulsionAcceleration);
                 if (Propulsion == float.NegativeInfinity || Propulsion == float.PositiveInfinity)
                     Propulsion = 0F;
             }

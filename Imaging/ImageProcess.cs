@@ -268,7 +268,7 @@ namespace MED.Imaging
                 {
                     Performance?.Error("IsGettingImage == infinite loop !");
                     throw new("IsGettingImage == infinite loop !");
-                    return _Image;
+                    //return _Image;
                 }
                 IsGettingImage = true;
                 try

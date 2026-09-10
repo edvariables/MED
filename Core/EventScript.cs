@@ -58,7 +58,7 @@ namespace MED
         protected virtual void AddConsumers() { }
         protected virtual void RemoveConsumers() { }
 
-        public Dictionary<IGameController, List<string>> ConsumerProperties { get; protected set; } = [];
+        public Dictionary<MED.GameController.IGameController, List<string>> ConsumerProperties { get; protected set; } = [];
 
         public EventHandler? OnScriptChanged;
 
@@ -125,13 +125,12 @@ namespace MED
          * */
         public bool CompileScript(params object?[]? parameters)
         {
-            var script = Script;
 
-            if (string.IsNullOrEmpty(script)) return true;
+            if (string.IsNullOrEmpty(Script)) return true;
 
             Dictionary<string, Type>? variablesNames;
 
-            script = InsertVariablesNames(script, Process, ParametersNames, out HashSet<Assembly> assemblies, out variablesNames, parameters);
+            var script = InsertVariablesNames(ParametersNames, out HashSet<Assembly> assemblies, out variablesNames, parameters);
 
             script = ReplaceProcessesPath(script, Process, ParametersNames, variablesNames);
 
@@ -290,20 +289,22 @@ namespace MED
             return script;
         }
 
-        private static string InsertVariablesNames(string script, IProcess process
-            , Dictionary<string, Type>? parametersNames, out HashSet<Assembly> assemblies
+        private string InsertVariablesNames(Dictionary<string, Type>? parametersNames
+            , out HashSet<Assembly> assemblies
             , out Dictionary<string, Type>? variablesNames, params object?[]? parameters)
         {
             assemblies = new();
             variablesNames = new();
 
             if (parametersNames == null || parameters == null)
-                return script;
+                return Script ?? "";
+
+            var script = Script;
             int paramIndex = 0;
             StringBuilder scriptAdd = new();
             HashSet<string> namespaces = new();
 
-            var gameController = ProcessStatic.GetGameController(process);
+            var gameController = ProcessStatic.GetGameController(Process);
 
             // namespaces
             namespaces.Add(typeof(Exception).Namespace ?? "");
@@ -315,7 +316,6 @@ namespace MED
             if (gameController != null)
                 namespaces.Add(gameController.GetType().Namespace ?? "");
 
-
             // assemblies
             assemblies.Add(typeof(Enumerable).Assembly);
             assemblies.Add(typeof(MessageBox).Assembly);
@@ -323,6 +323,7 @@ namespace MED
             if (gameController != null)
                 assemblies.Add(gameController.GetType().Assembly);
 
+            //parametersNames
             foreach (var (name, paramType) in parametersNames)
             {
                 if (paramType.Namespace != null && !namespaces.Contains(paramType.Namespace))
@@ -343,7 +344,7 @@ namespace MED
             }
 
             //Process cast from Globals._Process
-            var processType = process.GetType();
+            var processType = Process.GetType();
             if (processType.Namespace != null
                 && !namespaces.Contains(processType.Namespace))
                 namespaces.Add(processType.Namespace);
@@ -353,12 +354,15 @@ namespace MED
             variablesNames.Add("process", processType);
 
             //ScriptGlobals properties in variablesNames
-            foreach (var property in typeof(ScriptGlobals).GetFields(BindingFlags.Public | BindingFlags.Instance))
+            foreach (var property in ScriptGlobalsType.GetFields(BindingFlags.Public | BindingFlags.Instance))
                 if (!property.Name.StartsWith('_'))
                     variablesNames.Add(property.Name, property.FieldType);
+            foreach (var property in ScriptGlobalsType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                if (!property.Name.StartsWith('_'))
+                    variablesNames.Add(property.Name, property.PropertyType);
 
             if (scriptAdd.Length > 0)
-                script = $"{scriptAdd.ToString()}\n{script}";
+                script = $"{scriptAdd.ToString()}\n/*******/\n{script}";
 
             //using
             if (namespaces.Count > 0)
@@ -442,17 +446,21 @@ namespace MED
                     if (method.DeclaringType != typeof(object))
                     {
                         var name = new StringBuilder($"{method.Name}(");
+                        if (method.IsSpecialName)
+                            if (method.Name.StartsWith("set_") || method.Name.StartsWith("get_"))
+                                continue;
                         var index = 0;
                         foreach (var parameter in method.GetParameters())
                         {
                             if (index++ > 0)
                                 name.Append(", ");
-                            name.Append(parameter.ParameterType.Name);
+                            name.Append(Parser.GetTypeName(parameter.ParameterType));
                             name.Append(" ");
                             name.Append(parameter.Name);
                         }
-                        name.Append(")");
-                        name.Append($" : {method.ReturnType.Name}");
+                        if (!method.IsSpecialName)
+                            name.Append(")");
+                        name.Append($" : {Parser.GetTypeName(method.ReturnType)}");
                         dic.Add(name.ToString(), method);
                     }
                 return _ScriptGlobalsFunctions = dic;
@@ -469,6 +477,17 @@ namespace MED
             public IProcess _process = process;
 
             public Performance? perf = process.Performance;
+
+            public Dictionary<string, object?>? processData
+            {
+                get
+                {
+                    if (_process.Data == null)
+                        return _process.Data = [];
+                    return _process.Data;
+                }
+                set => _process.Data = value;
+            }
 
             public IProcess? GetProcess(string? path = null) => ProcessStatic.GetProcess(_process, path);
         }

@@ -183,7 +183,7 @@ namespace MED
         public object? Tag { get; set; }
 
         #region GameController
-        public virtual void OnGameControllerChanged(IGameController gameController, PropertyChangedEventArgs eventArgs)
+        public virtual void OnGameControllerChanged(MED.GameController.IGameController gameController, PropertyChangedEventArgs eventArgs)
         {
             if (OnGameControllerScript == null)
                 return;
@@ -342,10 +342,12 @@ namespace MED
             ProcessStateChanged?.Invoke(this, state);
             OnProcessStateScript?.Eval(this, ProcessState);
         }
-
+        
         [Browsable(true)]
         [Category("Process")]
-        public EventScript? OnProcessStateScript { get; set; }
+        [Editor(typeof(EventScriptEditor), typeof(UITypeEditor))]
+        [TypeConverter(typeof(EventScriptConvertor))]
+        public ProcessStateScript? OnProcessStateScript { get; set; }
 
         public virtual void Stop()
         {

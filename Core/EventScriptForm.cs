@@ -68,14 +68,14 @@ namespace MED
                 {
                     dropDownVariables.Text = $"{eventScript.ParametersNames.Count} var{(eventScript.ParametersNames.Count > 1 ? "s" : "")}";
                     foreach (var (varName, varType) in eventScript.ParametersNames)
-                        AddVariable($"{varName} : {varType}", "Parameter");
+                        AddVariable($"{varName} : {MED.Core.Parser.GetTypeName(varType)}", "Parameter");
                 }
             }
             else
             {
                 dropDownVariables.Text = $"{eventScript.VariablesNames.Count} var{(eventScript.VariablesNames.Count > 1 ? "s" : "")}";
                 foreach (var (varName, varType) in eventScript.VariablesNames)
-                    AddVariable($"{varName} : {varType}", "Variable");
+                    AddVariable($"{varName} : {MED.Core.Parser.GetTypeName(varType)}", "Variable");
             }
             foreach (var (varCall, varMethode) in eventScript.ScriptGlobalsFunctions)
                 AddVariable($"{varCall}", "Function");

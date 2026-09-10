@@ -758,25 +758,25 @@ namespace MED
          * GetGameController
          * Search a GameController in processes tree
          * */
-        public static IGameController? GetGameController(IProcess process) => GetGameController(process, new());
+        public static MED.GameController.IGameController? GetGameController(IProcess process) => GetGameController(process, new());
         /**
          * GetGameController
          * Search a GameController in processes tree
          * */
-        private static IGameController? GetGameController(IProcess process, HashSet<IProcess> ignoreProcesses)
+        private static MED.GameController.IGameController? GetGameController(IProcess process, HashSet<IProcess> ignoreProcesses)
         {
             if (process is ProcessForm processForm)
             {
                 ignoreProcesses.Add(process);
                 return GetGameController(processForm.Project, ignoreProcesses);
             }
-            if (process is IGameController gameController0)
+            if (process is MED.GameController.IGameController gameController0)
                 return gameController0;
 
             if (process is IProcesses processes)
                 foreach (var item in processes.Items)
                     if (item.Enabled)
-                        if (item is IGameController gameController)
+                        if (item is MED.GameController.IGameController gameController)
                             return gameController;
                         else if (item is IProcesses subProcesses
                             && !ignoreProcesses.Contains(subProcesses))

@@ -70,9 +70,9 @@
             helpToolStripButton = new ToolStripButton();
             toolStripSeparator10 = new ToolStripSeparator();
             btnProcessStart = new ToolStripButton();
-            btnProcessStepPrevious = new ToolStripButton();
             btnProcessStartOneStep = new ToolStripButton();
             btnProcessPause = new ToolStripButton();
+            btnProcessStepPrevious = new ToolStripButton();
             btnProcessStop = new ToolStripButton();
             toolStripSeparator9 = new ToolStripSeparator();
             toolStripBtnAddToFavorites = new ToolStripButton();
@@ -109,7 +109,7 @@
             newToolStripMenuItem.ImageTransparentColor = Color.Black;
             newToolStripMenuItem.Name = "newToolStripMenuItem";
             newToolStripMenuItem.ShortcutKeys = Keys.Control | Keys.N;
-            newToolStripMenuItem.Size = new Size(170, 22);
+            newToolStripMenuItem.Size = new Size(180, 22);
             newToolStripMenuItem.Text = "&Nouveau";
             newToolStripMenuItem.Click += ShowNewForm;
             // 
@@ -119,14 +119,14 @@
             openToolStripMenuItem.ImageTransparentColor = Color.Black;
             openToolStripMenuItem.Name = "openToolStripMenuItem";
             openToolStripMenuItem.ShortcutKeys = Keys.Control | Keys.O;
-            openToolStripMenuItem.Size = new Size(170, 22);
+            openToolStripMenuItem.Size = new Size(180, 22);
             openToolStripMenuItem.Text = "&Ouvrir";
             openToolStripMenuItem.Click += OpenFile;
             // 
             // toolStripSeparator3
             // 
             toolStripSeparator3.Name = "toolStripSeparator3";
-            toolStripSeparator3.Size = new Size(167, 6);
+            toolStripSeparator3.Size = new Size(177, 6);
             // 
             // saveToolStripMenuItem
             // 
@@ -134,25 +134,26 @@
             saveToolStripMenuItem.ImageTransparentColor = Color.Black;
             saveToolStripMenuItem.Name = "saveToolStripMenuItem";
             saveToolStripMenuItem.ShortcutKeys = Keys.Control | Keys.S;
-            saveToolStripMenuItem.Size = new Size(170, 22);
+            saveToolStripMenuItem.Size = new Size(180, 22);
             saveToolStripMenuItem.Text = "&Enregistrer";
+            saveToolStripMenuItem.Click += saveToolStripMenuItem_Click;
             // 
             // saveAsToolStripMenuItem
             // 
             saveAsToolStripMenuItem.Name = "saveAsToolStripMenuItem";
-            saveAsToolStripMenuItem.Size = new Size(170, 22);
+            saveAsToolStripMenuItem.Size = new Size(180, 22);
             saveAsToolStripMenuItem.Text = "Enregistrer &sous";
             saveAsToolStripMenuItem.Click += SaveAsToolStripMenuItem_Click;
             // 
             // toolStripSeparator4
             // 
             toolStripSeparator4.Name = "toolStripSeparator4";
-            toolStripSeparator4.Size = new Size(167, 6);
+            toolStripSeparator4.Size = new Size(177, 6);
             // 
             // exitToolStripMenuItem
             // 
             exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            exitToolStripMenuItem.Size = new Size(170, 22);
+            exitToolStripMenuItem.Size = new Size(180, 22);
             exitToolStripMenuItem.Text = "&Quitter";
             exitToolStripMenuItem.Click += ExitToolsStripMenuItem_Click;
             // 
@@ -278,14 +279,14 @@
             // newWindowToolStripMenuItem
             // 
             newWindowToolStripMenuItem.Name = "newWindowToolStripMenuItem";
-            newWindowToolStripMenuItem.Size = new Size(190, 22);
+            newWindowToolStripMenuItem.Size = new Size(161, 22);
             newWindowToolStripMenuItem.Text = "&Nouvelle fenêtre";
             newWindowToolStripMenuItem.Click += ShowNewForm;
             // 
             // closeAllToolStripMenuItem
             // 
             closeAllToolStripMenuItem.Name = "closeAllToolStripMenuItem";
-            closeAllToolStripMenuItem.Size = new Size(190, 22);
+            closeAllToolStripMenuItem.Size = new Size(161, 22);
             closeAllToolStripMenuItem.Text = "&Fermer tout";
             closeAllToolStripMenuItem.Click += CloseAllToolStripMenuItem_Click;
             // 
@@ -397,16 +398,6 @@
             btnProcessStart.Text = "Start";
             btnProcessStart.Click += btnProcessStart_Click;
             // 
-            // btnProcessStepPrevious
-            // 
-            btnProcessStepPrevious.DisplayStyle = ToolStripItemDisplayStyle.Image;
-            btnProcessStepPrevious.Image = (Image)resources.GetObject("btnProcessStepPrevious.Image");
-            btnProcessStepPrevious.ImageTransparentColor = Color.Magenta;
-            btnProcessStepPrevious.Name = "btnProcessStepPrevious";
-            btnProcessStepPrevious.Size = new Size(23, 22);
-            btnProcessStepPrevious.Text = "Rejoue avec les propriétés précédentes";
-            btnProcessStepPrevious.Click += btnProcessStepPrevious_Click;
-            // 
             // btnProcessStartOneStep
             // 
             btnProcessStartOneStep.DisplayStyle = ToolStripItemDisplayStyle.Image;
@@ -426,6 +417,16 @@
             btnProcessPause.Size = new Size(58, 22);
             btnProcessPause.Text = "Pause";
             btnProcessPause.Click += btnProcessPause_Click;
+            // 
+            // btnProcessStepPrevious
+            // 
+            btnProcessStepPrevious.DisplayStyle = ToolStripItemDisplayStyle.Image;
+            btnProcessStepPrevious.Image = (Image)resources.GetObject("btnProcessStepPrevious.Image");
+            btnProcessStepPrevious.ImageTransparentColor = Color.Magenta;
+            btnProcessStepPrevious.Name = "btnProcessStepPrevious";
+            btnProcessStepPrevious.Size = new Size(23, 22);
+            btnProcessStepPrevious.Text = "Rejoue avec les propriétés précédentes";
+            btnProcessStepPrevious.Click += btnProcessStepPrevious_Click;
             // 
             // btnProcessStop
             // 

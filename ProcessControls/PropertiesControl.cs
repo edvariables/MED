@@ -199,14 +199,16 @@ namespace MED
 
         private void processesControl1_NodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
         {
-            if (e.Button == MouseButtons.Right)
+            if (e.Button == MouseButtons.Right && e.Node != null)
             {
-                IProcess? process = e.Node.Tag != null && e.Node.Tag is IProcess ? (IProcess)e.Node.Tag : null;
+                var nodeTag = e.Node.Tag;
+                IProcess? process = nodeTag != null && nodeTag is IProcess ? (IProcess)nodeTag : null;
                 IProcesses? processes = e.Node.Parent != null && process != null && e.Node.Parent.Tag is IProcesses ? (IProcesses)e.Node.Parent.Tag : null;
-                Performance? performance = e.Node.Tag != null && e.Node.Tag is Performance ? (Performance)e.Node.Tag : null;
-                PerformanceException? performanceException = e.Node.Tag != null && e.Node.Tag is PerformanceException ? (PerformanceException)e.Node.Tag : null;
+                Performance? performance = nodeTag != null && nodeTag is Performance ? (Performance)nodeTag : null;
+                PerformanceException? performanceException = nodeTag != null && nodeTag is PerformanceException ? (PerformanceException)nodeTag : null;
+                EventScript? eventScript = nodeTag != null && nodeTag is EventScript ? (EventScript)nodeTag : null;
                 toolStripMenuProcAdd.Visible = process != null;
-                toolStripMenuProcRemove.Visible = process != null || performance != null || performanceException != null;
+                toolStripMenuProcRemove.Visible = process != null || performance != null || performanceException != null || eventScript != null;
                 toolStripMenuItemProcessEnabled.Visible = process != null;
                 if (process != null)
                 {
@@ -224,7 +226,7 @@ namespace MED
 
         private void ProcessesControl1_NodeMouseDoubleClick(object sender, TreeNodeMouseClickEventArgs e)
         {
-            EventScript? eventScript = e.Node.Tag != null && e.Node.Tag is EventScript ? (EventScript)e.Node.Tag : null;
+            EventScript? eventScript = e.Node != null && e.Node.Tag != null && e.Node.Tag is EventScript ? (EventScript)e.Node.Tag : null;
             if (eventScript != null)
             {
                 Cursor = Cursors.WaitCursor;
@@ -314,12 +316,13 @@ namespace MED
                 return;
             }
             var selectedNode = processesControl1.SelectedNode;
+            var nodeTag = selectedNode.Tag;
             Performance? performance;
-            PerformanceException? performanceException = selectedNode.Tag != null && selectedNode.Tag is PerformanceException ? (PerformanceException)selectedNode.Tag : null;
+            PerformanceException? performanceException = nodeTag != null && nodeTag is PerformanceException ? (PerformanceException)nodeTag : null;
             if (performanceException != null)
                 performance = performanceException.Performance;
             else
-                performance = selectedNode.Tag != null && selectedNode.Tag is Performance ? (Performance)selectedNode.Tag : null;
+                performance = nodeTag != null && nodeTag is Performance ? (Performance)nodeTag : null;
             if (performance != null)
             {
                 performance.LastError = null;
@@ -328,18 +331,37 @@ namespace MED
                 selectedNode.Remove();
                 return;
             }
-            IProcess? process = selectedNode.Tag != null && selectedNode.Tag is IProcess ? (IProcess)selectedNode.Tag : null;
 
             TreeNode? selectedParentNode = selectedNode.Parent == null || selectedNode.Parent.Tag == null ? null
                                             : selectedNode.Parent;
             IProcess? selectedParentProcess = selectedNode.Parent == null || selectedNode.Parent.Tag == null ? null
                                             : (IProcess)selectedNode.Parent.Tag;
-            if (selectedParentProcess != null)
+
+            EventScript? eventScript = nodeTag != null && nodeTag is EventScript ? (EventScript)nodeTag : null;
+            if (eventScript != null)
             {
-                if (MessageBox.Show($"Êtes vous sûr de vouloir supprimer ce process {process.ToString()} ?", "Supprimer un process", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
+                if (selectedParentProcess != null)
+                {
+                    if (!string.IsNullOrEmpty(eventScript.Script)
+                        && MessageBox.Show($"Êtes vous sûr de vouloir supprimer ce script {eventScript.EventName} ?", "Supprimer un script", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
+                        return;
+
+                    var property = selectedParentProcess.GetType().GetProperty($"On{eventScript.EventName}Script");
+                    if (property == null)
+                        property = selectedParentProcess.GetType().GetProperty($"On{eventScript.EventName}ChangedScript");
+                    if (property != null)
+                        property.SetValue(selectedParentProcess, null);
+                }
+                selectedNode.Remove();
+                return;
+            }
+            IProcess? process = nodeTag != null && nodeTag is IProcess ? (IProcess)nodeTag : null;
+            if (selectedParentProcess != null && process != null)
+            {
+                if (MessageBox.Show($"Êtes vous sûr de vouloir supprimer ce process {process} ?", "Supprimer un process", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
                     return;
-                if (selectedParentProcess is IProcesses)
-                    ((IProcesses)selectedParentProcess).Items.Remove(process);
+                if (selectedParentProcess is IProcesses processes)
+                    processes.Items.Remove(process);
                 process.Dispose();
             }
             else

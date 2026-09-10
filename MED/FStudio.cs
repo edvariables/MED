@@ -664,6 +664,8 @@ namespace MED
         {
             if (this.ActiveMdiChild is IProcess)
                 ActiveProcess = (IProcess)this.ActiveMdiChild;
+
+            toolStripStatusLabel.Text = ActiveProcess==null ? "" : ActiveProcess.Name;
         }
 
         public override void OnProcessStateChanged(IProcess sender, System.Threading.ThreadState state)
@@ -862,6 +864,11 @@ namespace MED
         private void StatusBarToolStripMenuItem_Click(object sender, EventArgs e)
         {
             statusStrip.Visible = statusBarToolStripMenuItem.Checked;
+        }
+
+        private void saveToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            saveToolStripButton_Click(sender, e);   
         }
     }
 }

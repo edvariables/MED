@@ -21,14 +21,26 @@ namespace MED.GameController
         {
             if (Enum.TryParse(typeof(Keys), controllerProperty, out object? key))
                 return IsKeyDown((Keys)key);
+            if(UsagePropertiesMap.TryGetValue(controllerProperty,out UsagePropertiesMapItem? item))
+                if (Enum.TryParse(typeof(Keys), item.Properties, out object? key1))
+                    return IsKeyDown((Keys)key1);
             return false;
         }
 
         public override void SetControllerPropertyValue(string controllerProperty, object? value)
         {
             if (Enum.TryParse(typeof(Keys), controllerProperty, out object? key))
-                if (bool.TryParse((string?)value, out bool bValue))
+                if (bool.TryParse((string?)value, out bool bValue)){
                     KeysState[(Keys)key] = bValue;
+                    return;
+                }
+            if (UsagePropertiesMap.TryGetValue(controllerProperty, out UsagePropertiesMapItem? item))
+                if (Enum.TryParse(typeof(Keys), item.Properties, out object? key1))
+                    if (bool.TryParse((string?)value, out bool bValue))
+                    {
+                        KeysState[(Keys)key1] = bValue;
+                        return;
+                    }
         }
 
         [Browsable(true)]

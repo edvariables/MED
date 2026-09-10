@@ -40,8 +40,8 @@ namespace MED
 
 
         IConsumer? Consumer { get; }
-
-        void OnGameControllerChanged (IGameController gameController, PropertyChangedEventArgs eventArgs);
+       
+        void OnGameControllerChanged (MED.GameController.IGameController gameController, PropertyChangedEventArgs eventArgs);
 
         GameControllerScript? OnGameControllerScript { get; }
 
@@ -65,7 +65,7 @@ namespace MED
         delegate void ProcessStateChangedDelegate(IProcess sender, System.Threading.ThreadState state);
 
         void OnProcessStateChanged(IProcess sender, System.Threading.ThreadState state);
-        EventScript? OnProcessStateScript { get; set; }
+        ProcessStateScript? OnProcessStateScript { get; set; }
 
         ProcessStateChangedDelegate? ProcessStateChanged { get; set; }
 
