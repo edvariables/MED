@@ -250,9 +250,7 @@ namespace MED
                 settings.OnLoadSettingsDone(this, EventArgs.Empty);
         }
 
-        public virtual void LoadProcess(JsonNode node)
-        {
-        }
+        public virtual void LoadProcess(JsonNode node) { }
 
         public virtual void LoadSettingsDone(object? sender, EventArgs e)
         {

@@ -221,10 +221,12 @@ namespace MED
                     var message = $"{lastError.DelayToString()} sec {lastError.Message}";
                     UpdateSatusLabel(message, MEDIcons.alert);
                 }
-                else
-                    UpdateSatusLabel("Compilation error", MEDIcons.alert);
-            else
-                UpdateSatusLabel("Saved", MEDIcons.ok);
+                else if (EventScript.CompiledScript != null)
+                    UpdateSatusLabel($"Compilation error\n{EventScript.CompiledScript.Code}", MEDIcons.alert);
+                else 
+                    UpdateSatusLabel($"Compilation error\n(no script)", MEDIcons.alert);
+                else if (EventScript.CompiledScript != null)
+                UpdateSatusLabel($"Saved\n{EventScript.CompiledScript.Code}", MEDIcons.ok);
 
             InitVariables(EventScript, _editorUI);
 

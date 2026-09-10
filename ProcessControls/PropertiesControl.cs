@@ -204,8 +204,9 @@ namespace MED
                 IProcess? process = e.Node.Tag != null && e.Node.Tag is IProcess ? (IProcess)e.Node.Tag : null;
                 IProcesses? processes = e.Node.Parent != null && process != null && e.Node.Parent.Tag is IProcesses ? (IProcesses)e.Node.Parent.Tag : null;
                 Performance? performance = e.Node.Tag != null && e.Node.Tag is Performance ? (Performance)e.Node.Tag : null;
+                PerformanceException? performanceException = e.Node.Tag != null && e.Node.Tag is PerformanceException ? (PerformanceException)e.Node.Tag : null;
                 toolStripMenuProcAdd.Visible = process != null;
-                toolStripMenuProcRemove.Visible = process != null || performance != null;
+                toolStripMenuProcRemove.Visible = process != null || performance != null || performanceException != null;
                 toolStripMenuItemProcessEnabled.Visible = process != null;
                 if (process != null)
                 {
@@ -313,8 +314,13 @@ namespace MED
                 return;
             }
             var selectedNode = processesControl1.SelectedNode;
-            Performance? performance = selectedNode.Tag != null && selectedNode.Tag is Performance ? (Performance)selectedNode.Tag : null;
-            if(performance != null)
+            Performance? performance;
+            PerformanceException? performanceException = selectedNode.Tag != null && selectedNode.Tag is PerformanceException ? (PerformanceException)selectedNode.Tag : null;
+            if (performanceException != null)
+                performance = performanceException.Performance;
+            else
+                performance = selectedNode.Tag != null && selectedNode.Tag is Performance ? (Performance)selectedNode.Tag : null;
+            if (performance != null)
             {
                 performance.LastError = null;
                 if (performance.Logger != null)

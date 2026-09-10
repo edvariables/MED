@@ -38,7 +38,7 @@ namespace MED
             if (dark)
             {
                 CodeColors.Add("BackColor", Color.Black);
-                CodeColors.Add("ForeColor", Color.LightGreen);
+                CodeColors.Add("ForeColor", Color.LightGray);
                 CodeColors.Add("keyword", Color.HotPink);
                 CodeColors.Add("type", Color.LightGreen);
                 CodeColors.Add("comment", Color.Green);
@@ -97,16 +97,18 @@ namespace MED
                 Clipboard.SetData("Text", SelectedText);
                 e.Handled = true;
                 if (e.KeyCode == Keys.X)
-                    SelectedText = "";
-                else
-                    return;
+                {
+                    StackPushUndo();
+                    base.SelectedText = "";
+                }
+                return;
             }
 
             if ((e.KeyCode == Keys.A | e.KeyCode == Keys.Space)
                 && ((ModifierKeys & Keys.Control) == Keys.Control))
                 return;
 
-            if (e.KeyCode == Keys.Apps || e.KeyCode == Keys.NumLock || e.KeyCode == Keys.Insert
+            if (e.KeyCode == Keys.Apps || e.KeyCode == Keys.Home || e.KeyCode == Keys.End || e.KeyCode == Keys.NumLock || e.KeyCode == Keys.Insert
                 || e.KeyCode == Keys.Left || e.KeyCode == Keys.Right || e.KeyCode == Keys.Up || e.KeyCode == Keys.Down
                 || e.KeyCode == Keys.PageUp || e.KeyCode == Keys.PageDown
                  || e.KeyCode == Keys.F1 || e.KeyCode == Keys.F2 || e.KeyCode == Keys.F3 || e.KeyCode == Keys.F4 || e.KeyCode == Keys.F5 || e.KeyCode == Keys.F6 || e.KeyCode == Keys.F7 || e.KeyCode == Keys.F8 || e.KeyCode == Keys.F9 || e.KeyCode == Keys.F10 || e.KeyCode == Keys.F11 || e.KeyCode == Keys.F12
@@ -123,8 +125,7 @@ namespace MED
             }
             else
             {
-                redoStack.Clear();
-                StackPush(this, undoStack);
+                StackPushUndo();
 
                 if (e.KeyCode == Keys.V //Paste RTF
                 && e.Control)
@@ -142,12 +143,22 @@ namespace MED
                     var lineIndex = GetLineFromCharIndex(SelectionStart);
                     var lineCharIndex = GetFirstCharIndexFromLine(lineIndex);
                     var lastCharIndex = GetFirstCharIndexFromLine(lineIndex + 1) - 1;
+                    if (lastCharIndex > SelectionStart)
+                        lastCharIndex = SelectionStart;
                     float nbTabs = 0F;
                     var lineText = Text.Substring(lineCharIndex, lastCharIndex - lineCharIndex);
                     var lineTrimed = lineText.TrimEnd(' ', '\t');
                     if (lineTrimed.Length > 0)
+                    {
                         if (lineTrimed[lineTrimed.Length - 1] == '{')
                             nbTabs++;
+                        else
+                        {
+                            lineTrimed = lineTrimed.TrimStart('\t').Replace(" ", "");
+                            if (lineTrimed.StartsWith("if") || lineTrimed.StartsWith("do(") || lineTrimed.StartsWith("while("))
+                                nbTabs++;
+                        }
+                    }
                     for (var charIndex = 0; charIndex < lineText.Length; charIndex++)
                     {
                         if (lineText[charIndex] == ' ')
@@ -281,8 +292,7 @@ namespace MED
 
             set
             {
-                redoStack.Clear();
-                StackPush(this, undoStack);
+                StackPushUndo();
 
                 base.SelectedText = value;
             }
@@ -296,6 +306,13 @@ namespace MED
         /**
          * Stack RichScriptBox state
          * */
+        private void StackPushUndo(bool redoStackClear = true)
+        {
+            if (redoStackClear)
+                redoStack.Clear();
+            StackPush(this, undoStack);
+        }
+        private void StackPushRedo() => StackPush(this, redoStack);
         private void StackPush(RichScriptBox textBox, Stack<Func<RichScriptBox>> stack)
         {
             var tBT = textBox.Text(textBox.Text, textBox.SelectionStart);
@@ -319,7 +336,7 @@ namespace MED
         {
             if (undoStack.Count > 0)
             {
-                StackPush(this, redoStack);
+                StackPushRedo();
                 undoStack.Pop()();
             }
         }
@@ -330,7 +347,7 @@ namespace MED
         {
             if (redoStack.Count > 0)
             {
-                StackPush(this, undoStack);
+                StackPushUndo(false);
                 redoStack.Pop()();
             }
         }
@@ -480,8 +497,6 @@ namespace MED
             {
                 PreviousSelectionStart = LastSelectionStart = 0;
                 base.Text = value;
-                redoStack.Clear();
-                StackPush(this, undoStack);
             }
         }
         private void RichScriptBox_TextChanged(object? sender, EventArgs e)
@@ -518,23 +533,28 @@ namespace MED
 
             EventScript? eventScript = EventScript;
 
-            // getting keywords/functions
-            var functions = String.Join('|', eventScript?.ScriptGlobalsFunctions.Select(kvp => kvp.Value.Name) ?? []);
-            if (functions != "") functions += "|";
-            string keywords = @"\b(" + functions + @"abstract |as|base|break|case|catch|checked|continue|default|delegate|do|else|event|explicit|extern|false|finally|fixed|for|foreach|goto|if|implicit|in|interface|internal|is|lock|namespace|new|null|object|operator|out|override|params|private|protected|public|readonly|ref|return|sealed|sizeof|stackalloc|switch|this|throw|true|try|typeof|unchecked|unsafe|using|virtual|volatile|while|var)\b";
-            CodeRenderRegex.Add("keywords", new(keywords));
-
-            // getting types/classes/keyobjects from the text 
             if (eventScript != null && eventScript.VariablesNames == null)
                 eventScript.CompileScript();
+
             string keys = "";
+            string varTypes = "";
             if (eventScript != null && eventScript.VariablesNames != null)
             {
                 var variables = new Dictionary<string, Type>(eventScript.VariablesNames);
-                keys = "|" + string.Join("|", variables.Keys);
-                var varTypes = String.Join('|', eventScript.VariablesNames.Select(kvp => kvp.Value.Name) ?? []);
+                keys = string.Join("|", variables.Keys);
+                varTypes = String.Join('|', eventScript.VariablesNames.Select(kvp => kvp.Value.Name) ?? []);
             }
-            string types = @"\b(Console" + keys + @")\b";
+
+            // getting keywords/functions
+            var functions = String.Join('|', eventScript?.ScriptGlobalsFunctions.Select(kvp => kvp.Value.Name) ?? []);
+            if (varTypes != "") keys += "|";
+            if (functions != "") functions += "|";
+            string keywords = @"\b(" + functions + keys + @"abstract|as|base|break|case|catch|checked|continue|default|delegate|do|else|event|explicit|extern|false|finally|fixed|for|foreach|goto|if|implicit|in|interface|internal|is|lock|namespace|new|null|object|operator|out|override|params|private|protected|public|readonly|ref|return|sealed|sizeof|stackalloc|switch|this|throw|true|try|typeof|unchecked|unsafe|using|virtual|volatile|while|var)\b";
+            CodeRenderRegex.Add("keywords", new(keywords));
+
+            // getting types/classes/keyobjects from the text 
+            if (varTypes != "") varTypes = "|" + varTypes;
+            string types = @"\b(Console" + varTypes + @")\b";
             CodeRenderRegex.Add("types", new(types));
 
             // getting comments (inline or multiline)
@@ -545,7 +565,7 @@ namespace MED
             string strings = "\".+?\"";
             CodeRenderRegex.Add("strings", new(strings));
 
-            string stringz = "bool|byte|char|class|const|decimal|double|enum|float|int|long|sbyte|short|static|string|struct|uint|ulong|ushort|void";
+            string stringz = "\b(bool|byte|char|class|const|decimal|double|enum|float|int|long|sbyte|short|static|string|struct|uint|ulong|ushort|void)\b";
             CodeRenderRegex.Add("stringz", new(stringz));
 
         }
@@ -746,8 +766,10 @@ namespace MED
         {
             return () =>
             {
+                textBox.SuspendLayout();
                 textBox.Text = text;
                 textBox.SelectionStart = sel;
+                textBox.ResumeLayout();
                 return textBox;
             };
         }

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing.Design;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata.Ecma335;
@@ -49,6 +50,7 @@ namespace MED
                 _ParametersNames = null;
 
                 AddConsumers();
+
                 if (OnScriptChanged != null)
                     OnScriptChanged(this, EventArgs.Empty);
             }
@@ -62,7 +64,7 @@ namespace MED
 
         public string GetMethodName() => GetMethodName(Process, EventName);
 
-        private Microsoft.CodeAnalysis.Scripting.Script? CompiledScript { get; set; }
+        public Microsoft.CodeAnalysis.Scripting.Script? CompiledScript { get; protected set; }
         public List<object>? CompiledScriptErrors { get; set; }
 
         private Dictionary<string, Type>? _ParametersNames;
@@ -131,12 +133,15 @@ namespace MED
 
             script = InsertVariablesNames(script, Process, ParametersNames, out HashSet<Assembly> assemblies, out variablesNames, parameters);
 
+            script = ReplaceProcessesPath(script, Process, ParametersNames, variablesNames);
+
             VariablesNames = variablesNames;
 
             try
             {
                 Process.Performance?.Sub("EventScript").Debug($"Compiling {EventName}...");
                 Process.Performance?.Logger?.InvokeBufferChanged(this, EventArgs.Empty);
+
                 using (var loader = new InteractiveAssemblyLoader())
                 {
                     CompiledScript = CSharpScript.Create<bool>(script, ScriptOptions.Default.WithReferences(assemblies), globalsType: ScriptGlobalsType, assemblyLoader: loader);
@@ -213,6 +218,77 @@ namespace MED
             return true;
         }
 
+        static Dictionary<string, Regex> CodeAnalysisRegex = [];
+        private static void CodeAnalysisPrepare()
+        {
+            // getting comments (inline or multiline)
+            string comments = @"(\/\/.+?$|\/\*[\s\S]*?\*\/)";
+            CodeAnalysisRegex.Add("comments", new(comments, RegexOptions.Multiline));
+
+            // getting strings
+            string strings = "\".+?\"";
+            CodeAnalysisRegex.Add("strings", new(strings));
+
+            string processPath = @"(^|\s|\(|\[|\{|\=)(?<path>([.\:\/]+)(\/?\w)+\b)";
+            CodeAnalysisRegex["path"] = new(processPath, RegexOptions.ExplicitCapture);
+        }
+
+        private static string ReplaceProcessesPath(string script, IProcess process
+            , Dictionary<string, Type>? parametersNames
+            , Dictionary<string, Type>? variablesNames)
+        {
+            if (CodeAnalysisRegex.Count == 0)
+                CodeAnalysisPrepare();
+            var cleanScript = CodeAnalysisRegex["comments"].Replace(script, (Match match) => { return new string(' ', match.Groups[0].Value.Length); });
+
+            cleanScript = CodeAnalysisRegex["strings"].Replace(cleanScript, (Match match) => { return "\"" + (new string(' ', match.Groups[0].Value.Length - 2)) + "\""; });
+
+            string processPath = @"(^|\s|\(|\[|\{|\=)(?<path>([.\:\/]+)(?<name>(\/?[_a-zA-Z]\w*)+)\b)|(?<parent>\(\.+\))";
+            CodeAnalysisRegex["path"] = new(processPath, RegexOptions.ExplicitCapture);
+            var matches = CodeAnalysisRegex["path"].Matches(cleanScript);
+            var replaceOffset = 0;
+            foreach (Match match in matches)
+            {
+                var parentGroup = match.Groups["parent"];
+                if (parentGroup.Length > 0)
+                {
+                    var parentPath = parentGroup.Value.Trim('(', ')');
+                    var parent = ProcessStatic.GetProcess(process, parentPath);
+                    if (parent != null)
+                    {
+                        var replace = $"(({parent.GetType()}){nameof(ScriptGlobals.GetProcess)}(\"{parentPath}\"))";
+                        script = script.Substring(0, parentGroup.Index + replaceOffset) + replace + script.Substring(parentGroup.Index + parentGroup.Length + replaceOffset);
+                        replaceOffset += replace.Length - parentPath.Length;
+                    }
+
+                    continue;
+                }
+                var pathGroup = match.Groups["path"];
+                var path = pathGroup.Value;
+                if (path[0] == '.')
+                {
+                    var name = match.Groups["name"].Value;
+                    if (name[0] != '/')
+                    { //var is property of current process : .ProcessState
+
+                        var replace = $"process{path}";
+                        script = script.Substring(0, pathGroup.Index + replaceOffset) + replace + script.Substring(pathGroup.Index + pathGroup.Length + replaceOffset);
+                        replaceOffset += replace.Length - path.Length;
+
+                        continue;
+                    }
+                }
+                var foundProcess = ProcessStatic.GetProcess(process, path);
+                if (foundProcess != null)
+                {
+                    var replace = $"(({foundProcess.GetType()})FindProcess(\"{path}\"))";
+                    script = script.Substring(0, pathGroup.Index + replaceOffset) + replace + script.Substring(pathGroup.Index + pathGroup.Length + replaceOffset);
+                    replaceOffset += replace.Length - path.Length;
+                }
+            }
+            return script;
+        }
+
         private static string InsertVariablesNames(string script, IProcess process
             , Dictionary<string, Type>? parametersNames, out HashSet<Assembly> assemblies
             , out Dictionary<string, Type>? variablesNames, params object?[]? parameters)
@@ -253,7 +329,7 @@ namespace MED
                 if (!assemblies.Contains(paramType.Assembly))
                     assemblies.Add(paramType.Assembly);
 
-                scriptAdd.AppendLine($"var {name} = ({paramType.FullName})_params_[{paramIndex}];");
+                scriptAdd.AppendLine($"var {name} = ({paramType.FullName}){nameof(ScriptGlobals._params_)}[{paramIndex}];");
                 variablesNames.Add(name, paramType);
 
                 if (paramType.Equals(typeof(PropertyChangedEventArgs)))
@@ -297,7 +373,7 @@ namespace MED
         public static string ClearComments(string script)
         {
             script = Regex.Replace(script, @"\/\*.+?\*\/", "", RegexOptions.Multiline);
-            script = Regex.Replace(script, @"^//.*([\n\r]|$)", "");
+            script = Regex.Replace(script, @"^//.*$", "");
             return script;
         }
 
@@ -393,7 +469,7 @@ namespace MED
 
             public Performance? perf = process.Performance;
 
-            public IProcess? FindProcess(string? path = null) => ProcessStatic.FindProcess(_process, path);
+            public IProcess? GetProcess(string? path = null) => ProcessStatic.GetProcess(_process, path);
         }
         #endregion
     }

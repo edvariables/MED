@@ -640,7 +640,7 @@ namespace MED
             return processTo.Name;
         }
 
-        public static IProcess? FindProcess(IProcess current, string? path = null)
+        public static IProcess? GetProcess(IProcess current, string? path = null)
         {
             if (String.IsNullOrEmpty(path) || path == ".")
                 return current;
@@ -652,14 +652,23 @@ namespace MED
                 if (consumer == null || path.Length == 2)
                     return consumer;
 
+                while (path[2] == '.')
+                {
+                    if (consumer is IProvider provider2)
+                        consumer = provider2.Consumer;
+                    if (consumer == null || path.Length == 3)
+                        return consumer;
+                    path = path.Substring(1);
+                }
+
                 if (path[2] == '/')
-                    return FindProcess(consumer, path.Substring(3).TrimStart('/'));
+                    return GetProcess(consumer, path.Substring(3).TrimStart('/'));
 
                 path = path.Substring(2);
                 var pathItems = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
                 if (consumer is IProcess process
                     && process.Name == pathItems[0])
-                    return FindProcess(consumer, path.Substring(process.Name.Length + 1));
+                    return GetProcess(consumer, path.Substring(process.Name.Length + 1));
 
                 IProcess? found = null;
                 if (consumer is ProcessForm processForm1)
@@ -668,7 +677,7 @@ namespace MED
                     found = processes1.GetItem(path);
                 if (found != null)
                     return found;
-                return FindProcess(consumer, ".." + path);
+                return GetProcess(consumer, ".." + path);
             }
             else if (path[0] == '.' && path[1] == '/')
             {
@@ -682,7 +691,7 @@ namespace MED
                 if (consumer == null)
                     return consumer;
                 path = path.Substring(1);
-                return FindProcess(consumer, path);
+                return GetProcess(consumer, path);
             }
             if (path[0] == '/')
             {
@@ -690,7 +699,7 @@ namespace MED
                 {
                     IConsumer? consumer = provider.Consumer;
                     if (consumer != null)
-                        return FindProcess(consumer, path);
+                        return GetProcess(consumer, path);
                 }
                 if (path.Length == 1)
                     return current;

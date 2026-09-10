@@ -263,12 +263,32 @@ namespace MED.Imaging
             {
                 if (_Image != null)
                     return _Image;
-                if (!ImageIsProvided)
-                    return _Image = GetImage();
-                var firstProvider = ImageProvider;
-                if (firstProvider == null)
+
+                if (IsGettingImage)
+                {
+                    Performance?.Error("IsGettingImage == infinite loop !");
+                    throw new("IsGettingImage == infinite loop !");
                     return _Image;
-                return _Image = GetImage(firstProvider);
+                }
+                IsGettingImage = true;
+                try
+                {
+                    if (!ImageIsProvided)
+                        _Image = GetImage();
+                    else
+                    {
+                        var firstProvider = ImageProvider;
+                        if (firstProvider != null)
+                            _Image = GetImage(firstProvider);
+                    }
+                }
+                catch
+                {
+                    IsGettingImage = false;
+                    throw;
+                }
+                IsGettingImage = false;
+                return _Image;
             }
             set
             {
@@ -277,13 +297,12 @@ namespace MED.Imaging
             }
         }
 
+        private bool IsGettingImage = false;
         /**
          * GetImage abstract
          */
         public virtual Bitmap? GetImage(IImageProvider? provider = null)
         {
-            //Performance?.Debug($"ImageProcess.GetImage ImageIsProvided={ImageIsProvided}, " + (provider == null ? "<null>" : "provider") + " / " + (ImageProvider == null ? "<null>" : "ImageProvider"));
-
             if (ImageIsProvided)
                 if (provider != null)
                     return provider.Image;

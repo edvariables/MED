@@ -204,7 +204,7 @@ namespace MED.Imaging
             MoveItems();
 
             Graphics graphics = Graphics.FromImage(image);
-
+            
             //Collider.Collide(image, graphics);
 
             int nProvider = 0;
