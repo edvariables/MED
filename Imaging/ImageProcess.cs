@@ -5,6 +5,7 @@ using MED.Core;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing.Design;
 using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Reflection;
@@ -58,26 +59,26 @@ namespace MED.Imaging
                 //Unlink previous Consumer
                 if (_ImageConsumer != null)
                 {
-                    OnImageChanged -= _ImageConsumer.ImageChanged;
+                    ImageChanged -= _ImageConsumer.OnImageChanged;
                     if (this is IMatFrameProvider
                         && _ImageConsumer is IMatFrameConsumer
                         && consumer != null)
                     {
-                        RemoveHandler("OnFrameChanged", _ImageConsumer, typeof(IMatFrameConsumer), "FrameChanged");
+                        RemoveHandler("FrameChanged", _ImageConsumer, typeof(IMatFrameConsumer), "OnFrameChanged");
                     }
                 }
                 //New Consumer
                 _ImageConsumer = consumer;
                 if (consumer != null)
                 {
-                    OnImageChanged -= consumer.ImageChanged;
-                    OnImageChanged += consumer.ImageChanged;
+                    ImageChanged -= consumer.OnImageChanged;
+                    ImageChanged += consumer.OnImageChanged;
 
                     if (this is IMatFrameProvider
                         && _ImageConsumer is IMatFrameConsumer)
                     {
-                        AddHandler("OnFrameChanged", consumer, typeof(IMatFrameConsumer), "FrameChanged");
-                        RemoveHandler("OnFrameChanged", consumer, typeof(IMatFrameConsumer), "FrameChanged");
+                        AddHandler("FrameChanged", consumer, typeof(IMatFrameConsumer), "OnFrameChanged");
+                        RemoveHandler("FrameChanged", consumer, typeof(IMatFrameConsumer), "OnFrameChanged");
                     }
                 }
             }
@@ -201,7 +202,7 @@ namespace MED.Imaging
             }
         }
 
-        public IImageProvider.ImageChangedDelegate? OnImageChanged;
+        public IImageProvider.ImageChangedDelegate? ImageChanged;
 
         [Browsable(true)]
         [ReadOnly(true)]
@@ -228,7 +229,7 @@ namespace MED.Imaging
          * ImageChanged
          */
         [Browsable(false)]
-        public virtual void ImageChanged(IImageProvider sender, EventArgs e)
+        public virtual void OnImageChanged(IImageProvider sender, EventArgs e)
         {
             if (ProcessState != ThreadState.Running)
                 return;
@@ -315,7 +316,7 @@ namespace MED.Imaging
          * InvokeImageChanged
          * 
          */
-        public virtual void InvokeImageChanged(IImageProvider? sender, EventArgs? e) => InvokePropertyChanged(sender, OnImageChanged, e);
+        public virtual void InvokeImageChanged(IImageProvider? sender, EventArgs? e) => InvokePropertyChanged(sender, ImageChanged, e);
 
         #endregion
 
@@ -345,6 +346,8 @@ namespace MED.Imaging
                 ImageSizeMin = (Size)value;
             else
                 ImageSizeMin = Size.Empty;
+
+            EventScript.LoadSetting(settings, this, nameof(OnPaintScript));
         }
         public override JsonObject SaveProcess(JsonObject? node = null)
         {
@@ -354,6 +357,9 @@ namespace MED.Imaging
             node["ImageSizeMin"] = Parser.ObjectToString(ImageSizeMin);
             if (FPSMax != 0)
                 node["FPSMax"] = FPSMax;
+
+            if (OnPaintScript != null && !string.IsNullOrEmpty(OnPaintScript.Script))
+                node.Add(nameof(OnPaintScript), OnPaintScript.Script);
 
             var consumers = new JsonObject();
 
@@ -547,5 +553,13 @@ namespace MED.Imaging
             }
             set => _WaitingImage = value;
         }
+
+        public virtual void OnPaint(Graphics graphics, EventArgs eventArgs) => OnPaintScript?.Eval(graphics, eventArgs);
+
+        [Browsable(true)]
+        [Category("Image")]
+        [Editor(typeof(EventScriptEditor), typeof(UITypeEditor))]
+        [TypeConverter(typeof(EventScriptConvertor))]
+        public PaintScript? OnPaintScript { get; set; }
     }
 }

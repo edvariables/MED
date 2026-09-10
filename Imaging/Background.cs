@@ -132,7 +132,7 @@ namespace MED.Imaging
 
                 Performance?.Resume($"------------------Tick. Sleep : {sleep}", true);//increment
 
-                ImageChanged(this, EventArgs.Empty);
+                OnImageChanged(this, EventArgs.Empty);
 
                 if (IsDisposed || Disposing)
                 {

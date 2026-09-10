@@ -21,6 +21,8 @@ namespace MED
 
             InitializeComponent();
 
+            RichEditor.ZoomFactor = (float)(Core.Settings.GetValue("ZoomFactor", typeof(RichScriptBox).Name, RichEditor.ZoomFactor) ?? RichEditor.ZoomFactor);
+
             RichEditor.LineNumbersTextBox = LineNumberTextBox;
 
             this.Activated += EventScriptForm_Activated;
@@ -54,7 +56,8 @@ namespace MED
         {
             dropDownVariables.DropDownItems.Clear();
 
-            statusStripItem.Text = $"{eventScript.EventName}( {String.Join(", ", eventScript.ParametersNames ?? [])} )";
+            if (statusStripItem.Text == "")
+                statusStripItem.Text = $"{eventScript.EventName}( {String.Join(", ", eventScript.ParametersNames ?? [])} )";
             if (eventScript.VariablesNames == null)
                 eventScript.CompileScript();
             if (eventScript.VariablesNames == null)
@@ -141,6 +144,8 @@ namespace MED
             if (e.Cancel)
                 return;
 
+            Core.Settings.SetValue("ZoomFactor", typeof(RichScriptBox).Name, RichEditor.ZoomFactor);
+
             _editorUI = null;
             EventScript = null;
         }
@@ -153,7 +158,7 @@ namespace MED
             set
             {
                 _EventScript = value;
-                if (_editorUI is RichTextBoxMED richTextBoxMED)
+                if (_editorUI is RichScriptBox richTextBoxMED)
                     richTextBoxMED.EventScript = _EventScript;
                 RichEditor.EventScript = _EventScript;
                 if (_EventScript == null)
@@ -210,7 +215,14 @@ namespace MED
             EventScript.Script = RichEditor.Text;
 
             if (!EventScript.CompileScript())
-                UpdateSatusLabel("Compilation error", MEDIcons.alert);
+                if (EventScript.Process.Performance != null && EventScript.Process.Performance.LastError != null)
+                {
+                    var lastError = EventScript.Process.Performance.LastError;
+                    var message = $"{lastError.DelayToString()} sec {lastError.Message}";
+                    UpdateSatusLabel(message, MEDIcons.alert);
+                }
+                else
+                    UpdateSatusLabel("Compilation error", MEDIcons.alert);
             else
                 UpdateSatusLabel("Saved", MEDIcons.ok);
 
@@ -231,7 +243,7 @@ namespace MED
 
         private void UpdateSatusLabel(string message, Image? image = null)
         {
-            var lines = message.Split('\n');
+            var lines = message.Split('\n', 2);
             statusStripItem.Text = lines[0];
             statusStripItem.Image = image;
             statusStripItem.ToolTipText = message;
@@ -274,7 +286,7 @@ namespace MED
 
             EventScript.Script = RichEditor.Text;
 
-            object?[] parameters = [2];
+            object?[] parameters = [null, null];
             EventScript.CompileScript(parameters[0], parameters[1]);//TODO
 
             if (EventScript.Process.Performance != null

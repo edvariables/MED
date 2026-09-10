@@ -46,6 +46,8 @@ namespace MED
                     foreach (var proc in Items)
                         if (proc == null)
                             continue;
+                        else if (proc is Processes processes && processes.Logger == null)
+                            processes.Logger = _Logger;
                         else if (proc is Process process && process.Performance != null)
                             process.Performance.Logger = _Logger;
                         else if (proc is ProcessForm processForm)
@@ -124,6 +126,7 @@ namespace MED
                 Items.Clear();
             }
         }
+        public IProcess? GetItem(string name) => ProcessStatic.GetItem(this, name);
 
         public virtual void LoadProcesses(ProcessSettings settings)
         {
@@ -184,9 +187,7 @@ namespace MED
                     var propertyName = property.Key;
                     foreach (var consumerNode in property.Value.AsArray())
                         if (consumerNode != null)
-                        {
                             LoadConsumer(process, consumerNode.AsObject(), propertyName);
-                        }
                 }
         }
         public virtual void LoadConsumer(IProcess process, JsonObject consumerNode, string propertyName)
@@ -218,16 +219,12 @@ namespace MED
             }
 
             if (Logger == null)
-            {
                 Logger = new();
-            }
             else
                 Logger.Clear();
 
             if (Performance == null || resetAll)
-            {
                 Performance = new(this.Name, Logger);
-            }
 
             if (Items == null)
                 Items = [];
@@ -238,15 +235,6 @@ namespace MED
         #endregion
 
         #region Process
-        //public override System.Threading.ThreadState ProcessState
-        //{
-        //    get => base.ProcessState;
-        //    set
-        //    {
-        //        base.ProcessState = value;
-        //        Performance?.Step($"{value}");
-        //    }
-        //}
 
         /**
          * 
@@ -282,9 +270,7 @@ namespace MED
                 return;
 
             foreach (var item in Items.Reverse<IProcess>())
-            {
                 item.Stop();
-            }
         }
 
         public override void Resume()

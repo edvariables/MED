@@ -13,17 +13,19 @@ using System.Threading.Tasks;
 
 namespace MED
 {
-    public class Process : IProcess, IConsumer, IProvider
+    public class Process : IConsumer, IProvider
     {
+        public IProcess Clone(Type? cloneType = null) => (IProcess)MemberwiseClone();
+
         public Process(string name, Performance? performance = null, Control? invokeHandler = null, IConsumer? consumer = null, bool isAsynchrone = false)
         {
             InvokeHandler = invokeHandler;
             IsAsynchrone = isAsynchrone;
             Consumer = consumer;
+            ProcessIcon = ProcessIconDefault;
 
             if (name == "")
                 name = this.GetType().Name;
-            ProcessIcon = ProcessIconDefault;
 
             Name = name;
 
@@ -174,8 +176,14 @@ namespace MED
         [Category("Process")]
         public virtual Performance? Performance { get; set; }
 
+        [Category("Process")]
+        public Dictionary<string, object?>? Data { get; set; }
+
+        [Category("Process")]
+        public object? Tag { get; set; }
+
         #region GameController
-        public virtual void GameControllerChanged(IGameController gameController, PropertyChangedEventArgs eventArgs)
+        public virtual void OnGameControllerChanged(IGameController gameController, PropertyChangedEventArgs eventArgs)
         {
             if (OnGameControllerScript == null)
                 return;
@@ -249,7 +257,7 @@ namespace MED
         public virtual void LoadSettingsDone(object? sender, EventArgs e)
         {
             if (OnGameControllerScript != null)
-                OnGameControllerScript.Script= OnGameControllerScript.Script;
+                OnGameControllerScript.Script = OnGameControllerScript.Script;
         }
 
         public virtual void SaveSettings(ProcessSettings? settings = null, string fileName = "")
@@ -324,7 +332,9 @@ namespace MED
 
 
         [Browsable(false)]
-        public IProcess.ProcessStateChangedDelegate? OnProcessStateChanged { get; set; }
+        public IProcess.ProcessStateChangedDelegate? ProcessStateChanged { get; set; }
+
+        public virtual void OnProcessStateChanged(IProcess sender, System.Threading.ThreadState state) => ProcessStateChanged?.Invoke(this, state);
 
         public virtual void Stop()
         {
@@ -392,7 +402,7 @@ namespace MED
             get => _ProcessState;
             set
             {
-                if (_ProcessState != value && OnProcessStateChanged != null)
+                if (_ProcessState != value)
                     OnProcessStateChanged(this, _ProcessState = value);
                 else
                     _ProcessState = value;

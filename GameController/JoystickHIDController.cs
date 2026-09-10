@@ -107,6 +107,8 @@ namespace MED.GameController
                 timestamp = CheckChanges(gamepad);
             });
 
+            if (gamepad == null)
+                return;
             try
             {
                 // Our 'game loop'
@@ -132,11 +134,8 @@ namespace MED.GameController
             finally
             {
                 // Ensure gamepad connection is disposed to stop listening to the gamepad
-                if (gamepad != null)
-                {
-                    gamepad.Dispose();
-                    Performance?.Step($"{gamepad.Device.Name} disconnected!");
-                }
+                gamepad.Dispose();
+                Performance?.Step($"{gamepad.Device.Name} disconnected!");
             }
         }
 
@@ -156,7 +155,7 @@ namespace MED.GameController
             if (changes.Count > 0)
             {
 
-                DevDecoder.HIDDevices.Control prev_control = null;
+                DevDecoder.HIDDevices.Control? prev_control = null;
                 object? prev_Value = null;
                 //logBuilder.Append("Batch ").Append(++batch).AppendLine();
                 foreach (var change in changes)
@@ -205,7 +204,7 @@ namespace MED.GameController
             {
                 UsagesState[controlKey] = value;
 
-                InvokeControllerChanged(this, new(controlKey, value));
+                OnControllerChanged(this, new(controlKey, value));
             }
         }
         private void SetControls(IReadOnlyDictionary<DevDecoder.HIDDevices.Control, IReadOnlyList<ControlInfo>> mapping)

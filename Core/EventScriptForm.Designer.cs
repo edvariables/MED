@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(EventScriptForm));
-            RichEditor = new RichTextBoxMED();
+            RichEditor = new RichScriptBox();
             statusStrip = new StatusStrip();
             dropDownVariables = new ToolStripDropDownButton();
             cmdPlayTest = new ToolStripStatusLabel();
@@ -40,19 +40,14 @@
             statusStrip.SuspendLayout();
             SuspendLayout();
             // 
-            // RTBEditor
+            // RichEditor
             // 
             RichEditor.AcceptsTab = true;
-            RichEditor.BackColor = Color.Black;
             RichEditor.BorderStyle = BorderStyle.None;
-            RichEditor.CodeColors = (Dictionary<string, Color>)resources.GetObject("RTBEditor.CodeColors");
             RichEditor.Dock = DockStyle.Fill;
-            RichEditor.EventScript = null;
             RichEditor.Font = new Font("Cascadia Code", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RichEditor.ForeColor = Color.White;
-            RichEditor.LineNumbersTextBox = null;
             RichEditor.Location = new Point(34, 0);
-            RichEditor.Name = "RTBEditor";
+            RichEditor.Name = "RichEditor";
             RichEditor.ScrollBars = RichTextBoxScrollBars.ForcedBoth;
             RichEditor.ShowSelectionMargin = true;
             RichEditor.Size = new Size(766, 641);
@@ -83,16 +78,16 @@
             // cmdPlayTest
             // 
             cmdPlayTest.Image = (Image)resources.GetObject("cmdPlayTest.Image");
+            cmdPlayTest.IsLink = true;
             cmdPlayTest.Name = "cmdPlayTest";
             cmdPlayTest.Size = new Size(42, 20);
             cmdPlayTest.Text = "test";
-            cmdPlayTest.IsLink = true;
             cmdPlayTest.Click += cmdPlayTest_Click;
             // 
             // statusStripItem
             // 
             statusStripItem.Name = "statusStripItem";
-            statusStripItem.Size = new Size(561, 20);
+            statusStripItem.Size = new Size(592, 20);
             statusStripItem.Spring = true;
             // 
             // cmdSave
@@ -140,7 +135,7 @@
 
         #endregion
 
-        private RichTextBoxMED RichEditor;
+        private RichScriptBox RichEditor;
         private StatusStrip statusStrip;
         private ToolStripStatusLabel cmdSave;
         private ToolStripStatusLabel cmdClose;

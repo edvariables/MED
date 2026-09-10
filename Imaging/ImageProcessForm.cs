@@ -52,7 +52,7 @@ namespace MED
         /**
          * Image
          * */
-        public virtual void ImageChanged(IImageProvider sender, EventArgs e)
+        public virtual void OnImageChanged(IImageProvider sender, EventArgs e)
         {
             if (this.Disposing || this.IsDisposed || !IsRunning)
                 return;

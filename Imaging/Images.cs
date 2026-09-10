@@ -25,7 +25,7 @@ namespace MED.Imaging
 
             ImageProcesses = new(name, performance, invokeHandler, this, isAsynchrone);
 
-            ImageProcesses.OnProcessStateChanged += Invoke_ProcessStateChanged;
+            ImageProcesses.ProcessStateChanged += OnProcessStateChanged;
 
             //ImageConsumer = imageConsumer;
 
@@ -94,9 +94,11 @@ namespace MED.Imaging
 
         public override System.Threading.ThreadState ProcessState => ImageProcesses.ProcessState;
 
-        public void Invoke_ProcessStateChanged(IProcess sender, System.Threading.ThreadState state)
+        public override void OnProcessStateChanged(IProcess sender, System.Threading.ThreadState state)
         {
-            OnProcessStateChanged?.Invoke(this, state);
+            base.OnProcessStateChanged(sender, state);
+            if (ImageProcesses != sender)
+                ImageProcesses?.OnProcessStateChanged(this, ProcessState);
             MoveItemsTimeOnProcessStateChanged(state);
         }
 
@@ -131,6 +133,7 @@ namespace MED.Imaging
 
         [Category("Processes")]
         public virtual List<IProcess> Items => ImageProcesses.Items;
+        public IProcess? GetItem(string name) => ImageProcesses.GetItem(name);
 
         protected ImagesCollider ImagesCollider { get; set; }
 
@@ -244,8 +247,8 @@ namespace MED.Imaging
             if (imageSrc != null)
             {
                 Region? clipRegion;
-                if (DrawEdges && item is IImageCollider)
-                    clipRegion = ((IImageCollider)item).ClipEdgesRegion;
+                if (DrawEdges && item is IImageCollider imageCollider)
+                    clipRegion = imageCollider.ClipEdgesRegion;
                 else
                     clipRegion = item.ClipRegion;
 
@@ -258,7 +261,7 @@ namespace MED.Imaging
                     if (rotation != 0F)
                     {
                         graphics.TranslateTransform(location.X + imageSrc.Width / 2, location.Y + imageSrc.Height / 2);
-                        //rotate
+
                         graphics.RotateTransform(rotation, MatrixOrder.Prepend);
 
                         clipRegion = clipRegion.Clone();
@@ -266,7 +269,7 @@ namespace MED.Imaging
                         clipRegion.Translate(-imageSrc.Width / 2, -imageSrc.Height / 2);
 
                         if (DrawEdges)
-                            graphics.FillRegion(Brushes.Black, clipRegion);
+                            graphics.FillRegion(Brushes.Blue, clipRegion);
                         else
                         {
                             graphics.SetClip(clipRegion, CombineMode.Replace);
@@ -280,7 +283,7 @@ namespace MED.Imaging
                             graphics.TranslateTransform(location.X, location.Y); //clipRegion.Translate(location.X, location.Y);
 
                         if (DrawEdges)
-                            graphics.FillRegion(Brushes.Black, clipRegion);
+                            graphics.FillRegion(Brushes.Blue, clipRegion);
                         else
                         {
                             graphics.SetClip(clipRegion, CombineMode.Replace);
@@ -291,7 +294,7 @@ namespace MED.Imaging
                                 graphics.DrawImageUnscaled(imageSrc, 0, 0);
                         }
                     }
-                    graphics.ResetTransform();
+
                     graphics.ResetClip();
                 }
                 else
@@ -300,9 +303,9 @@ namespace MED.Imaging
                     if (rotation != 0F)
                     {
                         graphics.TranslateTransform(location.X + imageSrc.Width / 2, location.Y + imageSrc.Height / 2);
-                        //rotate
+
                         graphics.RotateTransform(rotation, MatrixOrder.Prepend);
-                        //draw
+
                         graphics.DrawImage(imageSrc, -imageSrc.Width / 2, -imageSrc.Height / 2/*, imageSrc.Width, imageSrc.Height*/);
 
                         graphics.ResetTransform();
@@ -312,6 +315,19 @@ namespace MED.Imaging
                         graphics.DrawImage(imageSrc, location.X, location.Y, imageSrc.Width, imageSrc.Height);
                     }
                 }
+                //graphics.DrawEllipse()
+                
+
+                if (item.OnPaintScript != null)
+                {
+                    graphics.ResetTransform();
+                    graphics.TranslateTransform(location.X + imageSrc.Width / 2, location.Y + imageSrc.Height / 2);
+                    if (rotation != 0F)
+                        graphics.RotateTransform(rotation, MatrixOrder.Prepend);
+                    item.OnPaint(graphics, EventArgs.Empty);
+                }
+
+                graphics.ResetTransform();
             }
         }
 

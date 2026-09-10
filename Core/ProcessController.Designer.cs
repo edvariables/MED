@@ -1,6 +1,6 @@
 ﻿namespace MED
 {
-    partial class ProcessControl
+    partial class ProcessController
     {
         /// <summary> 
         /// Variable nécessaire au concepteur.
@@ -28,7 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ProcessControl));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ProcessController));
             cmdStart = new Button();
             cmdStop = new Button();
             chkPause = new CheckBox();
@@ -78,7 +78,7 @@
             Controls.Add(cmdStart);
             Name = "ProcessControl";
             Size = new Size(100, 29);
-            VisibleChanged += ProcessControl_VisibleChanged;
+            VisibleChanged += ProcessController_VisibleChanged;
             ResumeLayout(false);
         }
 

@@ -65,7 +65,7 @@ namespace MED.Imaging
         [Browsable(false)]
         [Category("Video capture")]
         public Mat? Frame { get; protected set; }
-        public void FrameChanged(IMatFrameProvider? sender, EventArgs e)
+        public void OnFrameChanged(IMatFrameProvider sender, EventArgs e)
         {
             ImageProvider = (IImageProvider?)sender;
 
@@ -82,12 +82,12 @@ namespace MED.Imaging
             InvokeFrameChanged(sender, e);
 
             if (sender != null)
-                ImageChanged((IImageProvider)sender, e);
+                OnImageChanged((IImageProvider)sender, e);
         }
 
-        public void InvokeFrameChanged(IMatFrameProvider? sender, EventArgs e) => InvokePropertyChanged(sender, OnFrameChanged, e);
+        public void InvokeFrameChanged(IMatFrameProvider? sender, EventArgs e) => InvokePropertyChanged(sender, FrameChanged, e);
 
-        public IMatFrameProvider.FrameChangedDelegate? OnFrameChanged;
+        public IMatFrameProvider.FrameChangedDelegate? FrameChanged;
         #endregion
 
         #region Settings

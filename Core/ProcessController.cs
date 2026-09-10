@@ -14,9 +14,9 @@ namespace MED
      * class ProcessControl : UserControl
      * <summary>Control managing process states</summary>
      * */
-    public partial class ProcessControl : UserControl
+    public partial class ProcessController : UserControl
     {
-        public ProcessControl()
+        public ProcessController()
         {
             InitializeComponent();
         }
@@ -25,7 +25,7 @@ namespace MED
         /**
          * Init process statuses
          * */
-        private void ProcessControl_VisibleChanged(object sender, EventArgs e)
+        private void ProcessController_VisibleChanged(object sender, EventArgs e)
         {
             ProcessStateChanged(null);
         }
@@ -44,18 +44,18 @@ namespace MED
                 if (_ActiveProcess != null)
                 {
                     if (_ActiveProcess is ProcessForm processForm)
-                        processForm.OnProcessStateChanged -= ProcessStateChanged;
+                        processForm.ProcessStateChanged -= ProcessStateChanged;
                     else if (_ActiveProcess is Process process)
-                        process.OnProcessStateChanged -= ProcessStateChanged;
+                        process.ProcessStateChanged -= ProcessStateChanged;
                 }
                 _ActiveProcess = value;
 
                 if (_ActiveProcess != null)
                 {
                     if (_ActiveProcess is ProcessForm processForm)
-                        processForm.OnProcessStateChanged += ProcessStateChanged;
+                        processForm.ProcessStateChanged += ProcessStateChanged;
                     else if (_ActiveProcess is Process process)
-                        process.OnProcessStateChanged += ProcessStateChanged;
+                        process.ProcessStateChanged += ProcessStateChanged;
                 }
             }
         }

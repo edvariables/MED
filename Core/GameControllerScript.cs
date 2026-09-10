@@ -24,7 +24,7 @@ namespace MED
             if (gameController == null)
                 return;
             var script = ClearComments(Script).Replace(" ", "");
-            var pattern = @"eventProperty==|gameController\.GetControllerPropertyValue\(|GetControllerState\(|" + gameController.Name + @"\.";
+            var pattern = @"eventProperty==|gameController\.GetControllerPropertyValue\(|controllerState\(|controllerPressed\(";
             var matches = Regex.Matches(script, @"\b(" + pattern + @")(""(?<key>[^""]+)""|Keys\.(?<Keys>\w+))", RegexOptions.ExplicitCapture);
             foreach (var match in matches)
                 if (match != null && match is Match match1)
@@ -37,7 +37,7 @@ namespace MED
                         && ConsumerProperties[gameController].Contains(capture))
                     )
                     {
-                        gameController.AddConsumer(consumer, capture, Process.GameControllerChanged);
+                        gameController.AddConsumer(consumer, capture, Process.OnGameControllerChanged);
                         if (!ConsumerProperties.ContainsKey(gameController))
                             ConsumerProperties[gameController] = new();
                         ConsumerProperties[gameController].Add(capture);
@@ -61,9 +61,16 @@ namespace MED
 
         public class ScriptGlobalsGameController(IProcess process, object[]? parameters) : ScriptGlobals(process, parameters)
         {
-            public object? GetControllerState(Keys key) => GetControllerState(key.ToString());
+            public bool controllerPressed(Keys key) => controllerPressed(key.ToString());
+            public object? controllerState(Keys key) => controllerState(key.ToString());
 
-            public object? GetControllerState(string key)
+            public bool controllerPressed(string key)
+            {
+                if(controllerState(key) is bool pressed)
+                    return pressed;
+                return false;
+            }
+            public object? controllerState(string key)
             {
                 if (this._params_ != null
                 && this._params_[0] is IGameController gameController)

@@ -74,13 +74,13 @@ namespace MED.Imaging
         /**
          * Image
          * */
-        public override void ImageChanged(IImageProvider sender, EventArgs e)
+        public override void OnImageChanged(IImageProvider sender, EventArgs e)
         {
             if (this.Disposing || this.IsDisposed)
                 return;
             try
             {
-                base.ImageChanged(sender, e);
+                base.OnImageChanged(sender, e);
 
                 if (RenderImageControl != null)
                     Render.RefreshRender(this, RenderImageControl, Performance, e);

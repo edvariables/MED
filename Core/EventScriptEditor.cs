@@ -90,7 +90,7 @@ namespace MED
     public class EventScriptEditor : UITypeEditor
     {
         private Panel? _editorUIWrapper;
-        private RichTextBoxMED? _editorUI;
+        private RichScriptBox? _editorUI;
         private ITypeDescriptorContext? Context;
 
         /// <inheritdoc />
@@ -159,7 +159,7 @@ namespace MED
             _editorUIWrapper = new();
             _editorUIWrapper.Size = new(400, 300);
 
-            _editorUI = new RichTextBoxMED(eventScript);
+            _editorUI = new RichScriptBox(eventScript);
             _editorUI.Font = new Font("Cascadia Code", 9F);
             _editorUI.Dock = DockStyle.Fill;
             _editorUI.AcceptsTab = true;

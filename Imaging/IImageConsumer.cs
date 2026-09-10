@@ -12,6 +12,6 @@ namespace MED
 
         [Browsable(false)]
         Size ImageSizeMin { get; }
-        void ImageChanged(IImageProvider sender, EventArgs e);
+        void OnImageChanged(IImageProvider sender, EventArgs e);
     }
 }

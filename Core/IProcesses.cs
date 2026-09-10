@@ -17,5 +17,7 @@ namespace MED
         Logger? Logger { get; set; }
 
         List<IProcess> Items { get; }
+
+        IProcess? GetItem(string name);
     }
 }

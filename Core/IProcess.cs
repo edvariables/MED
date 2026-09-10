@@ -17,15 +17,17 @@ namespace MED
      * */
     public interface IProcess : IDisposable, IUndo
     {
+        IProcess Clone(Type? cloneType = null);
+
         string Name { get; set; }
 
         bool Enabled { get; set; }
 
-        string ProcessIcon { get; }
+        string ProcessIcon { get; set; }
 
         string ProcessIconDefault { get; }
 
-        Performance? Performance { get; }
+        Performance? Performance { get; set; }
 
         #region Settings
         ProcessSettings? ProcessSettings { get; }
@@ -39,12 +41,16 @@ namespace MED
 
         IConsumer? Consumer { get; }
 
-        void GameControllerChanged (IGameController gameController, PropertyChangedEventArgs eventArgs);
+        void OnGameControllerChanged (IGameController gameController, PropertyChangedEventArgs eventArgs);
 
         GameControllerScript? OnGameControllerScript { get; }
 
         [Browsable(false)]
         Dictionary<string, object> ObjectsProperties { get; }
+
+        Dictionary<string, object?>? Data { get; set; }
+
+        object? Tag { get; set; }
         #endregion
 
         #region IDisposable
@@ -57,10 +63,12 @@ namespace MED
         bool IsPaused { get; }
 
         delegate void ProcessStateChangedDelegate(IProcess sender, System.Threading.ThreadState state);
-        
-        IProcess.ProcessStateChangedDelegate? OnProcessStateChanged { get; set; }
 
-        System.Threading.ThreadState ProcessState { get; } // Constructor must initiate :> ProcessState = ThreadState.Unstarted;
+        void OnProcessStateChanged(IProcess sender, System.Threading.ThreadState state);
+
+        ProcessStateChangedDelegate? ProcessStateChanged { get; set; }
+
+        System.Threading.ThreadState ProcessState { get; set; } // Constructor must initiate :> ProcessState = ThreadState.Unstarted;
 
         void Start();
         void Pause();

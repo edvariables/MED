@@ -63,18 +63,18 @@ namespace MED.Imaging
                 Image = null;
                 if (changed)
                 {
-                    FrameChanged(this, EventArgs.Empty);
+                    OnFrameChanged(this, EventArgs.Empty);
                 }
             }
         }
-        public void FrameChanged(IMatFrameProvider sender, EventArgs e)
+        public void OnFrameChanged(IMatFrameProvider sender, EventArgs e)
         {
             ImageProvider = (IImageProvider)sender;
 
-            InvokeFrameChanged(sender, e);
+            InvokeFrameChanged(this, e);
 
-            if (OnImageChanged != null)
-                foreach (var del in OnImageChanged.GetInvocationList())
+            if (ImageChanged != null)
+                foreach (var del in ImageChanged.GetInvocationList())
                     if (del.Target is IMatFrameConsumer)
                         continue;
                     else if (del.Target is IImageConsumer)
@@ -84,12 +84,12 @@ namespace MED.Imaging
                         break;
                     }
 
-            InvokeImageChanged((IImageProvider)sender, e);
+            InvokeImageChanged(this, e);
         }
 
-        public void InvokeFrameChanged(IMatFrameProvider sender, EventArgs e) => InvokePropertyChanged(sender, OnFrameChanged, e);
+        public void InvokeFrameChanged(IMatFrameProvider sender, EventArgs e) => InvokePropertyChanged(sender, FrameChanged, e);
 
-        public IMatFrameProvider.FrameChangedDelegate? OnFrameChanged;
+        public IMatFrameProvider.FrameChangedDelegate? FrameChanged;
 
         #endregion
 

@@ -2,13 +2,10 @@
 using DynamicData;
 using Emgu.CV;
 using MED.Core;
-using MED.EDJoystick;
-using MED.EDWebCam;
 using MED.GameController;
 using MED.Imaging;
 using MED.Properties;
 using Microsoft.Win32;
-using MotionDetectionWinFormsApp;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -40,7 +37,7 @@ namespace MED
             Project.ProcessIcon = "MED";
             Project.Performance = new(Name);
 
-            ActiveProcessChanged(null);
+            OnActiveProcessChanged(null);
 
             Current = this;
         }
@@ -190,7 +187,7 @@ namespace MED
             {
                 FLogger.Current.Show();
                 FLogger.Current.SizeChanged += FormChild_SizeChanged;
-                if(Performance!=null)
+                if (Performance != null)
                     Performance.Logger = FLogger.Current.Logger;
             }
             if (FProperties.Current != null)
@@ -237,7 +234,7 @@ namespace MED
             if (processForm == null)
                 processForm = new ImageProcessForm("Projet " + childFormNumber++);
             processForm.MdiParent = this;
-            processForm.OnProcessStateChanged += ProcessStateChanged;
+            processForm.ProcessStateChanged += OnProcessStateChanged;
 
             processForm.Logger = FLogger.Current?.Logger;
 
@@ -245,7 +242,7 @@ namespace MED
 
             if (processForm.Processes.Count == 0)
             {
-                ProcessControl controller = new();
+                ProcessController controller = new();
                 controller.BackColor = System.Drawing.Color.Transparent;
                 controller.Dock = DockStyle.Top;
                 controller.ActiveProcess = processForm;
@@ -301,7 +298,7 @@ namespace MED
                     ((Render)processForm.Processes.First()).RenderImageControl = pictureBox;
                 else
                     ((ImageProcess)processForm.Processes.First()).InvokeHandler = pictureBox;
-                ((ImageProcess)processForm.Processes.First()).OnImageChanged += ProcessForm_ImageChanged;
+                ((ImageProcess)processForm.Processes.First()).ImageChanged += ProcessForm_ImageChanged;
             }
 
             Processes.Add(processForm);
@@ -551,12 +548,9 @@ namespace MED
             try
             {
                 IProcess? proc = (IProcess?)Activator.CreateInstance(type);
-                if (proc is ProcessForm)
+                if (proc is ProcessForm processForm)
                 {
-
-                    ProcessForm form = (ProcessForm)proc;
-
-                    return GetNewProcessForm("", form);
+                    return GetNewProcessForm("", processForm);
 
 
                     //form.MdiParent = this;
@@ -619,7 +613,7 @@ namespace MED
                 if (_active_Process != null)
                     if (_active_Process is Form)
                         ((Form)_active_Process).Activate();
-                ActiveProcessChanged(_active_Process);
+                OnActiveProcessChanged(_active_Process);
             }
         }
 
@@ -627,7 +621,7 @@ namespace MED
          * 
          * 
          * */
-        private void ActiveProcessChanged(IProcess? sender, System.Threading.ThreadState state = System.Threading.ThreadState.Unstarted)
+        private void OnActiveProcessChanged(IProcess? sender, System.Threading.ThreadState state = System.Threading.ThreadState.Unstarted)
         {
             if (sender == null || this.IsDisposed)
             {
@@ -671,18 +665,19 @@ namespace MED
                 ActiveProcess = (IProcess)this.ActiveMdiChild;
         }
 
-        void ProcessStateChanged(IProcess sender, System.Threading.ThreadState state)
+        public override void OnProcessStateChanged(IProcess sender, System.Threading.ThreadState state)
         {
+            base.OnProcessStateChanged(sender, state);
             var activeProcess = ActiveProcess;
             ProcessForm? processForm = ProcessForm.FindProcessForm(sender);
             if (processForm == activeProcess)
-                ActiveProcessChanged(sender, state);
-            if (state == System.Threading.ThreadState.Running)
+                OnActiveProcessChanged(sender, state);
+            if (ProcessState == System.Threading.ThreadState.Running)
             {
                 FLogger.Current?.Start();
 
             }
-            else if (state == System.Threading.ThreadState.Stopped)
+            else if (ProcessState == System.Threading.ThreadState.Stopped)
             {
                 FLogger.Current?.Stop();
                 btnProcessStartOneStep.Checked = false;
@@ -699,7 +694,7 @@ namespace MED
                 p.Start();
             else
                 MessageBox.Show("Aucun process actif. Sélectionnez une fenêtre.");
-            ActiveProcessChanged(p);
+            OnActiveProcessChanged(p);
         }
 
         private void btnProcessStartOneStep_Click(object sender, EventArgs e)
@@ -720,7 +715,7 @@ namespace MED
             }
             else
                 MessageBox.Show("Aucun process actif. Sélectionnez une fenêtre.");
-            ActiveProcessChanged(p);
+            OnActiveProcessChanged(p);
         }
 
         private void btnProcessPause_Click(object sender, EventArgs e) => ProcessPause();
@@ -738,7 +733,7 @@ namespace MED
             }
             else
                 MessageBox.Show("Aucun process actif. Sélectionnez une fenêtre.");
-            ActiveProcessChanged(p);
+            OnActiveProcessChanged(p);
         }
 
         private void btnProcessStop_Click(object sender, EventArgs e)
@@ -748,7 +743,7 @@ namespace MED
                 p.Stop();
             else
                 MessageBox.Show("Aucun process actif. Sélectionnez une fenêtre.");
-            ActiveProcessChanged(p);
+            OnActiveProcessChanged(p);
         }
 
         private void btnProcessStepPrevious_Click(object sender, EventArgs e)

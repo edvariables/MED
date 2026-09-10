@@ -86,7 +86,7 @@ namespace MED.GameController
          * */
         private void HookCallback(System.Windows.Forms.KeyEventArgs keyEventArgs, bool pressed)
         {
-            if (OnGameControllerChanged != null)
+            if (GameControllerChanged != null)
             {
                 Performance?.Debug($"HookCallback {keyEventArgs.KeyCode} + {keyEventArgs.Modifiers} : {pressed}");
                 Performance?.Logger?.InvokeBufferChanged(this, keyEventArgs);
@@ -105,7 +105,7 @@ namespace MED.GameController
                     if (keyEventArgs.Control)
                         keys = "Control+" + key.ToString();
                 }
-                InvokeControllerChanged(this, new(keys, pressed));
+                OnControllerChanged(this, new(keys, pressed));
             }
         }
         protected bool _saved_formHandler_KeyPreview;

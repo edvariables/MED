@@ -228,8 +228,8 @@ namespace MED
                 name = iprocess.Name;
                 image = iprocess.ProcessIcon;
 
-                iprocess.OnProcessStateChanged -= ItemProcess_StateChanged;
-                iprocess.OnProcessStateChanged += ItemProcess_StateChanged;
+                iprocess.ProcessStateChanged -= ItemProcess_StateChanged;
+                iprocess.ProcessStateChanged += ItemProcess_StateChanged;
             }
             else if (item is Performance performance)
             {

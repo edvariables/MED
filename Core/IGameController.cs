@@ -8,7 +8,7 @@ namespace MED
 {
     public interface IGameController : IProcess, IProvider
     {
-        void InvokeControllerChanged(IGameController sender, PropertyChangedEventArgs e);
+        void OnControllerChanged(IGameController sender, PropertyChangedEventArgs e);
         object? GetControllerPropertyValue(string controllerProperty);
         void SetControllerPropertyValue(string controllerProperty, object? value);
     }

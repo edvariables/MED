@@ -9,6 +9,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace MED
 {
@@ -18,6 +19,41 @@ namespace MED
      * */
     public static class ProcessStatic
     {
+        //public static IProcess Clone(IProcess cloneFrom, Type? cloneType = null)
+        //{
+        //    if (cloneType == null)
+        //        cloneType = cloneFrom.GetType();
+        //    object?[] parameters = [];
+        //    var constructor = cloneType.GetConstructor([]);
+        //    if (constructor == null)
+        //    {
+        //        bool isAsynchrone = false;
+        //        Control? invokeHandler = null;
+        //        if (cloneFrom is IProvider provider)
+        //            invokeHandler = provider.InvokeHandler;
+        //        if (cloneFrom is IConsumer consumer)
+        //            isAsynchrone = consumer.IsAsynchrone;
+        //        parameters = [cloneFrom.Name, cloneFrom.Performance, invokeHandler, cloneFrom.Consumer, isAsynchrone];
+        //        Type[] types = [typeof(string), typeof(Performance), typeof(Control), typeof(IConsumer), typeof(bool)];
+        //        constructor = cloneType.GetConstructor(types);
+        //        if (constructor == null)
+        //            throw new Exception("Not able to find constructor from types");
+        //    }
+        //    var clone = (IProcess)constructor.Invoke(parameters);
+        //    var memberwiseClone = clone.GetType().GetMethod("MemberwiseClone");
+        //    if (memberwiseClone == null)
+        //    {
+        //        clone.ProcessIcon = cloneFrom.ProcessIcon;
+        //        clone.Data = cloneFrom.Data;
+        //        clone.Tag = cloneFrom.Tag;
+        //        clone.Enabled = cloneFrom.Enabled;
+        //        clone.ProcessState = cloneFrom.ProcessState;
+        //    }
+        //    else
+        //        clone = (IProcess)memberwiseClone.Invoke(cloneFrom, []);
+        //    return clone;
+        //}
+
         /**
          * GetHandlerDelegate
          * Initialise variables for handler
@@ -82,7 +118,7 @@ namespace MED
                                              consumer,
                                              miHandler);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 consumer.Performance?.Error($"{eventInfo.FieldType} {consumer} {miHandler}", ex);
                 return null;
@@ -153,7 +189,7 @@ namespace MED
             RemoveConsumer(provider, consumer, property, consumerDelegate);
 
             property = ParsePropertyAndConsumerMethod(property, out string consumerMethodName, out string? providerSubProperty);
-            var providerDelegate = AddHandler(provider, $"On{property}Changed", consumer, consumer.GetType(), consumerDelegate == null ? $"{consumerMethodName}Changed" : consumerDelegate);
+            var providerDelegate = AddHandler(provider, $"{property}Changed", consumer, consumer.GetType(), consumerDelegate == null ? $"On{consumerMethodName}Changed" : consumerDelegate);
             if (providerDelegate == null)
                 return false;
 
@@ -182,7 +218,7 @@ namespace MED
         {
             property = ParsePropertyAndConsumerMethod(property, out string consumerMethodName, out string? providerSubProperty);
 
-            var providerDelegate = RemoveHandler(provider, $"On{property}Changed", consumer, consumer.GetType(), consumerDelegate == null ? $"{consumerMethodName}Changed" : consumerDelegate);
+            var providerDelegate = RemoveHandler(provider, $"{property}Changed", consumer, consumer.GetType(), consumerDelegate == null ? $"On{consumerMethodName}Changed" : consumerDelegate);
 
 
             if (!String.IsNullOrEmpty(providerSubProperty)
@@ -337,6 +373,8 @@ namespace MED
                     || member.Name == $"On{propertyName}Changed"
                     || member.Name == $"{propertyName}Changed")
                 {
+                    if (member.Name == $"On{propertyName}Changed")
+                        process.Performance?.Error($"IN GetOnChangedDelegates member.Name {member.Name} should not starts with 'On'.");
                     MulticastDelegate? del = (MulticastDelegate?)(member.GetValue(process));
                     if (del == null)
                         if (propertyName != "")
@@ -568,7 +606,7 @@ namespace MED
                     if (processItem is Process proc)
                         processItem = proc.Consumer;
                     else
-                        throw new Exception("Impossible de trouver le process parent");
+                        throw new Exception($"Impossible de trouver le process parent {relativePath} depuis {processRef}");
                     continue;
                 }
                 bool found = false;
@@ -600,6 +638,110 @@ namespace MED
                         if (((Process)processRef).Consumer == processToConsumer.Consumer)
                             return processToConsumer.Name + "/" + processTo.Name;
             return processTo.Name;
+        }
+
+        public static IProcess? FindProcess(IProcess current, string? path = null)
+        {
+            if (String.IsNullOrEmpty(path) || path == ".")
+                return current;
+            if (path[0] == '.' && path[1] == '.')
+            {
+                IConsumer? consumer = null;
+                if (current is IProvider provider)
+                    consumer = provider.Consumer;
+                if (consumer == null || path.Length == 2)
+                    return consumer;
+
+                if (path[2] == '/')
+                    return FindProcess(consumer, path.Substring(3).TrimStart('/'));
+
+                path = path.Substring(2);
+                var pathItems = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                if (consumer is IProcess process
+                    && process.Name == pathItems[0])
+                    return FindProcess(consumer, path.Substring(process.Name.Length + 1));
+
+                IProcess? found = null;
+                if (consumer is ProcessForm processForm1)
+                    found = processForm1.Project.GetItem(path);
+                else if (consumer is IProcesses processes1)
+                    found = processes1.GetItem(path);
+                if (found != null)
+                    return found;
+                return FindProcess(consumer, ".." + path);
+            }
+            else if (path[0] == '.' && path[1] == '/')
+            {
+                path = path.Substring(2).TrimStart('/');
+            }
+            else if (path[0] == '.')
+            {
+                IConsumer? consumer = null;
+                if (current is IProvider provider)
+                    consumer = provider.Consumer;
+                if (consumer == null)
+                    return consumer;
+                path = path.Substring(1);
+                return FindProcess(consumer, path);
+            }
+            if (path[0] == '/')
+            {
+                if (current is IProvider provider)
+                {
+                    IConsumer? consumer = provider.Consumer;
+                    if (consumer != null)
+                        return FindProcess(consumer, path);
+                }
+                if (path.Length == 1)
+                    return current;
+                path = path.TrimStart('/');
+                if (path.Length == 0)
+                    return current;
+            }
+            if (path[0] == ':')
+            {
+                if (current is IProcesses processes)
+                    return processes.GetItem(path.Substring(1));
+            }
+            else if (current is ProcessForm processForm)
+                return processForm.Project.GetItem(path);
+            else if (current is IProcesses processes)
+                return processes.GetItem(path);
+            else
+            {
+                IConsumer? consumer = null;
+                if (current is IProvider provider)
+                {
+                    consumer = provider.Consumer;
+                    if (consumer is ProcessForm processForm1)
+                        return processForm1.Project.GetItem(path);
+                    else if (consumer is IProcesses processes1)
+                        return processes1.GetItem(path);
+                }
+            }
+            return null;
+        }
+        public static IProcess? GetItem(IProcesses processes, string name)
+        {
+            var path = name.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            for (var i = 0; i < path.Length; i++)
+            {
+                IProcess? found = null;
+                foreach (var item in processes.Items)
+                    if (item.Name == path[i])
+                    {
+                        found = item;
+                        break;
+                    }
+                if (found == null
+                    || i == path.Length - 1)
+                    return found;
+                if (found is IProcesses)
+                    processes = (IProcesses)found;
+                else
+                    return null;
+            }
+            return null;
         }
         #endregion
 
@@ -647,10 +789,11 @@ namespace MED
          * GetEventScripts
          * Returns all process scripts
          * */
-        public static Dictionary<string, EventScript?> GetEventScripts(IProcess process, bool eventIfEmpty=false) {
+        public static Dictionary<string, EventScript?> GetEventScripts(IProcess process, bool eventIfEmpty = false)
+        {
             Dictionary<string, EventScript?> scripts = new();
 
-            foreach(var property in process.GetType().GetProperties())
+            foreach (var property in process.GetType().GetProperties())
                 if (property.PropertyType.IsAssignableTo(typeof(EventScript)))
                 {
                     var value = property.GetValue(process);

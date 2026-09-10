@@ -45,5 +45,9 @@ namespace MED
         delegate void ImageChangedDelegate(IImageProvider sender, EventArgs e);
 
         void InvokeImageChanged(IImageProvider? sender = null, EventArgs? e = null);
+
+        void OnPaint(Graphics graphics, EventArgs eventArgs);
+
+        PaintScript? OnPaintScript{ get; set; }
     }
 }

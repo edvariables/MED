@@ -203,8 +203,9 @@ namespace MED
             {
                 IProcess? process = e.Node.Tag != null && e.Node.Tag is IProcess ? (IProcess)e.Node.Tag : null;
                 IProcesses? processes = e.Node.Parent != null && process != null && e.Node.Parent.Tag is IProcesses ? (IProcesses)e.Node.Parent.Tag : null;
+                Performance? performance = e.Node.Tag != null && e.Node.Tag is Performance ? (Performance)e.Node.Tag : null;
                 toolStripMenuProcAdd.Visible = process != null;
-                toolStripMenuProcRemove.Visible = process != null;
+                toolStripMenuProcRemove.Visible = process != null || performance != null;
                 toolStripMenuItemProcessEnabled.Visible = process != null;
                 if (process != null)
                 {
@@ -311,12 +312,22 @@ namespace MED
                 MessageBox.Show("Veuillez sélectionner un process.");
                 return;
             }
-            var process = (IProcess)processesControl1.SelectedNode.Tag;
+            var selectedNode = processesControl1.SelectedNode;
+            Performance? performance = selectedNode.Tag != null && selectedNode.Tag is Performance ? (Performance)selectedNode.Tag : null;
+            if(performance != null)
+            {
+                performance.LastError = null;
+                if (performance.Logger != null)
+                    performance.Logger.LastErrorsClear(performance);
+                selectedNode.Remove();
+                return;
+            }
+            IProcess? process = selectedNode.Tag != null && selectedNode.Tag is IProcess ? (IProcess)selectedNode.Tag : null;
 
-            TreeNode? selectedParentNode = processesControl1.SelectedNode.Parent == null || processesControl1.SelectedNode.Parent.Tag == null ? null
-                                            : processesControl1.SelectedNode.Parent;
-            IProcess? selectedParentProcess = processesControl1.SelectedNode.Parent == null || processesControl1.SelectedNode.Parent.Tag == null ? null
-                                            : (IProcess)processesControl1.SelectedNode.Parent.Tag;
+            TreeNode? selectedParentNode = selectedNode.Parent == null || selectedNode.Parent.Tag == null ? null
+                                            : selectedNode.Parent;
+            IProcess? selectedParentProcess = selectedNode.Parent == null || selectedNode.Parent.Tag == null ? null
+                                            : (IProcess)selectedNode.Parent.Tag;
             if (selectedParentProcess != null)
             {
                 if (MessageBox.Show($"Êtes vous sûr de vouloir supprimer ce process {process.ToString()} ?", "Supprimer un process", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
@@ -327,13 +338,13 @@ namespace MED
             }
             else
             {
-                selectedParentNode = processesControl1.SelectedNode.Parent == null || processesControl1.SelectedNode.Parent.Parent == null || processesControl1.SelectedNode.Parent.Parent.Tag == null ? null
-                                            : processesControl1.SelectedNode.Parent.Parent;
+                selectedParentNode = selectedNode.Parent == null || selectedNode.Parent.Parent == null || selectedNode.Parent.Parent.Tag == null ? null
+                                            : selectedNode.Parent.Parent;
                 selectedParentProcess = selectedParentNode == null ? null
                                             : (IProcess)selectedParentNode.Tag;
-                if (selectedParentProcess != null && processesControl1.SelectedNode.Parent != null)
+                if (selectedParentProcess != null && selectedNode.Parent != null)
                 {
-                    switch (processesControl1.SelectedNode.Parent.Text)
+                    switch (selectedNode.Parent.Text)
                     {
                         case "Images vers":
                             if (MessageBox.Show($"Êtes vous sûr de vouloir retirer ce consommateur d'images {process.ToString()} ?", "Supprimer un consommateur d'images", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
@@ -348,7 +359,7 @@ namespace MED
                                 imageProcess2.RemoveConsumer(consumer2, "Frame");
                             break;
                         default:
-                            MessageBox.Show($"Non implémenté : {processesControl1.SelectedNode.Parent.Text}");
+                            MessageBox.Show($"Non implémenté : {selectedNode.Parent.Text}");
                             break;
                     }
                 }

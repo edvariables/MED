@@ -112,12 +112,12 @@ namespace MED.GameController
                 if (Enum.TryParse(typeof(Keys), iKey.ToString(), out oKey) && oKey != null)
                 {
                     Keys key = (Keys)oKey;
-                    if (OnGameControllerChanged != null)
+                    if (GameControllerChanged != null)
                     {
                         if (!_keys_state.TryAdd(key, pressed))
                             _keys_state[key] = pressed;
 
-                        InvokeControllerChanged(this, new(key.ToString(), pressed));
+                        OnControllerChanged(this, new(key.ToString(), pressed));
 
                         //return (IntPtr)1; // Prevent further processing
                     }

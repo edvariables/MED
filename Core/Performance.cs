@@ -379,7 +379,7 @@ namespace MED
 
         [Browsable(true)]
         [Category("Debug")]
-        public PerformanceException? LastError { get; internal set; }
+        public PerformanceException? LastError { get; set; }
 
         public string Debug(string step)
         {

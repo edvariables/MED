@@ -19,18 +19,18 @@ namespace MED.GameController
 
         public delegate void GameControllerChangedDelegate(IGameController sender, PropertyChangedEventArgs e);
 
-        public GameControllerChangedDelegate? OnGameControllerChanged;
+        public GameControllerChangedDelegate? GameControllerChanged;
 
 
         [Browsable(true)]
         [Category("Controller")]
         public UsagePropertiesMap UsagePropertiesMap { get; } = [];
 
-        public virtual void InvokeControllerChanged(IGameController sender, PropertyChangedEventArgs e)
+        public virtual void OnControllerChanged(IGameController sender, PropertyChangedEventArgs e)
         {
             e.Property = UsagePropertiesMap.GetPropertyUsage(e.Property);
 
-            InvokePropertyChanged(sender, OnGameControllerChanged, e, PropertyDomain);
+            InvokePropertyChanged(sender, GameControllerChanged, e, PropertyDomain);
         }
 
         public override bool AddConsumer(IConsumer consumer, string controllerProperty, MulticastDelegate? consumerDelegate = null) => base.AddConsumer(consumer, $"{PropertyDomain}.{controllerProperty}", consumerDelegate);

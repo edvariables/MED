@@ -21,7 +21,7 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>MEDIcons.resx</DependentUpon>
     </Compile>
-    <Compile Update="ProcessControl.cs">
+    <Compile Update="ProcessController.cs">
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Update="ProcessForm.cs">

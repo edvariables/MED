@@ -29,7 +29,7 @@ namespace MED
 
             ProcessIcon = ProcessIconDefault;
 
-            Project.OnProcessStateChanged += Invoke_ProcessStateChanged;
+            Project.ProcessStateChanged += OnProcessStateChanged;
         }
 
         protected override void WndProc(ref Message m)
@@ -39,6 +39,7 @@ namespace MED
             if (this.WindowState != org)
                 this.ProcessForm_WindowStateChanged(this, EventArgs.Empty);
         }
+        public IProcess Clone(Type? cloneType = null) => (IProcess)MemberwiseClone();
 
         protected virtual void Form_FormClosed(object? sender, FormClosedEventArgs e)
         {
@@ -98,17 +99,25 @@ namespace MED
 
         [Browsable(true)]
         [ReadOnly(true)]
+
+        [Category("Process")]
         public Processes Project { get; protected set; }
 
+
+        [Category("Process")]
         public Logger? Logger { get => Project.Logger; set => Project.Logger = value; }
 
         #region Settings
 
 
         [ReadOnly(true)]
+
+        [Category("Process")]
         public bool IsAsynchrone { get => Project.IsAsynchrone; set => Project.IsAsynchrone = value; }
 
         [Browsable(true)]
+
+        [Category("Process")]
         public ProcessSettings? ProcessSettings { get => Project.ProcessSettings; set => Project.ProcessSettings = value; }
 
         public virtual void LoadSettings(ProcessSettings? processSettings = null, string fileName = "")
@@ -149,6 +158,8 @@ namespace MED
         #region Processes
 
         [Browsable(true)]
+
+        [Category("Process")]
         public virtual List<IProcess> Processes { get => Project.Items; }
 
         public static ProcessForm? FindProcessForm(IProcess proc)
@@ -178,12 +189,14 @@ namespace MED
 
         #endregion
 
-        public Performance? Performance { get => Project.Performance; }
+
+        [Category("Process")]
+        public Performance? Performance { get => Project.Performance; set => Project.Performance = value; }
 
         [Browsable(false)]
         public IConsumer? Consumer => Project.Consumer;
 
-        public virtual void GameControllerChanged(IGameController gameController, PropertyChangedEventArgs eventArgs)
+        public virtual void OnGameControllerChanged(IGameController gameController, PropertyChangedEventArgs eventArgs)
         {
             if (OnGameControllerScript == null)
                 return;
@@ -202,11 +215,16 @@ namespace MED
         public bool IsPaused => Project.IsPaused;
 
         [Browsable(false)]
-        public IProcess.ProcessStateChangedDelegate? OnProcessStateChanged { get; set; }
+        public IProcess.ProcessStateChangedDelegate? ProcessStateChanged { get; set; }
+
+        public virtual void OnProcessStateChanged(IProcess sender, System.Threading.ThreadState state)
+        {
+            ProcessStateChanged?.Invoke(this, state);
+            if (sender != Project)
+                Project.OnProcessStateChanged(this, ProcessState);
+        }
 
         public System.Threading.ThreadState ProcessState { get => Project.ProcessState; set => Project.ProcessState = value; }
-
-        public void Invoke_ProcessStateChanged(IProcess sender, System.Threading.ThreadState state) => OnProcessStateChanged?.Invoke(sender, state);
 
         /**
          * 
@@ -244,6 +262,8 @@ namespace MED
 
 
         [Browsable(true)]
+
+        [Category("Process")]
         public bool StartFullScreen { get; set; }
 
         private FormWindowState StartFullScreen_WindowState;
@@ -251,6 +271,8 @@ namespace MED
 
         #endregion
 
+
+        [Category("Process")]
         public virtual Dictionary<string, object> ObjectsProperties
         {
             get
@@ -260,7 +282,9 @@ namespace MED
             }
         }
 
-        public string ProcessIcon
+
+        [Category("Process")]
+        public virtual string ProcessIcon
         {
             get => Project.ProcessIcon;
             set
@@ -271,7 +295,16 @@ namespace MED
             }
         }
 
+
+        [Category("Process")]
         public virtual string ProcessIconDefault { get; protected set; } = "Visual";
+
+
+        [Category("Process")]
+        public Dictionary<string, object?>? Data { get; set; }
+
+        [Category("Process")]
+        public new object? Tag { get; set; }
 
 
         #region IUndo

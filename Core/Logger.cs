@@ -42,7 +42,7 @@ namespace MED
         public void Append(string msg, params object[] args)
         {
             if (!Enabled) return;
-            
+
             for (int i = 0; i < args.Length; i++)
             {
                 msg = msg.Replace("{" + i.ToString() + "}", args[i].ToString());
@@ -154,6 +154,15 @@ namespace MED
             LastErrors = new();
             LastErrorTime = DateTime.Now;
             LastErrorsCount = 0;
+        }
+        public void LastErrorsClear(Performance performance)
+        {
+            if (LastError != null && LastError.Performance == performance)
+                LastError = null;
+            if (LastErrors.ContainsKey(performance))
+                LastErrors.Remove(performance);
+            LastErrorTime = DateTime.Now;
+            LastErrorsCount = LastErrors.Count;
         }
         #endregion
     }

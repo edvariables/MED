@@ -103,7 +103,7 @@ namespace MED
 
         private static string GetMethodName(IProcess process, string eventName)
         {
-            return $"{eventName}";
+            return $"On{eventName}";
         }
 
         private static MethodInfo? GetMethod(IProcess process, string eventName)
@@ -186,14 +186,19 @@ namespace MED
             if (CompiledScript == null)
                 return true;
 
-            return Eval(Process, CompiledScript, ScriptGlobalsNew(Process, parameters), parameters);
+            return Eval(Process, CompiledScript, ScriptGlobalsNew(Process, parameters));
         }
 
-        private static bool Eval(IProcess process, Script script, ScriptGlobals scriptGlobals, params object[]? parameters)
+        private static bool Eval(IProcess process, Script script, ScriptGlobals scriptGlobals)
         {
             try
             {
-                var result = script.RunAsync(scriptGlobals).Result;
+                Func<Exception, bool> catchException = (Exception ex) =>
+                {
+                    process.Performance?.Error($"Script : Evaluation error in \n{script.Code}\n--- {process} ---\n", ex);
+                    return true;
+                };
+                var result = script.RunAsync(scriptGlobals, catchException).Result;
             }
             catch (AggregateException ex)
             {
@@ -210,7 +215,7 @@ namespace MED
 
         private static string InsertVariablesNames(string script, IProcess process
             , Dictionary<string, Type>? parametersNames, out HashSet<Assembly> assemblies
-            , out Dictionary<string, Type>? variablesNames, params object[]? parameters)
+            , out Dictionary<string, Type>? variablesNames, params object?[]? parameters)
         {
             assemblies = new();
             variablesNames = new();
@@ -221,13 +226,25 @@ namespace MED
             StringBuilder scriptAdd = new();
             HashSet<string> namespaces = new();
 
+            var gameController = ProcessStatic.GetGameController(process);
+
             // namespaces
             namespaces.Add(typeof(Exception).Namespace ?? "");
             namespaces.Add(typeof(PointF).Namespace ?? "");
             namespaces.Add(typeof(MessageBox).Namespace ?? "");
+            namespaces.Add(typeof(Enumerable).Namespace ?? "");
+            namespaces.Add(typeof(Dictionary<object, object>).Namespace ?? "");
+            namespaces.Add(typeof(Process).Namespace ?? "");
+            if (gameController != null)
+                namespaces.Add(gameController.GetType().Namespace ?? "");
+
 
             // assemblies
+            assemblies.Add(typeof(Enumerable).Assembly);
             assemblies.Add(typeof(MessageBox).Assembly);
+            assemblies.Add(typeof(Dictionary<object, object>).Assembly);
+            if (gameController != null)
+                assemblies.Add(gameController.GetType().Assembly);
 
             foreach (var (name, paramType) in parametersNames)
             {
@@ -266,6 +283,7 @@ namespace MED
             if (scriptAdd.Length > 0)
                 script = $"{scriptAdd.ToString()}\n{script}";
 
+            //using
             if (namespaces.Count > 0)
             {
                 scriptAdd = new();
@@ -364,6 +382,9 @@ namespace MED
             }
         }
 
+        /**
+         * ScriptGlobals properties and functions available in script.
+         * */
         public class ScriptGlobals(IProcess process, object[]? parameters)
         {
             public object[]? _params_ = parameters;
@@ -371,6 +392,8 @@ namespace MED
             public IProcess _process = process;
 
             public Performance? perf = process.Performance;
+
+            public IProcess? FindProcess(string? path = null) => ProcessStatic.FindProcess(_process, path);
         }
         #endregion
     }
