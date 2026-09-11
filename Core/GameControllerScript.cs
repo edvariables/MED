@@ -60,7 +60,7 @@ namespace MED
 
         public override Type ScriptGlobalsType { get; } = typeof(ScriptGlobalsGameController);
 
-        public class ScriptGlobalsGameController(IProcess process, object[]? parameters) : ScriptGlobals(process, parameters)
+        public class ScriptGlobalsGameController(IProcess process, object?[] parameters) : ScriptGlobals(process, parameters)
         {
             public bool controllerPressed(Keys key) => controllerPressed(key.ToString());
             public object? controllerState(Keys key) => controllerState(key.ToString());

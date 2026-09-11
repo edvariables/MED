@@ -24,7 +24,7 @@ namespace MED
     public class EventScript(IProcess iProcess, string eventName)
     {
         [Browsable(false)]
-        public IProcess Process { get; set; } = iProcess;
+        public virtual IProcess Process { get; set; } = iProcess;
 
         [Browsable(true)]
         [ReadOnly(true)]
@@ -55,6 +55,12 @@ namespace MED
                     OnScriptChanged(this, EventArgs.Empty);
             }
         }
+
+        [Browsable(true)]
+        [Category("Script")]
+        [Description("Script prepared in the project global script")]
+        public ProjectScript.IScriptGlobalsEval? ScriptEval { get; set; }
+
         protected virtual void AddConsumers() { }
         protected virtual void RemoveConsumers() { }
 
@@ -90,6 +96,9 @@ namespace MED
 
         private static Dictionary<string, Type>? GetParametersNames(IProcess process, string eventName)
         {
+            if (eventName == "")
+                return [];
+
             var method = GetMethod(process, eventName);
             if (method == null)
             {
@@ -120,25 +129,39 @@ namespace MED
         }
 
         /**
-         * 
+         * PrepareScript
          * 
          * */
-        public bool CompileScript(params object?[]? parameters)
+        public virtual string PrepareScript(out HashSet<Assembly> assemblies, params object?[]? parameters)
         {
+            assemblies = [];
 
-            if (string.IsNullOrEmpty(Script)) return true;
+            if (string.IsNullOrEmpty(Script)) return "";
 
             Dictionary<string, Type>? variablesNames;
 
-            var script = InsertVariablesNames(ParametersNames, out HashSet<Assembly> assemblies, out variablesNames, parameters);
+            var script = InsertVariablesNames(ParametersNames, out assemblies, out variablesNames, parameters);
 
             script = ReplaceProcessesPath(script, Process, ParametersNames, variablesNames);
 
             VariablesNames = variablesNames;
 
+            return script;
+        }
+
+        /**
+         * CompileScript
+         * 
+         * */
+        public virtual bool CompileScript(params object?[] parameters)
+        {
+            if (string.IsNullOrEmpty(Script)) return true;
+
+            var script = PrepareScript(out HashSet<Assembly> assemblies, parameters);
+
             try
             {
-                Process.Performance?.Sub("EventScript").Debug($"Compiling {EventName}...");
+                Process.Performance?.Sub(".EventScript").Debug($"Compiling {EventName}...");
                 Process.Performance?.Logger?.InvokeBufferChanged(this, EventArgs.Empty);
 
                 using (var loader = new InteractiveAssemblyLoader())
@@ -159,7 +182,7 @@ namespace MED
                     return false;
                 }
 
-                Process.Performance?.Sub("EventScript").Debug($"Compile {EventName} done");
+                Process.Performance?.Sub(".EventScript").Debug($"Compile {EventName} done");
                 Process.Performance?.Logger?.InvokeBufferChanged(this, EventArgs.Empty);
                 CompiledScriptErrors = null;
 
@@ -176,21 +199,31 @@ namespace MED
          * 
          * 
          * */
-        public bool Eval(params object?[]? parameters)
+        public bool Eval(params object?[] parameters)
         {
             var script = Script;
 
-            if (string.IsNullOrEmpty(script)) return true;
+            if (string.IsNullOrEmpty(script) || Process.Disposing || Process.IsDisposed) return true;
 
+            if (ScriptEval != null) try
+                {
+                    ScriptEval.Eval(Process, parameters);
+                    return true;
+                }
+                catch(Exception ex)
+                {
+                    Process.Performance?.Error($"ScriptEval.Eval throws an error. {parameters}", ex);
+                    return false;
+                }
             if (CompiledScript == null)
-                if (!CompileScript(parameters))
+                if (!CompileScript(parameters ?? []))
                     return false;
             if (CompiledScriptErrors != null)
                 return false;
             if (CompiledScript == null)
                 return true;
 
-            return Eval(Process, CompiledScript, ScriptGlobalsNew(Process, parameters));
+            return Eval(Process, CompiledScript, ScriptGlobalsNew(Process, parameters ?? []));
         }
 
         private static bool Eval(IProcess process, Script script, ScriptGlobals scriptGlobals)
@@ -299,7 +332,7 @@ namespace MED
             if (parametersNames == null || parameters == null)
                 return Script ?? "";
 
-            var script = Script;
+            var script = Script ?? "";
             int paramIndex = 0;
             StringBuilder scriptAdd = new();
             HashSet<string> namespaces = new();
@@ -422,6 +455,11 @@ namespace MED
                         settings.SettingsRoot.OnLoadSettingsDone -= process.LoadSettingsDone;
                         settings.SettingsRoot.OnLoadSettingsDone += process.LoadSettingsDone;
                     }
+                    else
+                    {
+                        settings.OnLoadSettingsDone -= process.LoadSettingsDone;
+                        settings.OnLoadSettingsDone += process.LoadSettingsDone;
+                    }
                 }
                 else
                     eventScript = null;
@@ -429,10 +467,13 @@ namespace MED
         }
 
         #region ScriptGlobals
+        [Browsable(false)]
         public virtual Type ScriptGlobalsType { get; } = typeof(ScriptGlobals);
-        public ScriptGlobals ScriptGlobalsNew(IProcess process, object?[]? parameters) => (ScriptGlobals)ScriptGlobalsType.GetConstructors().First().Invoke([process, parameters]);
+        public ScriptGlobals ScriptGlobalsNew(IProcess process, object?[] parameters) => (ScriptGlobals)ScriptGlobalsType.GetConstructors().First().Invoke([process, parameters]);
 
         private Dictionary<string, MethodInfo>? _ScriptGlobalsFunctions;
+
+        [Browsable(false)]
         public Dictionary<string, MethodInfo> ScriptGlobalsFunctions
         {
             get
@@ -470,15 +511,15 @@ namespace MED
         /**
          * ScriptGlobals properties and functions available in script.
          * */
-        public class ScriptGlobals(IProcess process, object[]? parameters)
+        public class ScriptGlobals(IProcess process, object?[] parameters)
         {
-            public object[]? _params_ = parameters;
+            public object?[] _params_ = parameters;
 
             public IProcess _process = process;
 
-            public Performance? perf = process.Performance;
+            public Performance? perf { get => _process.Performance; }
 
-            public Dictionary<string, object?>? processData
+            public Dictionary<string, object?> processData
             {
                 get
                 {
@@ -486,7 +527,7 @@ namespace MED
                         return _process.Data = [];
                     return _process.Data;
                 }
-                set => _process.Data = value;
+                set => _process.Data = value ?? [];
             }
 
             public IProcess? GetProcess(string? path = null) => ProcessStatic.GetProcess(_process, path);

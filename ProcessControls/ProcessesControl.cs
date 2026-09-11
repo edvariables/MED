@@ -34,25 +34,31 @@ namespace MED
         }
 
 
-        public object CurrentProperty
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public object? CurrentProperty
         {
-            get => this.SelectedNode.Tag;
+            get => this.SelectedNode?.Tag;
             set => ShowProperty(value);
         }
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public object[] CurrentProperties
         {
             get
             {
                 List<object> objects = new();
                 foreach (TreeNode node in this.Nodes)
-                    objects.Add(node.Tag);
+                    if (node.Tag != null)
+                        objects.Add(node.Tag);
                 return objects.ToArray();
             }
             set => ShowProperties(value);
         }
 
-        public void ShowProperty(object o)
+        public void ShowProperty(object? o)
         {
+            if (o == null)
+                return;
             foreach (TreeNode node in this.Nodes)
                 if (node.Tag == o)
                 {

@@ -2,7 +2,9 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing.Design;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
@@ -55,6 +57,13 @@ namespace MED
             }
         }
 
+        [Category("Script")]
+        [Description("Global script containing all items scripts.")]
+        [ReadOnly(true)]
+        [Editor(typeof(EventScriptEditor), typeof(UITypeEditor))]
+        [TypeConverter(typeof(EventScriptConvertor))]
+        public ProjectScript? ProjectScript { get; protected set; }
+
         #region Settings
 
         public override void LoadSettings(ProcessSettings? settings = null, string fileName = "")
@@ -69,6 +78,16 @@ namespace MED
 
             if (ProcessSettings != null)
                 LoadProcesses(ProcessSettings);
+        }
+        public override void LoadSettingsDone(object? sender, EventArgs e)
+        {
+            base.LoadSettingsDone(sender, e);
+
+            if (Consumer is ProcessForm processForm)
+            {
+                ProjectScript = new ProjectScript(this);
+                ProjectScript.CompileScript();
+            }
         }
 
         public override void SaveSettings(ProcessSettings? settings = null, string fileName = "")

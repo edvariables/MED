@@ -44,6 +44,7 @@ namespace MED
 
         public Color DefaultLoggerColor { get { return rtbLog.ForeColor; } }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string ProgressMessage
         {
             get => lblProgressMessage.Text;

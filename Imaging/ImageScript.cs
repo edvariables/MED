@@ -8,12 +8,12 @@ using System.Threading.Tasks;
 
 namespace MED
 {
-    public class PaintScript(IImageProvider process, string eventName) : EventScript(process, eventName)
+    public class PaintScript(IProcess process, string eventName) : EventScript(process, eventName)
     {
 
         public override Type ScriptGlobalsType { get; } = typeof(ScriptGlobalsPaint);
 
-        public class ScriptGlobalsPaint(IImageProvider process, object[]? parameters) : ScriptGlobals(process, parameters)
+        public class ScriptGlobalsPaint(IProcess process, object?[] parameters) : ScriptGlobals(process, parameters)
         {
         }
     }

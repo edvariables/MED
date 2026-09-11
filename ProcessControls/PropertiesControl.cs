@@ -59,6 +59,8 @@ namespace MED
 
         [Setting]
         [SettingsDescription("Hauteur de l'arborescence")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        [Browsable(false)]
         public int SplitterDistance
         {
             get => splitContainer1.SplitterDistance;
@@ -67,21 +69,27 @@ namespace MED
 
         public ProcessesControl ProcessesControl { get => processesControl1; }
 
-        public object CurrentProperty
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public object? CurrentProperty
         {
-            get => propertyGrid.SelectedObject;
+            get => propertyGrid?.SelectedObject;
             set => ShowProperty(value);
         }
+
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public object[] CurrentProperties
         {
             get => cboObjectsList.Items.OfType<object>().ToArray();
             set => ShowProperties(value);
         }
 
-        public void ShowProperty(object o)
+        public void ShowProperty(object? o)
         {
             propertyGrid.SelectedObject = o;
-            processesControl1.ShowProperty(o);
+            if (o != null)
+                processesControl1.ShowProperty(o);
         }
 
         public void ShowProperties(object[]? items, TreeNode? rootNode = null, bool clear = false)
@@ -113,7 +121,7 @@ namespace MED
             if (nodeItem is TreeNode node)
                 nodeItem = node.Tag;
 
-            object currentObject = propertyGrid.SelectedObject;
+            object? currentObject = propertyGrid.SelectedObject;
             cboObjectsList.Items.Clear();
             if (nodeItem == null)
                 return;
@@ -259,8 +267,11 @@ namespace MED
                         ShowProperties([process]);
                         return;
                     }
+                if (processesControl1.SelectedNode == null)
+                    return;
+
                 TreeNode? selectedNode = processesControl1.SelectedNode;
-                IProcess selectedProcess = (IProcess)selectedNode.Tag;
+                IProcess? selectedProcess = (IProcess?)selectedNode.Tag;
                 TreeNode? selectedParentNode = selectedNode.Parent == null ? null : selectedNode.Parent;
                 IProcess? selectedParentProcess = selectedParentNode == null || selectedParentNode.Tag == null ? null
                                             : (IProcess)selectedParentNode.Tag;
@@ -369,7 +380,7 @@ namespace MED
                 selectedParentNode = selectedNode.Parent == null || selectedNode.Parent.Parent == null || selectedNode.Parent.Parent.Tag == null ? null
                                             : selectedNode.Parent.Parent;
                 selectedParentProcess = selectedParentNode == null ? null
-                                            : (IProcess)selectedParentNode.Tag;
+                                            : (IProcess?)selectedParentNode.Tag;
                 if (selectedParentProcess != null && selectedNode.Parent != null)
                 {
                     switch (selectedNode.Parent.Text)
@@ -396,7 +407,7 @@ namespace MED
                 ShowProperties([selectedParentProcess], selectedParentNode?.Parent);
         }
 
-        private void MoveItemInProcessesItems(TreeNode node, int offset)
+        private void MoveItemInProcessesItems(TreeNode? node, int offset)
         {
             if (node == null)
                 return;
@@ -411,9 +422,9 @@ namespace MED
                 processesControl1.ShowProperties(processes.Items.ToArray(), node.Parent, true);
             }
         }
-        private void toolStripMenuItemMoveBefore_Click(object sender, EventArgs e) => MoveItemInProcessesItems(processesControl1.SelectedNode, -1);
+        private void toolStripMenuItemMoveBefore_Click(object sender, EventArgs e) => MoveItemInProcessesItems(processesControl1?.SelectedNode, -1);
 
-        private void toolStripMenuItemMoveAfter_Click(object sender, EventArgs e) => MoveItemInProcessesItems(processesControl1.SelectedNode, +1);
+        private void toolStripMenuItemMoveAfter_Click(object sender, EventArgs e) => MoveItemInProcessesItems(processesControl1?.SelectedNode, +1);
 
         private void toolStripMenuItemProcessEnabled_Click(object sender, EventArgs e)
         {

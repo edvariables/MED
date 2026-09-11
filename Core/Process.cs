@@ -244,8 +244,8 @@ namespace MED
             if (settings.Root != null)
                 LoadProcess(settings.Root);
 
-            EventScript.LoadSetting(settings, this, nameof(OnGameControllerScript));
             EventScript.LoadSetting(settings, this, nameof(OnProcessStateScript));
+            EventScript.LoadSetting(settings, this, nameof(OnGameControllerScript));
 
             if (settings.OnLoadSettingsDone != null)
                 settings.OnLoadSettingsDone(this, EventArgs.Empty);
@@ -255,10 +255,10 @@ namespace MED
 
         public virtual void LoadSettingsDone(object? sender, EventArgs e)
         {
-            if (OnGameControllerScript != null)
-                OnGameControllerScript.Script = OnGameControllerScript.Script;
             if (OnProcessStateScript != null)
                 OnProcessStateScript.Script = OnProcessStateScript.Script;
+            if (OnGameControllerScript != null)
+                OnGameControllerScript.Script = OnGameControllerScript.Script;
         }
 
         public virtual void SaveSettings(ProcessSettings? settings = null, string fileName = "")
@@ -299,7 +299,7 @@ namespace MED
             if (OnGameControllerScript != null && !string.IsNullOrEmpty(OnGameControllerScript.Script))
                 node.Add(nameof(OnGameControllerScript), OnGameControllerScript.Script);
 
-            if (OnProcessStateScript!= null && !string.IsNullOrEmpty(OnProcessStateScript.Script))
+            if (OnProcessStateScript != null && !string.IsNullOrEmpty(OnProcessStateScript.Script))
                 node.Add(nameof(OnProcessStateScript), OnProcessStateScript.Script);
 
             node["Perf"] = Performance?.SaveNode();
@@ -338,11 +338,13 @@ namespace MED
         [Browsable(false)]
         public IProcess.ProcessStateChangedDelegate? ProcessStateChanged { get; set; }
 
-        public virtual void OnProcessStateChanged(IProcess sender, System.Threading.ThreadState state) {
+        public virtual void OnProcessStateChanged(IProcess sender, System.Threading.ThreadState state)
+        {
             ProcessStateChanged?.Invoke(this, state);
-            OnProcessStateScript?.Eval(this, ProcessState);
+            if (!Disposing && !IsDisposed)
+                OnProcessStateScript?.Eval(this, ProcessState);
         }
-        
+
         [Browsable(true)]
         [Category("Process")]
         [Editor(typeof(EventScriptEditor), typeof(UITypeEditor))]

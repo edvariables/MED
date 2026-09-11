@@ -25,6 +25,7 @@ namespace MED
         #region Settings
 
         [Browsable(true)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public virtual Size ImageSizeMin { get; protected set; }
 
         public override void LoadSettings(ProcessSettings? settings = null, string fileName = "")
@@ -47,6 +48,7 @@ namespace MED
 
         #region Image
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public PictureBox? RenderPictureBox { get; set; }
 
         /**

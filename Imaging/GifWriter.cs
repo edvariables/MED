@@ -5,6 +5,11 @@ using System.IO;
 using System.Threading.Tasks;
 using static MED.Imaging.GifWriter;
 
+/***
+ * TODO
+ * 
+ * */
+
 namespace MED.Imaging
 {// Source - https://stackoverflow.com/a/32810041
  // Posted by Mathew Sachin, modified by community. See post 'Timeline' for change history
