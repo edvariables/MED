@@ -138,7 +138,12 @@ namespace MED
         public virtual void LoadProcess(JsonNode node) => Project.LoadProcess(node);
         public virtual void LoadSettingsDone(object? sender, EventArgs e) => throw new NotImplementedException();
 
-        public virtual void SaveSettings(ProcessSettings? settings = null, string fileName = "") => Project.SaveSettings(settings, fileName);
+        public virtual void SaveSettings(ProcessSettings? settings = null, string fileName = "")
+        {
+            if (ProcessSettings != null)
+                ProcessSettings.Root = new JsonObject();
+            Project.SaveSettings(settings, fileName);
+        }
 
         public virtual JsonObject SaveProcess(JsonObject? node = null)
         {

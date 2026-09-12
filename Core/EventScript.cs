@@ -47,6 +47,7 @@ namespace MED
                 RemoveConsumers();
                 _Script = value;
                 CompiledScript = null;
+                ScriptEval = null;//TODO set global script is dirty
                 _ParametersNames = null;
 
                 AddConsumers();
@@ -146,7 +147,30 @@ namespace MED
 
             VariablesNames = variablesNames;
 
+            return AddPreprocessorDirectives(script);
+        }
+
+        public virtual string AddPreprocessorDirectives(string script)
+        {
+            script = "#nullable enable\n" + script;
+
             return script;
+        }
+
+        HashSet<string> _IgnoreCompilationWarnings = [];
+        public HashSet<string> IgnoreCompilationWarnings
+        {
+            get
+            {
+                if (_IgnoreCompilationWarnings.Count == 0)
+                {
+                    _IgnoreCompilationWarnings.Add("CS8600");
+                    _IgnoreCompilationWarnings.Add("CS8602");
+                    _IgnoreCompilationWarnings.Add("CS8604");
+                    _IgnoreCompilationWarnings.Add("CS8605");
+                }
+                return _IgnoreCompilationWarnings;
+            }
         }
 
         /**
@@ -171,15 +195,19 @@ namespace MED
                 var results = CompiledScript.Compile();
                 if (results.Length > 0)
                 {
-                    var message = $"Script {EventName}: Compilation error";
+                    var message = new StringBuilder();
                     foreach (var result in results)
-                        message += $"\n{result}";
-                    message += $"\n* Script :\n{script}";
-                    Process.Performance?.Error(message);
-                    Process.Performance?.Logger?.InvokeBufferChanged(this, EventArgs.Empty);
-                    CompiledScriptErrors = results.ToList<object>();
+                        if (!IgnoreCompilationWarnings.Contains(result.Id))
+                            message.AppendLine($"{result}");
+                    if (message.Length > 0)
+                    {
+                        message.AppendLine($"*** Script :\n{script}");
+                        Process.Performance?.Error($"Script {EventName}: Compilation error\n" + message.ToString());
+                        Process.Performance?.Logger?.InvokeBufferChanged(this, EventArgs.Empty);
+                        CompiledScriptErrors = results.ToList<object>();
 
-                    return false;
+                        return false;
+                    }
                 }
 
                 Process.Performance?.Sub(".EventScript").Debug($"Compile {EventName} done");
@@ -210,7 +238,7 @@ namespace MED
                     ScriptEval.Eval(Process, parameters);
                     return true;
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     Process.Performance?.Error($"ScriptEval.Eval throws an error. {parameters}", ex);
                     return false;
@@ -226,7 +254,7 @@ namespace MED
             return Eval(Process, CompiledScript, ScriptGlobalsNew(Process, parameters ?? []));
         }
 
-        private static bool Eval(IProcess process, Script script, ScriptGlobals scriptGlobals)
+        protected static bool Eval(IProcess process, Script script, ScriptGlobals scriptGlobals)
         {
             try
             {
@@ -513,8 +541,8 @@ namespace MED
          * */
         public class ScriptGlobals(IProcess process, object?[] parameters)
         {
+            public void _set_params_(IProcess process1, object?[] parameters) { _process = process1; _params_ = parameters; }
             public object?[] _params_ = parameters;
-
             public IProcess _process = process;
 
             public Performance? perf { get => _process.Performance; }

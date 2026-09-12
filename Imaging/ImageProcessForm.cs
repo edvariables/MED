@@ -12,6 +12,7 @@ namespace MED
 {
     public class ImageProcessForm : ProcessForm, IImageConsumer
     {
+        public ImageProcessForm() : this("ImageProcessForm") { }
         public ImageProcessForm(string name) : base(name)
         {
             ProcessIcon = "VisualTrue";

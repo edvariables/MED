@@ -50,7 +50,7 @@ namespace MED
         }
 
 
-        private Dictionary<EventScript, string> ProcessScriptIDs = [];
+        private Dictionary<string, EventScript> ProcessScriptIDs = [];
 
         /**
          * PrepareScript
@@ -71,15 +71,18 @@ namespace MED
                 if (eventScript == this)
                     continue;
                 var scriptID = GetEventScriptID(eventScript);
-                ProcessScriptIDs.Add(eventScript, scriptID);
+                ProcessScriptIDs.Add(scriptID, eventScript);
 
                 script.AppendLine($"/*****\n * {eventScript.Process.ToString()} {eventScript.EventName} */");
 
                 var scriptGlobalsTypeName = (eventScript.ScriptGlobalsType.FullName ?? eventScript.ScriptGlobalsType.Name).Replace('+', '.');
                 var scriptGlobalsEvalTypeName = (typeof(IScriptGlobalsEval).FullName ?? typeof(IScriptGlobalsEval).Name).Replace('+', '.');
-                script.AppendLine($"public class {scriptID}(IProcess process, object[]? parameters) : {scriptGlobalsTypeName}(process, parameters), {scriptGlobalsEvalTypeName}{{");
+                script.AppendLine($"public class {scriptID}(IProcess process, object?[] parameters) : {scriptGlobalsTypeName}(process, parameters), {scriptGlobalsEvalTypeName}{{");
 
-                script.AppendLine($"public void Eval(IProcess _evalProcess, params object?[]? parameters){{");
+                script.AppendLine($"public static void SetToScriptEval(EventScript eventScript) => SetScriptEval(eventScript, typeof({scriptID}), []);");
+
+                script.AppendLine($"public void Eval(IProcess _evalProcess, params object?[] _params_){{");
+                script.AppendLine($"_set_params_(_evalProcess, _params_);");
 
                 var script1 = eventScript.PrepareScript(out HashSet<Assembly> eventAssemblies);
                 foreach (var assembly in eventAssemblies)
@@ -101,19 +104,23 @@ namespace MED
 
             script.AppendLine(innerScript);
 
-            return base.Script = script.ToString();
+            foreach (var classId in ProcessScriptIDs.Keys)
+                script.AppendLine($"{classId}.SetToScriptEval({nameof(ProcessScriptIDs)}[\"{classId}\"]);");
+
+            return base.Script = AddPreprocessorDirectives(script.ToString());
         }
 
         private string ExtractNamespaces(string script, List<string> namespaces)
         {
             Regex regex = new(@"\n\t*using\s.+;\r?");
-            MatchEvaluator evaluator = new((match) => {
+            MatchEvaluator evaluator = new((match) =>
+            {
                 var v = match.Value.TrimStart('\n', '\t').TrimEnd('\r');
                 if (!namespaces.Contains(v))
                     namespaces.Add(v);
-                return ""; 
+                return "";
             });
-            script= regex.Replace(script, evaluator);
+            script = regex.Replace(script, evaluator);
             return script;
         }
 
@@ -172,26 +179,16 @@ namespace MED
          * */
         public override bool CompileScript(params object?[] parameters)
         {
-            PrepareScript(out HashSet<Assembly> assemblies, parameters);//For Script not toi be empty TODO better
+            if (String.IsNullOrEmpty(Script))
+                PrepareScript(out HashSet<Assembly> assemblies, parameters);//For Script not to be empty TODO better
 
             ClearAllScriptEvalProcesses(Process);
 
-            if (base.CompileScript(parameters))
+            if (base.CompileScript(parameters)
+                && CompiledScript != null)
             {
-                foreach (var (eventScript, classId) in ProcessScriptIDs)
-                {
-                    try
-                    {
-                        eventScript.ScriptEval = ScriptGlobalsProcesses.GetNew(classId, eventScript.Process, parameters);
-                    }
-                    catch (Exception ex)
-                    {
-                        eventScript.Process.Performance?.Error($"ScriptGlobalsProcesses.GetNew throw an error {classId}.", ex);
-                        eventScript.ScriptEval = null;
-
-                        return false;
-                    }
-                }
+                var scriptGlobals = new ScriptGlobalsProcesses(Process, ProcessScriptIDs);
+                return Eval(Process, CompiledScript, scriptGlobals);
             }
             return true;
         }
@@ -201,7 +198,7 @@ namespace MED
 
         public override Type ScriptGlobalsType { get; } = typeof(ScriptGlobalsProcesses);
 
-        public class ScriptGlobalsProcesses(IProcess process, object?[] parameters) : ScriptGlobals(process, parameters)
+        public class ScriptGlobalsProcesses(IProcess process1, Dictionary<string, EventScript> processScriptIDs) : ScriptGlobals(process1, [])
         {
             public IProcesses? project
             {
@@ -213,16 +210,32 @@ namespace MED
                 }
             }
 
-            public static IScriptGlobalsEval GetNew(string classID, IProcess process, params object?[] parameters)
+            public Dictionary<string, EventScript> ProcessScriptIDs = processScriptIDs;
+
+            //public IScriptGlobalsEval? GetNew(string classID, IProcess process, params object?[] parameters)
+            //{
+            //    if (string.IsNullOrEmpty(classID))
+            //        return null;
+            //    var classType = Type.GetType(classID);
+            //    if (classType == null)
+            //        throw new Exception($"Type {classID} does not exist.");
+            //    List<object?> paramList = new([process]);
+            //    paramList.AddRange(parameters);
+            //    return (IScriptGlobalsEval)classType.GetConstructors().First().Invoke([.. paramList]);
+            //}
+
+            public static void SetScriptEval(EventScript eventScript, Type scriptGlobalsEvalType, object?[] parameters)
             {
-                var classType = Type.GetType(classID);
-                if (classType == null)
-                    throw new Exception($"Type {classID} does not exist.");
-                List<object?> paramList = new([process]);
-                paramList.AddRange(parameters);
-                return (IScriptGlobalsEval)classType.GetConstructors().First().Invoke([.. paramList]);
+                List<object?> paramList = new([eventScript.Process]);
+                paramList.Add(parameters);
+                var constructor= scriptGlobalsEvalType.GetConstructors().First();
+                eventScript.ScriptEval = (IScriptGlobalsEval)constructor.Invoke(paramList.ToArray());
             }
         }
+
+        /**
+         * Interface of internal classes
+         * */
         public interface IScriptGlobalsEval
         {
             void Eval(IProcess _evalProcess, params object?[] parameters);

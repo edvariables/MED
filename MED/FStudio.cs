@@ -566,9 +566,9 @@ namespace MED
 
                 throw new Exception($"{type.Name} is not a ProcessForm type");
             }
-            catch
+            catch(Exception)
             {
-                throw new Exception($"{type.Name} is not a Form type");
+                throw;
             }
             //return null;
         }
