@@ -80,6 +80,14 @@ namespace MED.Imaging
                 return;
             try
             {
+                if (Consumer is ProcessForm processForm)
+                    foreach (var (_, gameController) in processForm.Project.GameControllers)
+                        gameController.OnTickTime();
+                else if (Consumer is Processes processes)
+                    foreach (var (_, gameController) in processes.GameControllers)
+                        gameController.OnTickTime();
+                
+
                 base.OnImageChanged(sender, e);
 
                 if (RenderImageControl != null)
@@ -96,17 +104,6 @@ namespace MED.Imaging
             get => base.Image == null ? WaitingImage : base.Image;
             set => base.Image = value;
         }
-
-        /**
-         * GetImage returns EmptyImage
-         * 
-         */
-        //public override Bitmap GetImage(IImageProvider provider = null)
-        //{
-        //    Performance.Debug($"Render.GetImage ImageIsProvided={ImageIsProvided}, " + (provider == null ? "<null>" : "provider") + " / " + (ImageProvider == null ? "<null>" : $"ImageProvider {ImageProvider.Image}"));
-
-        //    return base.GetImage(provider)/*WaitingImage*/;
-        //}
 
         /**
          * RefreshRender

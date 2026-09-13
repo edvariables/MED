@@ -80,9 +80,10 @@ namespace MED
             foreach (var (varCall, varMethode) in eventScript.ScriptGlobalsFunctions)
                 AddVariable($"{varCall}", "Function");
 
-            foreach (var (gameController, properties) in eventScript.ConsumerProperties)
-                foreach (var property in properties)
-                    AddVariable($"{gameController.Name}.{property}", "ConsumerProperty");
+            if (eventScript is GameControllerScript gameControllerScript)
+                foreach (var (gameController, properties) in gameControllerScript.GameControllerProperties)
+                    foreach (var property in properties)
+                        AddVariable($"{gameController.Name}.{property}", "ConsumerProperty");
 
         }
         private void AddVariable(string text, string variableType)

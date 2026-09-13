@@ -19,8 +19,6 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxTokenParser;
 
 namespace MED
 {
-    [Editor(typeof(EventScriptEditor), typeof(UITypeEditor))]
-    [TypeConverter(typeof(EventScriptConvertor))]
     public class EventScript(IProcess iProcess, string eventName)
     {
         [Browsable(false)]
@@ -33,6 +31,11 @@ namespace MED
 
         [Browsable(false)]
         public virtual string Icon { get; set; } = "Script";
+
+        public override string ToString()
+        {
+            return $"{Process.Name}.{EventName}";
+        }
 
         private string? _Script;
 
@@ -47,7 +50,7 @@ namespace MED
                 RemoveConsumers();
                 _Script = value;
                 CompiledScript = null;
-                ScriptEval = null;//TODO set global script is dirty
+                EvalScriptObject = null;//TODO set global script is dirty
                 _ParametersNames = null;
 
                 AddConsumers();
@@ -57,21 +60,22 @@ namespace MED
             }
         }
 
-        [Browsable(true)]
-        [Category("Script")]
+
+        [Browsable(false)]
         [Description("Script prepared in the project global script")]
-        public ProjectScript.IScriptGlobalsEval? ScriptEval { get; set; }
+        public ProjectScript.IScriptGlobalsEval? EvalScriptObject { get; set; }
 
         protected virtual void AddConsumers() { }
         protected virtual void RemoveConsumers() { }
-
-        public Dictionary<MED.GameController.IGameController, List<string>> ConsumerProperties { get; protected set; } = [];
 
         public EventHandler? OnScriptChanged;
 
         public string GetMethodName() => GetMethodName(Process, EventName);
 
+        [Browsable(false)]
         public Microsoft.CodeAnalysis.Scripting.Script? CompiledScript { get; protected set; }
+        
+        [Category("Script")]
         public List<object>? CompiledScriptErrors { get; set; }
 
         private Dictionary<string, Type>? _ParametersNames;
@@ -79,7 +83,7 @@ namespace MED
         [Browsable(true)]
         [ReadOnly(true)]
         [Category("Script")]
-        public Dictionary<string, Type>? ParametersNames
+        public virtual Dictionary<string, Type>? ParametersNames
         {
             get
             {
@@ -93,7 +97,7 @@ namespace MED
         [Browsable(true)]
         [ReadOnly(true)]
         [Category("Script")]
-        public Dictionary<string, Type>? VariablesNames { get; protected set; }
+        public virtual Dictionary<string, Type>? VariablesNames { get; protected set; }
 
         private static Dictionary<string, Type>? GetParametersNames(IProcess process, string eventName)
         {
@@ -158,6 +162,8 @@ namespace MED
         }
 
         HashSet<string> _IgnoreCompilationWarnings = [];
+        
+        [Category("Script")]
         public HashSet<string> IgnoreCompilationWarnings
         {
             get
@@ -168,6 +174,7 @@ namespace MED
                     _IgnoreCompilationWarnings.Add("CS8602");
                     _IgnoreCompilationWarnings.Add("CS8604");
                     _IgnoreCompilationWarnings.Add("CS8605");
+                    _IgnoreCompilationWarnings.Add("CS0162");//Code inaccessible détecté
                 }
                 return _IgnoreCompilationWarnings;
             }
@@ -210,7 +217,7 @@ namespace MED
                     }
                 }
 
-                Process.Performance?.Sub(".EventScript").Debug($"Compile {EventName} done");
+                Process.Performance?.Sub(".EventScript").Debug($"Compilation of {EventName} is done.");
                 Process.Performance?.Logger?.InvokeBufferChanged(this, EventArgs.Empty);
                 CompiledScriptErrors = null;
 
@@ -233,9 +240,9 @@ namespace MED
 
             if (string.IsNullOrEmpty(script) || Process.Disposing || Process.IsDisposed) return true;
 
-            if (ScriptEval != null) try
+            if (EvalScriptObject != null) try
                 {
-                    ScriptEval.Eval(Process, parameters);
+                    EvalScriptObject.Eval(Process, parameters);
                     return true;
                 }
                 catch (Exception ex)
@@ -541,7 +548,8 @@ namespace MED
          * */
         public class ScriptGlobals(IProcess process, object?[] parameters)
         {
-            public void _set_params_(IProcess process1, object?[] parameters) { _process = process1; _params_ = parameters; }
+            public static void _set_parameters(ScriptGlobals scriptGlobals, IProcess process1, object?[] parameters) { scriptGlobals._process = process1; scriptGlobals._params_ = parameters; }
+
             public object?[] _params_ = parameters;
             public IProcess _process = process;
 

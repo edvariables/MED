@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,5 +13,9 @@ namespace MED.GameController
         object? GetControllerPropertyValue(string controllerProperty);
         void SetControllerPropertyValue(string controllerProperty, object? value);
         UsagePropertiesMap UsagePropertiesMap { get; }
+
+        void OnTickTime();
+
+        int FPSMax { get; set; }
     }
 }

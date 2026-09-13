@@ -136,7 +136,12 @@ namespace MED
                 }
 
             if (!containsNode)
-                cboObjectsList.Items.Insert(0, nodeItem);
+                //TODO/SIC if(nodeItem is ProjectScript) => Exception
+                try
+                {
+                    cboObjectsList.Items.Insert(0, nodeItem);
+                }
+                catch (Exception) { }
 
             if (cboObjectsList.Items.Count > 0)
             {
@@ -375,7 +380,7 @@ namespace MED
                     processes.Items.Remove(process);
                 process.Dispose();
             }
-            else
+            else if (process != null)
             {
                 selectedParentNode = selectedNode.Parent == null || selectedNode.Parent.Parent == null || selectedNode.Parent.Parent.Tag == null ? null
                                             : selectedNode.Parent.Parent;

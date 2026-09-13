@@ -108,7 +108,10 @@ namespace MED
                 if (e.KeyCode == Keys.X)
                 {
                     StackPushUndo();
-                    base.SelectedText = "";
+                    if(base.SelectionLength> 1 && base.SelectedText.StartsWith('\n') && base.SelectedText.EndsWith('\n'))
+                        base.SelectedText = "\n";
+                    else
+                        base.SelectedText = "";
                 }
                 return;
             }
@@ -140,8 +143,9 @@ namespace MED
                 && e.Control)
                 {
                     CodeRenderClearRTF = true;
-                    //SelectedText = (string)Clipboard.GetData("Text") ?? "";
-                    //e.Handled = true;
+                    var text = (string)(Clipboard.GetData("Text") ?? "");
+                    SelectedText = text;
+                    e.Handled = true;
                 }
                 else if (e.KeyCode == Keys.Tab)
                 {

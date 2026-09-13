@@ -128,6 +128,11 @@ namespace MED.GameController
 
             return CallNextHookEx(_hookId, nCode, wParam, lParam);
         }
+        public override void OnTickTime()
+        {
+            //if (IsRunning)
+            //    CheckChangesTime = CheckChanges(Gamepad, CheckChangesTime);
+        }
 
         #region Process
         public override void Start()

@@ -413,6 +413,7 @@ namespace MED
         {
 
             GameController.KeyboardController KeyboardController = new("Keyboard keys", Performance?.Sub("Keyboard"), this);
+            KeyboardController.FPSMax = 50;
             KeyboardController.UsagePropertiesMap.Add("Start", "F5", typeof(bool));
             KeyboardController.UsagePropertiesMap.Add("Pause", "F10", typeof(bool));
             KeyboardController.UsagePropertiesMap.Add("StepPrevious", "Shift+F10", typeof(bool));
@@ -424,12 +425,13 @@ namespace MED
 
             Project.Items.Add(KeyboardController);
 
-            LoadJoystickHandler();
+            //LoadJoystickHandler();
         }
 
         private void LoadJoystickHandler()
         {
             GameController.JoystickHIDController JoystickController = new("Joystick", Performance?.Sub("Joystick"), this);
+            JoystickController.FPSMax = 50;
             JoystickController.UsagePropertiesMap.Add("Pause", "Stop", typeof(bool));
             JoystickController.AddConsumer(this, "Start", KeyboardController_OnPropertyChanged);
             JoystickController.AddConsumer(this, "Pause", KeyboardController_OnPropertyChanged);

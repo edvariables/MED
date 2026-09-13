@@ -1,11 +1,12 @@
-﻿using Microsoft.CodeAnalysis.Scripting;
+﻿using MED.GameController;
+using Microsoft.CodeAnalysis.Scripting;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using MED.GameController;
 
 namespace MED
 {
@@ -14,9 +15,14 @@ namespace MED
 
         private IGameController? GetGameController() => ProcessStatic.GetGameController(Process);
 
+        [Browsable(true)]
+        [Category("Script")]
+        [Description("GameController properties consumed from this script")]
+        public Dictionary<MED.GameController.IGameController, List<string>> GameControllerProperties { get; protected set; } = [];
+
         protected override void AddConsumers()
         {
-            ConsumerProperties = [];
+            GameControllerProperties = [];
 
             if (Process is not IConsumer consumer
                 || string.IsNullOrEmpty(Script))
@@ -34,20 +40,20 @@ namespace MED
                     if (string.IsNullOrEmpty(capture))
                         capture = match1.Groups["Keys"].Value;
                     if (!string.IsNullOrEmpty(capture)
-                    && !(ConsumerProperties.ContainsKey(gameController)
-                        && ConsumerProperties[gameController].Contains(capture))
+                    && !(GameControllerProperties.ContainsKey(gameController)
+                        && GameControllerProperties[gameController].Contains(capture))
                     )
                     {
                         gameController.AddConsumer(consumer, capture, Process.OnGameControllerChanged);
-                        if (!ConsumerProperties.ContainsKey(gameController))
-                            ConsumerProperties[gameController] = new();
-                        ConsumerProperties[gameController].Add(capture);
+                        if (!GameControllerProperties.ContainsKey(gameController))
+                            GameControllerProperties[gameController] = new();
+                        GameControllerProperties[gameController].Add(capture);
                     }
                 }
         }
         protected override void RemoveConsumers()
         {
-            ConsumerProperties = [];
+            GameControllerProperties = [];
 
             if (Process is not IConsumer consumer
                 || string.IsNullOrEmpty(Script))

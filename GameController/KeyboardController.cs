@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DevDecoder.HIDDevices.Controllers;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -21,8 +22,8 @@ namespace MED.GameController
         {
             if (Enum.TryParse(typeof(Keys), controllerProperty, out object? key))
                 return IsKeyDown((Keys)key);
-            if(UsagePropertiesMap.TryGetValue(controllerProperty,out UsagePropertiesMapItem? item))
-                if (Enum.TryParse(typeof(Keys), item.Properties, out object? key1))
+            if (UsagePropertiesMap.TryGetValue(controllerProperty, out UsagePropertiesMapItem? item))
+                if (Enum.TryParse(typeof(Keys), item.Property, out object? key1))
                     return IsKeyDown((Keys)key1);
             return false;
         }
@@ -30,12 +31,13 @@ namespace MED.GameController
         public override void SetControllerPropertyValue(string controllerProperty, object? value)
         {
             if (Enum.TryParse(typeof(Keys), controllerProperty, out object? key))
-                if (bool.TryParse((string?)value, out bool bValue)){
+                if (bool.TryParse((string?)value, out bool bValue))
+                {
                     KeysState[(Keys)key] = bValue;
                     return;
                 }
             if (UsagePropertiesMap.TryGetValue(controllerProperty, out UsagePropertiesMapItem? item))
-                if (Enum.TryParse(typeof(Keys), item.Properties, out object? key1))
+                if (Enum.TryParse(typeof(Keys), item.Property, out object? key1))
                     if (bool.TryParse((string?)value, out bool bValue))
                     {
                         KeysState[(Keys)key1] = bValue;
@@ -78,7 +80,8 @@ namespace MED.GameController
         /**
          * TODO : does not work
          * */
-        private void formHandler_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e) {
+        private void formHandler_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
+        {
             switch (e.KeyCode)
             {
                 case Keys.Left:
@@ -117,7 +120,7 @@ namespace MED.GameController
                     if (keyEventArgs.Control)
                         keys = "Control+" + key.ToString();
                 }
-                OnControllerChanged(this, new(keys, pressed));
+                OnControllerChanged(keys, pressed);
             }
         }
         protected bool _saved_formHandler_KeyPreview;
@@ -175,6 +178,9 @@ namespace MED.GameController
                 Performance?.Debug("InvokeHandler is null");
                 return;
             }
+
+            ChangedQueue.Clear();
+
             StartHook(InvokeHandler);
 
             base.Start();

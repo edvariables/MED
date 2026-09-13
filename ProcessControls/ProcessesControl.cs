@@ -362,8 +362,9 @@ namespace MED
                         else
                             propertyLabel = property;
                         if (usagePropertiesMap.TryGetValue(propertyLabel, out UsagePropertiesMapItem? usagePropertiesMapItem))
-                            propertyLabel += " = " + usagePropertiesMapItem.Properties;
+                            propertyLabel += " = " + usagePropertiesMapItem.Property;
                         var subNode = node.Nodes.Add(propertyLabel);
+                        subNode.Tag = usagePropertiesMapItem;
                         subNode.SelectedImageKey = subNode.ImageKey = "next_blue";
                         AddItems(consumers.Value.Keys.ToArray(), subNode.Nodes, false);
                     }

@@ -1,4 +1,5 @@
 ﻿using MED.Core;
+using MED.GameController;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -86,7 +87,10 @@ namespace MED
             if (Consumer is ProcessForm processForm)
             {
                 ProjectScript = new ProjectScript(this);
-                ProjectScript.CompileScript();
+                if (ProcessSettings != null)
+                    ProjectScript.CompileScriptOnLoad = (bool)(ProcessSettings.GetValue("ProjectScript.CompileScriptOnLoad", ProjectScript.CompileScriptOnLoad) ?? ProjectScript.CompileScriptOnLoad);
+                if (ProjectScript.CompileScriptOnLoad)
+                    ProjectScript.CompileScript();
             }
         }
 
@@ -98,6 +102,15 @@ namespace MED
             SaveProcesses(settings);
 
             base.SaveSettings(settings, fileName);
+        }
+        public override JsonObject SaveProcess(JsonObject? node = null)
+        {
+            node = base.SaveProcess(node);
+
+            if (ProjectScript != null && !ProjectScript.CompileScriptOnLoad)
+                node[$"{nameof(ProjectScript)}.{nameof(ProjectScript.CompileScriptOnLoad)}"] = ProjectScript.CompileScriptOnLoad;
+
+            return node;
         }
         public virtual void SaveProcesses(ProcessSettings settings)
         {
@@ -223,6 +236,9 @@ namespace MED
             ProcessStatic.AddConsumer((IProvider)process, (IConsumer)consumerProcess, propertyName);
         }
 
+        [Browsable(false)]
+        public Dictionary<string, IGameController> GameControllers { get; protected set; } = [];
+
         public virtual void InitializeProcesses(bool resetAll = false)
         {
 
@@ -231,11 +247,19 @@ namespace MED
 
             if (Items != null && !resetAll)
             {
+                GameControllers = [];
+
                 foreach (var handler in Items)
+                {
                     handler.Stop();
 
+                    if(handler is IGameController controller && controller.Enabled)
+                        GameControllers.Add(controller.Name, controller);
+                }
                 return;
             }
+            
+            //resetAll
 
             if (Logger == null)
                 Logger = new();
