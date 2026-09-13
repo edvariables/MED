@@ -208,7 +208,7 @@ namespace MED
                             message.AppendLine($"{result}");
                     if (message.Length > 0)
                     {
-                        message.AppendLine($"*** Script :\n{script}");
+                        message.AppendLine($"*** Script :\n{AddLinesNumbers(script)}");
                         Process.Performance?.Error($"Script {EventName}: Compilation error\n" + message.ToString());
                         Process.Performance?.Logger?.InvokeBufferChanged(this, EventArgs.Empty);
                         CompiledScriptErrors = results.ToList<object>();
@@ -230,6 +230,15 @@ namespace MED
             return true;
         }
 
+        private string AddLinesNumbers(string script)
+        {
+            var str = new StringBuilder();
+            int nLine = 0;
+            foreach (var line in script.Split('\n'))
+                str.AppendLine($"{(++nLine).ToString().PadLeft(3)} {line.TrimEnd('r')}");
+            return str.ToString();
+        }
+
         /**
          * 
          * 
@@ -240,7 +249,8 @@ namespace MED
 
             if (string.IsNullOrEmpty(script) || Process.Disposing || Process.IsDisposed) return true;
 
-            if (EvalScriptObject != null) try
+            if (EvalScriptObject != null) 
+                try
                 {
                     EvalScriptObject.Eval(Process, parameters);
                     return true;
@@ -248,6 +258,7 @@ namespace MED
                 catch (Exception ex)
                 {
                     Process.Performance?.Error($"ScriptEval.Eval throws an error. {parameters}", ex);
+                    EvalScriptObject = null;
                     return false;
                 }
             if (CompiledScript == null)

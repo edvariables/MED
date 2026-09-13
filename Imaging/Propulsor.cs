@@ -61,7 +61,11 @@ namespace MED.Imaging
                 Direction = new(Vector2.Normalize(direction));
 
                 if (!(Speed == SpeedMax && wasSpeedMax))
+                {
                     Propulsion *= (1F + PropulsionAcceleration);
+                    if (Propulsion > 1000) Propulsion = 1000;
+                    else if (Propulsion < -1000) Propulsion = -1000;
+                }
                 if (Propulsion == float.NegativeInfinity || Propulsion == float.PositiveInfinity)
                     Propulsion = 0F;
             }

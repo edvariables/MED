@@ -45,9 +45,6 @@ namespace MED.GameController
             return true;
         }
 
-        // Holds a reference to the current gamepad, which is set asynchronously as they are detected.
-        Gamepad? Gamepad = null;
-
         private void StartConnect()
         {
 
@@ -57,7 +54,7 @@ namespace MED.GameController
 
 
             // Holds a reference to the current gamepad, which is set asynchronously as they are detected.
-            Gamepad = null;
+            Gamepad? gamepad = null;
 
             long timestamp = DateTime.Now.Ticks;
 
@@ -67,7 +64,7 @@ namespace MED.GameController
                 //TODO
                 // If we already have a connected gamepad ignore any more.
                 // ReSharper disable once AccessToDisposedClosure
-                if (Gamepad?.IsConnected == true)
+                if (gamepad?.IsConnected == true)
                 {
                     return;
                 }
@@ -80,10 +77,10 @@ namespace MED.GameController
                 }
 
                 // Assign this gamepad and connect to it.
-                Gamepad = g;
+                gamepad = g;
                 long connectionDelay = DateTime.Now.Ticks - timestamp;
                 g.Connect();
-                Performance?.Step($"{Gamepad.Name} found in {connectionDelay / TimeSpan.TicksPerMillisecond} msec !  Following controls were mapped:");
+                Performance?.Step($"{gamepad.Name} found in {connectionDelay / TimeSpan.TicksPerMillisecond} msec !  Following controls were mapped:");
 
                 SetControls(g.Mapping);
                 foreach (var (control, infos) in g.Mapping)
@@ -95,7 +92,7 @@ namespace MED.GameController
 
                 ProcessState = ThreadState.Running;
 
-                timestamp = CheckChanges(Gamepad);
+                timestamp = CheckChanges(gamepad);
             });
 
             //Wait for GamePad
@@ -105,10 +102,10 @@ namespace MED.GameController
                 if ((DateTime.Now.Ticks - timestamp) > TimeSpan.TicksPerSecond)
                     break;
             }
-            while (Gamepad == null);
+            while (gamepad == null);
 
 
-            if (Gamepad == null)
+            if (gamepad == null)
                 return;
 
             try
@@ -125,27 +122,27 @@ namespace MED.GameController
                     {
                         Thread.Sleep(100);
                     }
-                    
-                    if (IsDisposed || Disposing || !IsRunning)
+
+                    if (!IsRunning)
                     {
                         Stop();
                         return;
                     }
-                    
-                    Performance?.Resume($"------------------Tick. Sleep : {sleep}", true);//increment
+
+                    Performance?.Resume($"------------------Tick. Sleep : {sleep} msec / delta {(TickTimeDuration-(DateTime.Now.Ticks - prevTime)) / TimeSpan.TicksPerMillisecond} msec", true);//increment
 
                     // Sleep to simulate a game loop.
 
-                    if (((now = DateTime.Now.Ticks) - prevTime) < fpsMaxDuration)
-                        sleep += 5;
+                    if (((now = DateTime.Now.Ticks) - prevTime) < TickTimeDuration)
+                        sleep++;
                     else if (sleep > 0)
-                        sleep -= 5;
+                        sleep--;
                     if (sleep > 0)
                         Thread.Sleep(sleep);
 
                     prevTime = now;
 
-                    timestamp = CheckChanges(Gamepad, timestamp);
+                    timestamp = CheckChanges(gamepad, timestamp);
                 }
             }
             catch (Exception ex)
@@ -155,9 +152,28 @@ namespace MED.GameController
             finally
             {
                 // Ensure gamepad connection is disposed to stop listening to the gamepad
-                Gamepad.Dispose();
-                Performance?.Step($"{Gamepad.Device.Name} disconnected!");
+                gamepad.Dispose();
+                Performance?.Step($"{gamepad.Device.Name} disconnected!");
             }
+        }
+
+        long TickTime = 0L;
+        long TickTimeDuration = 0L;
+        long TickTimeDurationMax = 0L;
+        public override void OnTickTime()
+        {
+            var now = DateTime.Now.Ticks;
+            if (TickTime != 0L)
+                TickTimeDuration = Math.Min(now - TickTime, TickTimeDurationMax);
+            else
+            {
+                if (TickTimeDurationMax == 0D)
+                    TickTimeDurationMax = 200*TimeSpan.TicksPerMillisecond;
+                TickTimeDuration = TickTimeDurationMax;
+            }
+            TickTime = now;
+
+            base.OnTickTime();
         }
 
         /**
@@ -207,17 +223,17 @@ namespace MED.GameController
                     prev_Value = value;
                 }
             }
-            else
-            {   //Find the first item.InvokeIfActive having a true value
-                object? value;
-                foreach (var (usage, mapItem) in this.UsagePropertiesMap)
-                    if (mapItem.InvokeIfActive
-                        && ((bool)((ParseValue(value = GetControllerPropertyValue(usage), typeof(bool))) ?? false)))
-                    {
-                        OnControllerChanged(mapItem.Property, value);
-                        break;
-                    }
-            }
+            //else
+            //{   //Find the first item.InvokeIfActive having a true value
+            //    object? value;
+            //    foreach (var (usage, mapItem) in this.UsagePropertiesMap)
+            //        if (mapItem.InvokeIfActive
+            //            && ((bool)((ParseValue(value = GetControllerPropertyValue(usage), typeof(bool))) ?? false)))
+            //        {
+            //            OnControllerChanged(mapItem.Properties[0], value);
+            //            //break;
+            //        }
+            //}
             return changeTimestamp;
         }
 
@@ -250,7 +266,7 @@ namespace MED.GameController
                 string name = infos.Count == 1 ? infos[0].PropertyName : usage;
                 string propertiesName = string.Join(", ", infos.Select(info => info.PropertyName));
                 UsagePropertiesMap.Add(propertiesName, ctrlKey, control.IsPushButton || control.IsBoolean ? typeof(bool) : typeof(object));
-                ControllerPropertiesValues.Add(ctrlKey, control.IsPushButton || control.IsBoolean ? false : 0F);
+                //ControllerPropertiesValues.Add(ctrlKey, control.IsPushButton || control.IsBoolean ? false : 0F);
                 Performance?.Debug($"{usage} = {propertiesName} : {infos[0].Converter?.ToString()}");
 
                 //Logger.LogInformation(

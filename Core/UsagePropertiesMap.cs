@@ -78,10 +78,19 @@ namespace MED.GameController
             return b;
         }
 
+        public UsagePropertiesMapItem? GetPropertyMapItem(string properties)
+        {
+            TryGetValue($"__p__{properties}", out UsagePropertiesMapItem? item);
+            return item;
+        }
+
         public string GetPropertyUsage(string properties)
         {
-            if (TryGetValue($"__p__{properties}", out UsagePropertiesMapItem? item))
-                return item.Usage;
+            UsagePropertiesMapItem? mapItem = GetPropertyMapItem(properties);
+            if (mapItem == null)
+                mapItem = GetPropertyMapItem("-" + properties);
+            if (mapItem != null)
+                return mapItem.Usage;
             return properties;
         }
 
@@ -102,6 +111,7 @@ namespace MED.GameController
         public string[] Properties { get; } = properties.Split('|');
         public string Usage { get; set; } = usage;
         public bool IsNegative { get; set; } = properties.StartsWith('-');
+        public bool IsPositive { get; set; } = properties.StartsWith('+');
         public bool KeepNegativeValue { get; set; }
         public string NegativeUsage { get; set; } = usage;
 

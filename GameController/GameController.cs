@@ -65,49 +65,59 @@ namespace MED.GameController
             bool maxBool = false;
             bool isBool = false;
             if (UsagePropertiesMap.TryGetValue(usage, out UsagePropertiesMapItem? item))
+            {
                 if (item.IsNegative)
                 {
-                    if (ControllerPropertiesValues.TryGetValue(item.Properties[0].Substring(1), out object? value1))
-                        if (value1 is double dbl && dbl > -DoubleLimitZero)
-                            return ParseValue(0D, item.UsageType, item.KeepNegativeValue);
-                        else
-                            return ParseValue(value1, item.UsageType, item.KeepNegativeValue);
-                    for (var i = 1; i < item.Properties.Length; i++)
-                        if (ControllerPropertiesValues.TryGetValue(item.Properties[i], out object? value11))
-                            if (value11 is double dbl && dbl > -DoubleLimitZero){
+                    for (var i = 0; i < item.Properties.Length; i++)
+                    {
+                        bool startsWithMinus = item.Properties[i].StartsWith('-');
+                        if (ControllerPropertiesValues.TryGetValue(startsWithMinus ? item.Properties[i].Substring(1) : item.Properties[i], out object? value11))
+                            if (value11 is double dbl)
+                            {
                                 isDouble = true;
-                                maxDouble = MaxDouble(maxDouble, (double)(ParseValue(0D, item.UsageType, item.KeepNegativeValue)??0D));
-                            }
-                            else if (value11 is double dbl2){
-                                isDouble = true;
-                                maxDouble = MaxDouble(maxDouble, (double)(ParseValue(value1, item.UsageType, item.KeepNegativeValue)??0D));
+                                if (dbl < -DoubleLimitZero || !startsWithMinus && dbl > DoubleLimitZero)
+                                    maxDouble = MaxDouble(maxDouble, dbl);
                             }
                             else
-                                return ParseValue(value1, item.UsageType, item.KeepNegativeValue);
+                                return ParseValue(value11, item.UsageType, item.KeepNegativeValue);
+                    }
+                }
+                else if (item.IsPositive)
+                {
+                    for (var i = 0; i < item.Properties.Length; i++)
+                        if (ControllerPropertiesValues.TryGetValue(item.Properties[i].TrimStart('+'), out object? value11))
+                            if (value11 is double dbl)
+                            {
+                                isDouble = true;
+                                if (dbl > DoubleLimitZero)
+                                    maxDouble = MaxDouble(maxDouble, dbl);
+                            }
+                            else
+                                return ParseValue(value11, item.UsageType, item.KeepNegativeValue);
                 }
                 else
                     for (var i = 0; i < item.Properties.Length; i++)
                         if (ControllerPropertiesValues.TryGetValue(item.Properties[i], out object? value2))
                         {
-                            if (value2 is double dbl && dbl < DoubleLimitZero){
-                                isDouble = true; 
-                                maxDouble = MaxDouble(maxDouble, (double)(ParseValue(0D, item.UsageType)??0D));
-                            }
-                            else if (value2 is double dbl3){
+                            if (value2 is double dbl)
+                            {
                                 isDouble = true;
-                                maxDouble = MaxDouble(maxDouble, (double)(ParseValue(value2, item.UsageType)??0D));
+                                if (dbl != 0D && (dbl > DoubleLimitZero || dbl < -DoubleLimitZero))
+                                    maxDouble = MaxDouble(maxDouble, dbl);
                             }
-                            else if (value2 is bool bool1){
+                            else if (value2 is bool bool1)
+                            {
                                 isBool = true;
-                                maxBool= maxBool || (bool)(ParseValue(bool1, item.UsageType)??false);
+                                maxBool = maxBool || bool1;
                             }
                             else
                                 return ParseValue(value2, item.UsageType);
                         }
-            if (isDouble)
-                return maxDouble;
-            if (isBool)
-                return maxBool;
+                if (isDouble)
+                    return ParseValue(maxDouble, item.UsageType, item.KeepNegativeValue);
+                if (isBool)
+                    return ParseValue(maxBool, item.UsageType, item.KeepNegativeValue);
+            }
 
             if (ControllerPropertiesValues.TryGetValue(usage, out object? value))
                 if (UsagePropertiesMap.TryGetValue(usage, out UsagePropertiesMapItem? mapItem))
@@ -131,8 +141,10 @@ namespace MED.GameController
                     double dbl => dbl == 0D ? false : dbl > DoubleLimitZero || dbl < -DoubleLimitZero,
                     float f => f != 0F,
                     int i => i != 0,
+                    string s => !String.IsNullOrEmpty(s),
                     null => false,
-                    _ => value
+                    bool b => b,
+                    _ => true
                 };
 
             if (usageType == typeof(int))
@@ -186,9 +198,24 @@ namespace MED.GameController
             if (IsRunning && ChangedQueue.Count > 0)
                 lock (ChangedQueue)
                 {
+                    Dictionary<string, object?> activeOnes = [];
                     foreach (var (property, value) in ChangedQueue)
+                    {
                         OnControllerChanged(this, new(property, value));
-                    ChangedQueue.Clear();
+
+                        if ((bool)((ParseValue(value, typeof(bool))) ?? false))
+                        {
+                            var mapItem = UsagePropertiesMap.GetPropertyMapItem(property);
+
+                            if (mapItem == null
+                                && value is double dbl)
+                                mapItem = UsagePropertiesMap.GetPropertyMapItem((dbl < 0 ? "-" : "+") + property);
+
+                            if (mapItem != null && mapItem.InvokeIfActive)
+                                activeOnes.Add(property, value);
+                        }
+                    }
+                    ChangedQueue = activeOnes;
                 }
         }
 
