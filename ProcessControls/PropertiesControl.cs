@@ -2,6 +2,7 @@
 using Emgu.CV.Aruco;
 using MED.Core;
 using MED.Imaging;
+using Microsoft.Win32;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -48,6 +49,8 @@ namespace MED
             ProcessClasses.Add("Keyboard", typeof(MED.GameController.KeyboardController).FullName ?? "");
             ProcessClasses.Add("Joystick", typeof(MED.GameController.JoystickHIDController).FullName ?? "");
             //ProcessClasses.Add("Ball", (typeof(MED.Imaging.ImageMover).FullName ?? "") + "(ImageFile=../Movers/Ball.*.png;)");
+
+            ProcessClasses.Add("(Parcourir...)","");
 
             contextMenuAddProcess.Items.Clear();
             foreach (var proc in ProcessClasses)
@@ -259,10 +262,36 @@ namespace MED
             if (sender == null)
                 return;
             var processName = ((ToolStripMenuItem)sender).ToString();
+            if (processName == "" || processName == typeof(ToolStripMenuItem).FullName || processName.StartsWith("("))
+            {
+                openFileDialog1.DefaultExt = "dll";
+                openFileDialog1.Filter = "Libray files (*.dll)|*.dll|(*.exe)|*.exe|All files (*.*)|*.*";
+                if (openFileDialog1.ShowDialog(FindForm()) == DialogResult.Cancel)
+                    return;
+                var processLib = openFileDialog1.FileName;
+
+                foreach (var type in AssemblyLoader.GetAssemblyProcessTypes(processLib))
+                {
+                    var key = $"{type.Namespace}.{type.Name}";
+                    ProcessClasses.Add(key,( type.FullName ?? type.Name) + "@" + processLib);
+                    var item = new ToolStripMenuItem(key);
+                    contextMenuAddProcess.Items.Insert(contextMenuAddProcess.Items.Count - 1, item);
+                    item.Click += contextMenuAddProcessItem_Click;
+                }
+                contextMenuAddProcess.Show(contextMenuProcesses.Left, contextMenuProcesses.Top);
+                return;
+            }
             try
             {
                 var processClass = ProcessClasses[processName];
-                var process = ProcessStatic.CreateProcess(processClass, "", processName, true, Performance.Empty(), null);
+                var processLib = "";
+                if (processClass.Contains('@'))
+                {
+                    var split = processClass.Split('@');
+                    processLib = split[1];
+                    processClass = split[0];
+                }
+                var process = ProcessStatic.CreateProcess(processClass, processLib, processName, true, Performance.Empty(), null);
                 if (process == null)
                     return;
                 if (process is IProcesses)

@@ -59,13 +59,13 @@ namespace MED
                 throw new Exception($"Librairie inconnue (argument processLib)");
 
             var folder = Directory.GetParent(processLib);
-            var folderPath = folder==null ? "" : folder.FullName;
+            var folderPath = folder == null ? "" : folder.FullName;
             var al = new AssemblyLoader(folderPath);
 
             Assembly assembly = al.LoadFromAssemblyPath(processLib);
 
             var assemblyName = assembly.GetName().Name;
-            return Activator.CreateInstance(assemblyName??"", processClass, paramsObjects);
+            return Activator.CreateInstance(assemblyName ?? "", processClass, paramsObjects);
 
             //foreach (var type in assembly.GetExportedTypes())
             //    if (type.FullName == processClass)
@@ -73,6 +73,22 @@ namespace MED
             //        return Activator.CreateInstance(assembly.GetName().Name, processClass, paramsObjects);
             //    }
             //return null;
+        }
+
+        public static List<Type> GetAssemblyProcessTypes(string processLib)
+        {
+            var types = new List<Type>();
+
+            var folder = Directory.GetParent(processLib);
+            var folderPath = folder == null ? "" : folder.FullName;
+            var al = new AssemblyLoader(folderPath);
+
+            Assembly assembly = al.LoadFromAssemblyPath(processLib);
+            foreach (var type in assembly.ExportedTypes)
+                if (type.IsAssignableTo(typeof(IProcess)))
+                    types.Add(type);
+            return types;
+
         }
     }
 }
