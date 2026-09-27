@@ -1,0 +1,133 @@
+{
+  "Processes": {
+    "Render": {
+      "ProcessClass": "MED.Imaging.Render",
+      "Name": "Render",
+      "IsAsynchrone": false,
+      "Enabled": true,
+      "Perf": {
+        "Enabled": true,
+        "Color": "Transparent"
+      },
+      "ImageSizeMax": "0,0",
+      "ImageSizeMin": "800,600",
+      "FPSMax": 25,
+      "Centered": true,
+      "KeepRenderRatio": false,
+      "ResizeToRenderSize": false
+    },
+    "Looper": {
+      "Processes": {
+        "Background": {
+          "ProcessClass": "MED.Imaging.Background",
+          "Name": "Background",
+          "IsAsynchrone": true,
+          "Enabled": true,
+          "Perf": {
+            "Enabled": true,
+            "Color": "Transparent"
+          },
+          "ImageSizeMax": "0,0",
+          "ImageSizeMin": "0,0",
+          "FPSMax": 25,
+          "ImageFile": "",
+          "Consumers": {
+            "Image": [
+              {
+                "Name": ".."
+              }
+            ]
+          },
+          "BackgroundColor": "Color [White]"
+        },
+        "VideoFileReader": {
+          "ProcessClass": "MED.Imaging.VideoFileReader",
+          "Name": "VideoFileReader",
+          "IsAsynchrone": true,
+          "Enabled": false,
+          "Perf": {
+            "Enabled": true,
+            "Color": "Transparent"
+          },
+          "ImageSizeMax": "0,0",
+          "ImageSizeMin": "0,0",
+          "FPSMax": 25,
+          "VideoFile": "D:\\Arbeit\\Creatio\\Pr\u00E9sentations\\070811 - Creatio.avi"
+        },
+        "VideoMover": {
+          "ProcessClass": "MED.Imaging.VideoMover",
+          "Name": "VideoMover",
+          "IsAsynchrone": true,
+          "Enabled": true,
+          "Perf": {
+            "Enabled": true,
+            "Color": "Transparent"
+          },
+          "ImageSizeMax": "0,0",
+          "ImageSizeMin": "0,0",
+          "ImageFile": "",
+          "Mass": 1,
+          "SurfaceFriction": 1,
+          "Speed": 0,
+          "SpeedMax": 0,
+          "RotationSpeedMax": 0.5,
+          "MovingDetector": "GrayDiffBlur2px",
+          "DetectionLimit": 10,
+          "FixedBackground": false
+        }
+      },
+      "ProcessClass": "MED.Looper.Looper",
+      "Name": "Looper",
+      "IsAsynchrone": true,
+      "Enabled": true,
+      "Perf": {
+        "Enabled": true,
+        "Color": "Transparent"
+      },
+      "ProcessLib": "D:\\Arbeit\\MED\\MED.Looper\\bin\\Debug\\net9.0-windows\\MED.Looper.dll",
+      "ImageSizeMax": "0,0",
+      "ImageSizeMin": "800,600",
+      "Consumers": {
+        "Image": [
+          {
+            "Name": "Render"
+          }
+        ]
+      },
+      "ImageFile": "",
+      "Mass": 1,
+      "SurfaceFriction": 1,
+      "BorderBehavior": "Bump"
+    },
+    "VideoCapture": {
+      "ProcessClass": "MED.Imaging.VideoCapture",
+      "Name": "VideoCapture",
+      "IsAsynchrone": true,
+      "Enabled": true,
+      "Perf": {
+        "Enabled": true,
+        "Color": "Transparent"
+      },
+      "ImageSizeMax": "0,0",
+      "ImageSizeMin": "800,600",
+      "FPSMax": 25,
+      "Consumers": {
+        "Image": [
+          {
+            "Name": "Looper/VideoMover"
+          }
+        ]
+      },
+      "CameraIndex": 0
+    }
+  },
+  "ProcessClass": "MED.Processes",
+  "Name": "Looper",
+  "IsAsynchrone": false,
+  "Enabled": true,
+  "ProcessIcon": "VisualTrue",
+  "Perf": {
+    "Enabled": true,
+    "Color": "Transparent"
+  }
+}

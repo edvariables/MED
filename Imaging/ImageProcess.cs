@@ -281,6 +281,7 @@ namespace MED.Imaging
                         if (firstProvider != null)
                             _Image = GetImage(firstProvider);
                     }
+                    Performance?.Debug("debug");
                 }
                 catch
                 {

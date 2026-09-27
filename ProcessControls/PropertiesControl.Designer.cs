@@ -102,6 +102,7 @@
             // 
             // processesControl1
             // 
+            processesControl1.AllowDrop = true;
             processesControl1.Dock = DockStyle.Fill;
             processesControl1.HideSelection = false;
             processesControl1.ImageIndex = 0;
@@ -112,9 +113,13 @@
             processesControl1.Size = new Size(296, 429);
             processesControl1.TabIndex = 5;
             processesControl1.BeforeSelect += ProcessesControl1_BeforeSelect;
+            processesControl1.DragEnter += ProcessesControl1_DragEnter;
+            processesControl1.ItemDrag += ProcessesControl1_ItemDrag;
+            processesControl1.DragDrop += ProcessesControl1_DragDrop;
             processesControl1.NodeMouseClick += processesControl1_NodeMouseClick;
             processesControl1.NodeMouseDoubleClick += ProcessesControl1_NodeMouseDoubleClick;
             processesControl1.MouseClick += processesControl1_MouseClick;
+            processesControl1.KeyUp += ProcessesControl1_KeyUp;
             // 
             // splitContainer1
             // 
@@ -216,7 +221,6 @@
             contextMenuProcesses.ResumeLayout(false);
             ResumeLayout(false);
         }
-
         #endregion
 
         private PropertyGrid propertyGrid;

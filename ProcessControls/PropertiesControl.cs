@@ -50,7 +50,7 @@ namespace MED
             ProcessClasses.Add("Joystick", typeof(MED.GameController.JoystickHIDController).FullName ?? "");
             //ProcessClasses.Add("Ball", (typeof(MED.Imaging.ImageMover).FullName ?? "") + "(ImageFile=../Movers/Ball.*.png;)");
 
-            ProcessClasses.Add("(Parcourir...)","");
+            ProcessClasses.Add("(Parcourir...)", "");
 
             contextMenuAddProcess.Items.Clear();
             foreach (var proc in ProcessClasses)
@@ -252,6 +252,14 @@ namespace MED
             }
         }
 
+        private void ProcessesControl1_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Delete)
+                toolStripMenuProcRemove_Click(sender, e);
+            else if (e.KeyCode == Keys.Insert)
+                toolStripMenuProcAdd_Click(sender, e);
+        }
+
         private void toolStripMenuProcAdd_Click(object sender, EventArgs e)
         {
             contextMenuAddProcess.Show(contextMenuProcesses.Left, contextMenuProcesses.Top);
@@ -273,7 +281,7 @@ namespace MED
                 foreach (var type in AssemblyLoader.GetAssemblyProcessTypes(processLib))
                 {
                     var key = $"{type.Namespace}.{type.Name}";
-                    ProcessClasses.Add(key,( type.FullName ?? type.Name) + "@" + processLib);
+                    ProcessClasses.Add(key, (type.FullName ?? type.Name) + "@" + processLib);
                     var item = new ToolStripMenuItem(key);
                     contextMenuAddProcess.Items.Insert(contextMenuAddProcess.Items.Count - 1, item);
                     item.Click += contextMenuAddProcessItem_Click;
@@ -474,5 +482,89 @@ namespace MED
                 ShowProperties([process], node.Parent);
             }
         }
+
+        #region Drag nd Drop
+
+
+        private void ProcessesControl1_DragDrop(object sender, DragEventArgs e)
+        {
+            if(e.Data==null) return;
+
+            // Retrieve the client coordinates of the drop location.
+            Point targetPoint = processesControl1.PointToClient(new Point(e.X, e.Y));
+
+            // Retrieve the node at the drop location.
+            TreeNode? targetNode = processesControl1.GetNodeAt(targetPoint);
+
+            // Retrieve the node that was dragged.
+            TreeNode? draggedNode = (TreeNode?)e.Data.GetData(typeof(TreeNode));
+
+            // Sanity check
+            if (draggedNode == null)
+            {
+                return;
+            }
+
+            // Did the user drop on a valid target node?
+            if (targetNode == null)
+            {
+                return;
+            }
+
+            TreeNode? parentNode = targetNode;
+
+            // Confirm that the node at the drop location is not 
+            // the dragged node and that target node isn't null
+            // (for example if you drag outside the control)
+            if (!draggedNode.Equals(targetNode) && targetNode != null)
+            {
+                bool canDrop = true;
+
+                // Crawl our way up from the node we dropped on to find out if
+                // if the target node is our parent. 
+                while (canDrop && (parentNode != null))
+                {
+                    canDrop = !Object.ReferenceEquals(draggedNode, parentNode);
+                    parentNode = parentNode.Parent;
+                }
+
+                if (canDrop
+                && targetNode.Tag is IProcesses destProcesses
+                && draggedNode.Tag is IProcess process
+                && draggedNode.Parent != null
+                && draggedNode.Parent.Tag is IProcesses srceProcesses)
+                {
+                    srceProcesses.Items.Remove(process);
+                    destProcesses.Items.Add(process);
+                }
+                else
+                    canDrop=false;
+
+                // Is this a valid drop location?
+                if (canDrop)
+                {
+                    // Yes. Move the node, expand it, and select it.
+                    draggedNode.Remove();
+                    targetNode.Nodes.Add(draggedNode);
+                    targetNode.Expand();
+                }
+            }
+
+            // Optional: Select the dropped node and navigate (however you do it)
+            processesControl1.SelectedNode = draggedNode;
+            // NavigateToContent(draggedNode.Tag);
+        }
+
+        private void ProcessesControl1_ItemDrag(object sender, ItemDragEventArgs e)
+        {
+            DoDragDrop(e.Item, DragDropEffects.Move);
+        }
+
+        private void ProcessesControl1_DragEnter(object sender, DragEventArgs e)
+        {
+            e.Effect = DragDropEffects.Move;
+        }
+
+        #endregion
     }
 }
