@@ -49,10 +49,58 @@ namespace MED.Imaging
 
         public override Bitmap? GetImage(IImageProvider? provider = null)
         {
-            Performance?.Resume($"GetImage Transformer #{MovingDetector}", true);
+            //Performance?.Resume($"GetImage Transformer #{MovingDetector}", true);
             var image = FrameToImage((IMatFrameProvider?)provider, Frame);
             Performance?.Pause();
             return image;
+        }
+
+
+
+        public override void Move(long elapsedTime)
+        {
+            PreviousElapsedTime = elapsedTime;
+            base.Move(elapsedTime);
+        }
+
+        long PreviousElapsedTime;
+        Region? PreviousClipRegion;
+        Region? PreviousClipEdgesRegion;
+        GraphicsPath? PreviousClipPath;
+        Dictionary<GraphicsPath, RectangleF>? PreviousClipPathsBounds;
+        private void SetPreviousData()
+        {
+            PreviousClipRegion = ClipRegion;
+            PreviousClipEdgesRegion = _ClipRegionEdges;
+            PreviousClipPath = ClipPath;
+            PreviousClipPathsBounds = ClipPathsBounds;
+        }
+        public Vector2 GetLocalVelocity(Graphics graphics, PointF currentPoint)
+        {
+            if (PreviousClipRegion == null || PreviousElapsedTime == 0L)
+                return Vector2.Zero;
+
+            RectangleF foundRect = RectangleF.Empty;
+            float searchOffset = 200;
+            do
+            {
+                RectangleF searchRect = new(currentPoint.X - searchOffset, currentPoint.Y - searchOffset, searchOffset * 2F, searchOffset * 2F);
+                var previousClipRegion = PreviousClipRegion.Clone();
+                previousClipRegion.Intersect(searchRect);
+                var testedRect = previousClipRegion.GetBounds(graphics);
+                if (testedRect.IsEmpty)
+                    break;
+                foundRect = testedRect;
+                searchOffset /= 2;
+            } while (searchOffset > 1F);
+            if (foundRect.IsEmpty)
+                return Vector2.Zero;
+
+            var velocity = new Vector2(currentPoint.X - (foundRect.X + foundRect.Width / 2), currentPoint.Y - (foundRect.Y + foundRect.Height / 2));
+
+            Performance?.Debug($"GetLocalSpeed : {velocity} / {searchOffset} px");
+
+            return velocity / PreviousElapsedTime;
         }
         #endregion
 
@@ -283,6 +331,8 @@ namespace MED.Imaging
                 }
                 currentFrame = resized;
             }
+            SetPreviousData();
+
             ClipRegion = region;
             //Performance?.Debug($"Set ClipRegion {region}");
             //Performance?.Debug($"Set ClipRegionTranslated {ClipRegionTranslated}");

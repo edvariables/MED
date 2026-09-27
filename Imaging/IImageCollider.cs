@@ -22,7 +22,7 @@ namespace MED.Imaging
 
         PointF Collide(PointF offset);
 
-        bool CollideItem(IImageCollider item2, PointF offset2);
+        void OnCollideItem(IImageCollider item2, PointF offset2, Graphics graphics, RectangleF intersectBounds, PointF intersectBoundsCenter, Region intersectRegion);
 
         EventScript? OnCollideItemScript { get; }
     }

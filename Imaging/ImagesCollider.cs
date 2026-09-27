@@ -222,7 +222,7 @@ namespace MED.Imaging
                     region2 = item2.ClipRegion;
                 if (region2 == null)
                 {
-                    item2.CollideItem(item1, offset);
+                    item2.OnCollideItem(item1, offset, gr, bounds1, bounds1.Location/*TODO + w/2*/, region1);
                     continue;
                 }
                 RectangleF bounds2;
@@ -328,8 +328,8 @@ namespace MED.Imaging
             , IImageMover item, PointF offset, Region region
             , IImageCollider item2, PointF offset2)
         {
-            item.CollideItem(item2, offset2);
-            item2.CollideItem(item, offset);
+            item.OnCollideItem(item2, offset2, gr, intersectBounds, intersectBoundsCenter, intersectRegion);
+            item2.OnCollideItem(item, offset, gr, intersectBounds, intersectBoundsCenter, intersectRegion);
 
             if (item.Location.IsEmpty)
                 return false;
@@ -1022,12 +1022,21 @@ namespace MED.Imaging
             //Calculate Vector Normal
             Vector2 collision_normal = new(-normalised_collision.Y, normalised_collision.X);
 
+            Vector2 velocityVector2;
+            if (item2 is VideoMover videoMover2)
+            {
+                velocityVector2 = videoMover2.GetLocalVelocity(gr, intersectBoundsCenter);
+            }
+            else
+            {
+                velocityVector2 = item2.VelocityVector;
+            }
             //Project Responses
             float ball_1_normal_dot_product = Vector2.Dot(item1.VelocityVector, collision_normal);
-            float ball_2_normal_dot_product = Vector2.Dot(item2.VelocityVector, collision_normal);
+            float ball_2_normal_dot_product = Vector2.Dot(velocityVector2, collision_normal);
 
             float ball_1_collision_dot_product = Vector2.Dot(item1.VelocityVector, normalised_collision);
-            float ball_2_collision_dot_product = Vector2.Dot(item2.VelocityVector, normalised_collision);
+            float ball_2_collision_dot_product = Vector2.Dot(velocityVector2, normalised_collision);
 
             //Caclulate Resulting Velocities
             float ball_1_momentum = (ball_1_collision_dot_product * (item1.Mass - item2.Mass) + 2.0f * item2.Mass * ball_2_collision_dot_product) / (item1.Mass + item2.Mass);
@@ -1040,42 +1049,48 @@ namespace MED.Imaging
             item1.Direction = new PointF(item1Direction);
 
             var friction = Math.Max(0, item1.SurfaceFriction);
-            if (!item2.Location.IsEmpty && item2.SpeedMax != 0F)
-            {
-                var item2Velocity = (collision_normal * ball_2_normal_dot_product) + (normalised_collision * ball_2_momentum);
-
-                var item2Direction = Vector2.Normalize(item2Velocity);
-                item2.Direction = new PointF(item2Direction);
-                item1.Speed_msec = item1Velocity.Length();
-                item2.Speed_msec = item2Velocity.Length();
-
-                friction = Math.Max(friction, item2.SurfaceFriction);
-                if (friction > 0)
+            if (item2.SpeedMax != 0F){
+                if (!item2.Location.IsEmpty)
                 {
-                    if (item2.RotationSpeedMax > 0F && item1.RotationSpeedMax > 0F && (item1.RotationSpeed != 0F || item2.RotationSpeed != 0F))
-                    {
-                        //var radiusSquared = (item1Bounds.Width * item1Bounds.Height) / 4;
-                        var speedDelta = item2.RotationSpeed * item2.Mass - item1.RotationSpeed * item1.Mass;
-                        //var item1RotMomentum = speedDelta * ball_1_momentum;// * radiusSquared;
-                        //var item2RotMomentum = speedDelta * ball_2_momentum;// * radiusSquared;
+                    var item2Velocity = (collision_normal * ball_2_normal_dot_product) + (normalised_collision * ball_2_momentum);
 
-                        //var item2RotationSpeed = item2.RotationSpeed;
-                        item2.RotationSpeed -= speedDelta * ball_1_momentum * friction;
-                        item1.RotationSpeed += speedDelta * ball_2_momentum * friction;
+                    var item2Direction = Vector2.Normalize(item2Velocity);
+                    item2.Direction = new PointF(item2Direction);
+                    item1.Speed_msec = item1Velocity.Length();
+                    item2.Speed_msec = item2Velocity.Length();
 
-                        //var angle = Math.Atan2(item2Direction.Y, item2Direction.X);
-                        //item2.RotationSpeed += (float)(angle - item2PreviousAngle);
-                    }
+                    friction = Math.Max(friction, item2.SurfaceFriction);
+                    if (friction > 0)
+                    {
+                        if (item2.RotationSpeedMax > 0F && item1.RotationSpeedMax > 0F && (item1.RotationSpeed != 0F || item2.RotationSpeed != 0F))
+                        {
+                            //var radiusSquared = (item1Bounds.Width * item1Bounds.Height) / 4;
+                            var speedDelta = item2.RotationSpeed * item2.Mass - item1.RotationSpeed * item1.Mass;
+                            //var item1RotMomentum = speedDelta * ball_1_momentum;// * radiusSquared;
+                            //var item2RotMomentum = speedDelta * ball_2_momentum;// * radiusSquared;
 
-                    //Tangential collision to rotation
-                    if (item2.RotationSpeedMax > 0F)
-                    {
-                        item2.RotationSpeed += ball_1_normal_dot_product * friction;
+                            //var item2RotationSpeed = item2.RotationSpeed;
+                            item2.RotationSpeed -= speedDelta * ball_1_momentum * friction;
+                            item1.RotationSpeed += speedDelta * ball_2_momentum * friction;
+
+                            //var angle = Math.Atan2(item2Direction.Y, item2Direction.X);
+                            //item2.RotationSpeed += (float)(angle - item2PreviousAngle);
+                        }
+
+                        //Tangential collision to rotation
+                        if (item2.RotationSpeedMax > 0F)
+                        {
+                            item2.RotationSpeed += ball_1_normal_dot_product * friction;
+                        }
+                        if (item1.RotationSpeedMax > 0F)
+                        {
+                            item1.RotationSpeed += ball_2_normal_dot_product * friction;
+                        }
                     }
-                    if (item1.RotationSpeedMax > 0F)
-                    {
-                        item1.RotationSpeed += ball_2_normal_dot_product * friction;
-                    }
+                }
+                else
+                {
+                    item1.Speed_msec = item1Velocity.Length();
                 }
             }
 

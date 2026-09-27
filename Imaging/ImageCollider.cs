@@ -83,11 +83,8 @@ namespace MED.Imaging
             location.Y += offset.Y;
             return location;
         }
-        public virtual bool CollideItem(IImageCollider item2, PointF offset2){
-            if (OnCollideItemScript == null)
-                return true;
-            return OnCollideItemScript.Eval(item2, offset2); 
-        }
+        public virtual void OnCollideItem(IImageCollider item2, PointF offset2, Graphics graphics, RectangleF intersectBounds, PointF intersectBoundsCenter, Region intersectRegion) 
+            => OnCollideItemScript?.Eval(item2, offset2, graphics, intersectBounds, intersectBoundsCenter, intersectRegion); 
 
         [Category("Collider")]
         [Browsable(true)]

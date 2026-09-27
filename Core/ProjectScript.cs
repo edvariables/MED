@@ -121,7 +121,8 @@ namespace MED
 
         private string GetEventScriptID(EventScript eventScript)
         {
-            return $"{eventScript.Process.Name}_{eventScript.EventName}_{eventScript.Process.GetHashCode()}";
+            var processName = Regex.Replace(eventScript.Process.Name, @"[^a-zA-Z0-9]", "_");
+            return $"{processName}_{eventScript.EventName}_{eventScript.Process.GetHashCode()}";
         }
 
         private List<EventScript> GetProcessScripts(IProcess process)
@@ -168,11 +169,6 @@ namespace MED
             get => false;
             set { if (value) CompileScript(); }
         }
-
-        [Category("Script")]
-        [Description("Compile script on project process load")]
-        [DefaultValue(true)]
-        public bool CompileScriptOnLoad { get; set; } = true;
 
         /**
          * CompileScript

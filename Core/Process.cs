@@ -225,8 +225,10 @@ namespace MED
         public virtual ProcessSettings? ProcessSettings { get; set; }
         public virtual void LoadSettings(ProcessSettings? settings = null, string fileName = "")
         {
-            if (settings == null)
+            if (settings == null){
                 settings = ProcessSettings = ProcessSettings.FromFile(fileName);
+                settings.LoadSettingsDone += this.OnLoadSettingsDone;
+            }
             else
                 ProcessSettings = settings;
             if (settings == null)
@@ -247,13 +249,13 @@ namespace MED
             EventScript.LoadSetting(settings, this, nameof(OnProcessStateScript));
             EventScript.LoadSetting(settings, this, nameof(OnGameControllerScript));
 
-            if (settings.OnLoadSettingsDone != null)
-                settings.OnLoadSettingsDone(this, EventArgs.Empty);
+            if (settings.LoadSettingsDone != null)
+                settings.LoadSettingsDone(this, EventArgs.Empty);
         }
 
         public virtual void LoadProcess(JsonNode node) { }
 
-        public virtual void LoadSettingsDone(object? sender, EventArgs e)
+        public virtual void OnLoadSettingsDone(object? sender, EventArgs e)
         {
             if (OnProcessStateScript != null)
                 OnProcessStateScript.Script = OnProcessStateScript.Script;

@@ -136,7 +136,7 @@ namespace MED
             ProcessIcon = Project.ProcessIcon;
         }
         public virtual void LoadProcess(JsonNode node) => Project.LoadProcess(node);
-        public virtual void LoadSettingsDone(object? sender, EventArgs e) => throw new NotImplementedException();
+        public virtual void OnLoadSettingsDone(object? sender, EventArgs e) => throw new NotImplementedException();
 
         public virtual void SaveSettings(ProcessSettings? settings = null, string fileName = "")
         {

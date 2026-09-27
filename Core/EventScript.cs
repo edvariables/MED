@@ -498,13 +498,13 @@ namespace MED
                     eventScript.Script = script;
                     if (settings.SettingsRoot != null)
                     {
-                        settings.SettingsRoot.OnLoadSettingsDone -= process.LoadSettingsDone;
-                        settings.SettingsRoot.OnLoadSettingsDone += process.LoadSettingsDone;
+                        settings.SettingsRoot.LoadSettingsDone -= process.OnLoadSettingsDone;
+                        settings.SettingsRoot.LoadSettingsDone += process.OnLoadSettingsDone;
                     }
                     else
                     {
-                        settings.OnLoadSettingsDone -= process.LoadSettingsDone;
-                        settings.OnLoadSettingsDone += process.LoadSettingsDone;
+                        settings.LoadSettingsDone -= process.OnLoadSettingsDone;
+                        settings.LoadSettingsDone += process.OnLoadSettingsDone;
                     }
                 }
                 else

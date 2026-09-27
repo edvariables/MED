@@ -327,7 +327,7 @@ namespace MED.Imaging
                         if (rotation != 0F)
                             graphics.RotateTransform(rotation, MatrixOrder.Prepend);
                     }
-                    else if(! location.IsEmpty)
+                    else if (!location.IsEmpty)
                         graphics.TranslateTransform(location.X, location.Y);
                     item.OnPaint(graphics, EventArgs.Empty);
                 }
@@ -494,7 +494,7 @@ namespace MED.Imaging
             return location;
         }
 
-        public override bool CollideItem(IImageCollider item2, PointF offset2)
+        public override void OnCollideItem(IImageCollider item2, PointF offset2, Graphics graphics, RectangleF intersectBounds, PointF intersectBoundsCenter, Region intersectRegion)
         {
             if (item2 is IImageMover mover
                 && mover.Speed != 0F)
@@ -503,15 +503,15 @@ namespace MED.Imaging
                 if (modelImage != null)
                 {
                     Graphics gr = Graphics.FromImage(modelImage);
-                    if (ImagesCollider.CollideItemWithImageBorders(BorderBehavior, modelImage, gr, mover, offset2))
+                    if (ImagesCollider.CollideItemWithImageBorders(BorderBehavior, modelImage, graphics, mover, offset2))
                     {
-                        OnCollideItemScript?.Eval(this, item2, offset2);
-                        item2.OnCollideItemScript?.Eval(item2, this, offset2);
-                        return true;
+                        OnCollideItemScript?.Eval(this, item2, offset2, graphics, intersectBounds, intersectBoundsCenter, intersectRegion);
+                        item2.OnCollideItemScript?.Eval(item2, this, offset2, graphics, intersectBounds, intersectBoundsCenter, intersectRegion);
+                        return;
                     }
                 }
             }
-            return false;
+            return;
         }
 
         #endregion

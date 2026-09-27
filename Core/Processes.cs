@@ -60,10 +60,16 @@ namespace MED
 
         [Category("Script")]
         [Description("Global script containing all items scripts.")]
-        [ReadOnly(true)]
+        //[ReadOnly(true)]
         [Editor(typeof(EventScriptEditor), typeof(UITypeEditor))]
         [TypeConverter(typeof(EventScriptConvertor))]
         public ProjectScript? ProjectScript { get; protected set; }
+
+
+        [Category("Script")]
+        [Description("Compile script on project process load")]
+        [DefaultValue(true)]
+        public bool ProjectScriptCompileOnLoad { get; set; } = true;
 
         #region Settings
 
@@ -72,6 +78,9 @@ namespace MED
             base.LoadSettings(settings, fileName);
 
             InitializeProcesses(false);
+
+            if (ProcessSettings != null && ProcessSettings.LoadSettingsDone == null)
+                OnLoadSettingsDone(this, EventArgs.Empty);
         }
         public override void LoadProcess(JsonNode node)
         {
@@ -80,17 +89,19 @@ namespace MED
             if (ProcessSettings != null)
                 LoadProcesses(ProcessSettings);
         }
-        public override void LoadSettingsDone(object? sender, EventArgs e)
+        public override void OnLoadSettingsDone(object? sender, EventArgs e)
         {
-            base.LoadSettingsDone(sender, e);
+            base.OnLoadSettingsDone(sender, e);
 
-            if (Consumer is ProcessForm processForm)
+            if (Consumer is ProcessForm processForm)//Root
             {
-                ProjectScript = new ProjectScript(this);
                 if (ProcessSettings != null)
-                    ProjectScript.CompileScriptOnLoad = (bool)(ProcessSettings.GetValue("ProjectScript.CompileScriptOnLoad", ProjectScript.CompileScriptOnLoad) ?? ProjectScript.CompileScriptOnLoad);
-                if (ProjectScript.CompileScriptOnLoad)
+                    ProjectScriptCompileOnLoad = (bool)(ProcessSettings.GetValue(nameof(ProjectScriptCompileOnLoad), ProjectScriptCompileOnLoad) ?? ProjectScriptCompileOnLoad);
+                if (ProjectScriptCompileOnLoad)
+                {
+                    ProjectScript = new ProjectScript(this);
                     ProjectScript.CompileScript();
+                }
             }
         }
 
@@ -107,8 +118,8 @@ namespace MED
         {
             node = base.SaveProcess(node);
 
-            if (ProjectScript != null && !ProjectScript.CompileScriptOnLoad)
-                node[$"{nameof(ProjectScript)}.{nameof(ProjectScript.CompileScriptOnLoad)}"] = ProjectScript.CompileScriptOnLoad;
+            if (!ProjectScriptCompileOnLoad)
+                node[$"{nameof(ProjectScriptCompileOnLoad)}"] = ProjectScriptCompileOnLoad;
 
             return node;
         }
@@ -253,12 +264,12 @@ namespace MED
                 {
                     handler.Stop();
 
-                    if(handler is IGameController controller && controller.Enabled)
+                    if (handler is IGameController controller && controller.Enabled)
                         GameControllers.Add(controller.Name, controller);
                 }
                 return;
             }
-            
+
             //resetAll
 
             if (Logger == null)

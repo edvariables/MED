@@ -33,7 +33,7 @@ namespace MED
         ProcessSettings? ProcessSettings { get; }
         void LoadSettings(ProcessSettings? settings = null, string fileName = "");
         void LoadProcess(JsonNode node);
-        void LoadSettingsDone(object? sender, EventArgs e);
+        void OnLoadSettingsDone(object? sender, EventArgs e);
 
         void SaveSettings(ProcessSettings? settings = null, string fileName = "");
         JsonObject SaveProcess(JsonObject? node = null);

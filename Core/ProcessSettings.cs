@@ -37,7 +37,7 @@ namespace MED
         public JsonNode Root { get; set; }
         public ProcessSettings? SettingsRoot { get; set; }
 
-        public EventHandler? OnLoadSettingsDone;
+        public EventHandler? LoadSettingsDone;
 
         public bool IsNull => false;
 

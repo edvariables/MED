@@ -229,7 +229,7 @@ namespace MED.Imaging
             }
         }
 
-        private System.Drawing.Region? _ClipRegionEdges = null;
+        protected System.Drawing.Region? _ClipRegionEdges = null;
 
         [Browsable(false)]
         public virtual System.Drawing.Region? ClipEdgesRegion
